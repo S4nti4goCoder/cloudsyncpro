@@ -47,3 +47,26 @@ exports.loginUser = async ({ email_user, password_user }) => {
     },
   };
 };
+
+exports.recoverPassword = async (email_user) => {
+  const [rows] = await db.query("SELECT * FROM users WHERE email_user = ?", [
+    email_user,
+  ]);
+  const user = rows[0];
+  if (!user) throw new Error("El correo no está registrado");
+
+  const token = jwt.sign(
+    { id_user: user.id_user },
+    SECRET,
+    { expiresIn: "15m" } // Token válido por 15 minutos
+  );
+
+  // Aquí simulas el envío del enlace
+  const recoveryLink = `http://localhost:5173/recover-password?token=${token}`;
+
+  return {
+    message: "Token de recuperación generado correctamente",
+    recoveryLink, // Simulación, luego lo enviaremos por correo real
+    expiresIn: "15 minutos",
+  };
+};

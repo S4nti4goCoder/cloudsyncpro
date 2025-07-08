@@ -26,3 +26,16 @@ exports.login = async (req, res) => {
     res.status(401).json({ message: err.message });
   }
 };
+
+exports.recoverPassword = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty())
+    return res.status(400).json({ errors: errors.array() });
+
+  try {
+    const result = await authService.recoverPassword(req.body.email_user);
+    res.json(result);
+  } catch (err) {
+    res.status(404).json({ message: err.message });
+  }
+};

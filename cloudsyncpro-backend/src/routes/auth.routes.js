@@ -23,4 +23,10 @@ router.post(
   authController.login
 );
 
+router.post(
+  "/recover-password",
+  [body("email_user").isEmail().withMessage("Email inválido")],
+  authController.recoverPassword
+);
+
 module.exports = router;
