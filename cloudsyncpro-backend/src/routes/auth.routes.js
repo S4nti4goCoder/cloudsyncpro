@@ -29,4 +29,13 @@ router.post(
   authController.recoverPassword
 );
 
+router.post(
+  '/reset-password',
+  [
+    body('token').notEmpty().withMessage('Token requerido'),
+    body('new_password').isLength({ min: 6 }).withMessage('Mínimo 6 caracteres')
+  ],
+  authController.resetPassword
+);
+
 module.exports = router;

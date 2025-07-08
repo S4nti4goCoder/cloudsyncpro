@@ -70,3 +70,20 @@ exports.recoverPassword = async (email_user) => {
     expiresIn: "15 minutos",
   };
 };
+
+exports.resetPassword = async (token, newPassword) => {
+  let payload;
+  try {
+    payload = jwt.verify(token, SECRET);
+  } catch (err) {
+    throw new Error("Token inválido o expirado");
+  }
+
+  const hash = await bcrypt.hash(newPassword, 10);
+  await db.query("UPDATE users SET password_user = ? WHERE id_user = ?", [
+    hash,
+    payload.id_user,
+  ]);
+
+  return { message: "Contraseña actualizada exitosamente" };
+};
