@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/auth.controller");
 const { body } = require("express-validator");
+const verifyToken = require("../middlewares/auth.middleware");
 
 // Ruta de registro
 router.post(
@@ -30,12 +31,21 @@ router.post(
 );
 
 router.post(
-  '/reset-password',
+  "/reset-password",
   [
-    body('token').notEmpty().withMessage('Token requerido'),
-    body('new_password').isLength({ min: 6 }).withMessage('Mínimo 6 caracteres')
+    body("token").notEmpty().withMessage("Token requerido"),
+    body("new_password")
+      .isLength({ min: 6 })
+      .withMessage("Mínimo 6 caracteres"),
   ],
   authController.resetPassword
 );
+
+router.get("/protected", verifyToken, (req, res) => {
+  res.json({
+    message: "Ruta protegida accedida correctamente",
+    user: req.user,
+  });
+});
 
 module.exports = router;
