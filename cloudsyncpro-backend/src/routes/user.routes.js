@@ -19,4 +19,18 @@ router.put(
   userController.updateProfile
 );
 
+router.put(
+  "/change-password",
+  [
+    verifyToken,
+    body("current_password")
+      .notEmpty()
+      .withMessage("La contraseña actual es requerida"),
+    body("new_password")
+      .isLength({ min: 6 })
+      .withMessage("La nueva contraseña debe tener al menos 6 caracteres"),
+  ],
+  userController.changePassword
+);
+
 module.exports = router;
