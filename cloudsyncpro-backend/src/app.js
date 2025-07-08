@@ -14,4 +14,7 @@ app.get("/", (req, res) => {
   res.send("API CloudSyncPro funcionando ✅");
 });
 
+const userRoutes = require("./routes/user.routes");
+app.use("/api/user", userRoutes);
+
 module.exports = app;
