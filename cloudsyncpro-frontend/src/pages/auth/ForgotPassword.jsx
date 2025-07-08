@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Mail, ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
@@ -29,11 +30,25 @@ const ForgotPassword = () => {
       const result = await authService.forgotPassword(data.email);
 
       if (result.success) {
+        // ✅ SUCCESS - Enlace enviado exitosamente
+        toast.success("¡Enlace enviado!", {
+          description:
+            "Revisa tu correo electrónico para recuperar tu contraseña",
+          duration: 4000,
+        });
         setSubmitted(true);
       } else {
+        // ❌ ERROR - Email no encontrado
+        toast.error("Error al enviar enlace", {
+          description: result.message,
+        });
         setError("email", { message: result.message });
       }
     } catch (error) {
+      // ❌ ERROR - Error de conexión
+      toast.error("Error de conexión", {
+        description: "No se pudo conectar con el servidor",
+      });
       setError("email", { message: "Error de conexión" });
     } finally {
       setLoading(false);

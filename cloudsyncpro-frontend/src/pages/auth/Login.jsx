@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Mail, Lock } from "lucide-react";
+import { toast } from "sonner";
 
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
@@ -14,6 +15,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const {
     register,
@@ -24,6 +26,15 @@ const Login = () => {
     resolver: yupResolver(loginSchema),
   });
 
+  // Mostrar mensaje de registro exitoso si viene desde register
+  useEffect(() => {
+    if (location.state?.message) {
+      toast.info(location.state.message, {
+        duration: 4000,
+      });
+    }
+  }, [location.state]);
+
   const onSubmit = async (data) => {
     setLoading(true);
 
@@ -33,11 +44,28 @@ const Login = () => {
       if (result.success) {
         localStorage.setItem("token", result.data.token);
         localStorage.setItem("user", JSON.stringify(result.data.user));
-        navigate("/dashboard");
+
+        // ✅ SUCCESS - Login exitoso
+        toast.success("¡Inicio de sesión exitoso!", {
+          description: `Bienvenido de vuelta, ${result.data.user.name_user}`,
+          duration: 3000,
+        });
+
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 500);
       } else {
+        // ❌ ERROR - Credenciales incorrectas
+        toast.error("Error al iniciar sesión", {
+          description: result.message,
+        });
         setError("email", { message: result.message });
       }
     } catch (error) {
+      // ❌ ERROR - Problema de conexión
+      toast.error("Error de conexión", {
+        description: "No se pudo conectar con el servidor",
+      });
       setError("email", { message: "Error de conexión" });
     } finally {
       setLoading(false);

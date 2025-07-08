@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Mail, Lock } from "lucide-react";
+import { toast } from "sonner";
 
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
@@ -31,15 +32,32 @@ const Register = () => {
       const result = await authService.register(data.email, data.password);
 
       if (result.success) {
-        navigate("/login", {
-          state: {
-            message: "Registro exitoso. Inicia sesión con tus credenciales.",
-          },
+        // ✅ SUCCESS - Registro exitoso
+        toast.success("¡Registro exitoso!", {
+          description: "Tu cuenta ha sido creada correctamente",
+          duration: 3000,
         });
+
+        setTimeout(() => {
+          navigate("/login", {
+            state: {
+              message:
+                "Registro completado. Inicia sesión con tus credenciales.",
+            },
+          });
+        }, 1000);
       } else {
+        // ❌ ERROR - Error en el registro (email ya existe, etc.)
+        toast.error("Error en el registro", {
+          description: result.message,
+        });
         setError("email", { message: result.message });
       }
     } catch (error) {
+      // ❌ ERROR - Error de conexión
+      toast.error("Error de conexión", {
+        description: "No se pudo conectar con el servidor",
+      });
       setError("email", { message: "Error de conexión" });
     } finally {
       setLoading(false);

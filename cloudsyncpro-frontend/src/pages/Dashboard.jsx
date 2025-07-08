@@ -1,21 +1,47 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
+  const [hasShownWelcome, setHasShownWelcome] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      const userData = JSON.parse(savedUser);
+      setUser(userData);
+
+      // ℹ️ INFO - Mensaje de bienvenida informativo
+      if (!hasShownWelcome) {
+        setTimeout(() => {
+          toast.info("¡Bienvenido al Dashboard!", {
+            description: `Hola ${userData.name_user}, aquí puedes gestionar tus documentos`,
+            duration: 4000,
+          });
+        }, 100);
+        setHasShownWelcome(true);
+      }
     }
-  }, []);
+  }, [hasShownWelcome]);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/login");
+    // ⏳ LOADING - Proceso en curso
+    const loadingToast = toast.loading("Cerrando sesión...");
+
+    setTimeout(() => {
+      toast.dismiss(loadingToast);
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+
+      // ✅ SUCCESS - Logout exitoso
+      toast.success("Sesión cerrada correctamente", {
+        duration: 3000,
+      });
+
+      navigate("/login");
+    }, 800);
   };
 
   if (!user) {
@@ -166,6 +192,13 @@ const Dashboard = () => {
             <div className="mt-6">
               <button
                 type="button"
+                onClick={() =>
+                  // ⚠️ WARNING - Función no disponible
+                  toast.warning("Función próximamente", {
+                    description:
+                      "La subida de documentos estará disponible pronto",
+                  })
+                }
                 className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#082563] hover:bg-[#061a4a] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#082563]"
               >
                 Subir documento
