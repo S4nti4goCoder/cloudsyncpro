@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { authService } from "../services/authService";
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
@@ -13,7 +14,6 @@ const Dashboard = () => {
       const userData = JSON.parse(savedUser);
       setUser(userData);
 
-      // ℹ️ INFO - Mensaje de bienvenida informativo
       if (!hasShownWelcome) {
         setTimeout(() => {
           toast.info("¡Bienvenido al Dashboard!", {
@@ -26,22 +26,28 @@ const Dashboard = () => {
     }
   }, [hasShownWelcome]);
 
-  const handleLogout = () => {
-    // ⏳ LOADING - Proceso en curso
+  const handleLogout = async () => {
     const loadingToast = toast.loading("Cerrando sesión...");
 
-    setTimeout(() => {
-      toast.dismiss(loadingToast);
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+    try {
+      await authService.logout();
 
-      // ✅ SUCCESS - Logout exitoso
+      toast.dismiss(loadingToast);
       toast.success("Sesión cerrada correctamente", {
         duration: 3000,
       });
 
       navigate("/login");
-    }, 800);
+    } catch (error) {
+      toast.dismiss(loadingToast);
+
+      // En caso de error, aún así hacer logout local
+      toast.success("Sesión cerrada correctamente", {
+        duration: 3000,
+      });
+
+      navigate("/login");
+    }
   };
 
   if (!user) {
@@ -193,7 +199,6 @@ const Dashboard = () => {
               <button
                 type="button"
                 onClick={() =>
-                  // ⚠️ WARNING - Función no disponible
                   toast.warning("Función próximamente", {
                     description:
                       "La subida de documentos estará disponible pronto",
