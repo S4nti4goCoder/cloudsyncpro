@@ -2,10 +2,37 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { authService } from "../services/authService";
+import {
+  Home,
+  Folder,
+  Star,
+  Share2,
+  Clock,
+  Trash2,
+  HardDrive,
+  Settings,
+  Search,
+  Plus,
+  Upload,
+  Grid3X3,
+  List,
+  Filter,
+  MoreVertical,
+  ChevronRight,
+  File,
+  Image,
+  FileText,
+  Download,
+  Share,
+  MoreHorizontal,
+  Menu,
+} from "lucide-react";
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [hasShownWelcome, setHasShownWelcome] = useState(false);
+  const [currentView, setCurrentView] = useState("grid"); // grid | list
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -16,8 +43,8 @@ const Dashboard = () => {
 
       if (!hasShownWelcome) {
         setTimeout(() => {
-          toast.info("¡Bienvenido al Dashboard!", {
-            description: `Hola ${userData.name_user}, aquí puedes gestionar tus documentos`,
+          toast.info("¡Bienvenido a CloudSyncPro!", {
+            description: `Hola ${userData.name_user}, gestiona tus archivos de forma inteligente`,
             duration: 4000,
           });
         }, 100);
@@ -31,22 +58,95 @@ const Dashboard = () => {
 
     try {
       await authService.logout();
-
       toast.dismiss(loadingToast);
       toast.success("Sesión cerrada correctamente", {
         duration: 3000,
       });
-
       navigate("/login");
     } catch (error) {
       toast.dismiss(loadingToast);
-
-      // En caso de error, aún así hacer logout local
       toast.success("Sesión cerrada correctamente", {
         duration: 3000,
       });
-
       navigate("/login");
+    }
+  };
+
+  // Datos temporales para demostración
+  const sidebarItems = [
+    { icon: Home, label: "Inicio", count: null, active: true },
+    { icon: Folder, label: "Mis archivos", count: 12, active: false },
+    { icon: Star, label: "Destacados", count: 3, active: false },
+    { icon: Share2, label: "Compartidos", count: 5, active: false },
+    { icon: Clock, label: "Recientes", count: null, active: false },
+    { icon: Trash2, label: "Papelera", count: 2, active: false },
+  ];
+
+  const recentFiles = [
+    {
+      id: 1,
+      name: "Proyecto CloudSync.pdf",
+      type: "pdf",
+      size: "2.4 MB",
+      modified: "Hace 2 horas",
+      shared: false,
+    },
+    {
+      id: 2,
+      name: "Presentación Q4.pptx",
+      type: "presentation",
+      size: "8.1 MB",
+      modified: "Ayer",
+      shared: true,
+    },
+    {
+      id: 3,
+      name: "Documentos",
+      type: "folder",
+      size: "15 archivos",
+      modified: "Hace 3 días",
+      shared: false,
+    },
+    {
+      id: 4,
+      name: "Logo CloudSync.png",
+      type: "image",
+      size: "342 KB",
+      modified: "Hace 1 semana",
+      shared: false,
+    },
+    {
+      id: 5,
+      name: "Contratos 2025",
+      type: "folder",
+      size: "8 archivos",
+      modified: "Hace 2 semanas",
+      shared: true,
+    },
+    {
+      id: 6,
+      name: "Análisis competencia.xlsx",
+      type: "spreadsheet",
+      size: "1.8 MB",
+      modified: "Hace 3 semanas",
+      shared: false,
+    },
+  ];
+
+  const getFileIcon = (type) => {
+    switch (type) {
+      case "folder":
+        return <Folder className="w-8 h-8 text-blue-500" />;
+      case "pdf":
+        return <FileText className="w-8 h-8 text-red-500" />;
+      case "image":
+        return <Image className="w-8 h-8 text-green-500" />;
+      case "presentation":
+        return <File className="w-8 h-8 text-orange-500" />;
+      case "spreadsheet":
+        return <File className="w-8 h-8 text-green-600" />;
+      default:
+        return <File className="w-8 h-8 text-gray-500" />;
     }
   };
 
@@ -54,7 +154,7 @@ const Dashboard = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#082563] mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#061a4a] mx-auto"></div>
           <p className="mt-2 text-gray-600">Cargando...</p>
         </div>
       </div>
@@ -62,16 +162,108 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">
-                CloudSyncPro
-              </h1>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <div
+        className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ${
+          sidebarCollapsed ? "w-16" : "w-64"
+        }`}
+      >
+        {/* Sidebar Header */}
+        <div className="p-4 border-b border-gray-100">
+          <div className="flex items-center">
+            <div className="w-8 h-8 bg-[#061a4a] rounded-lg flex items-center justify-center">
+              <Folder className="w-5 h-5 text-white" />
             </div>
+            {!sidebarCollapsed && (
+              <span className="ml-3 font-semibold text-gray-900">
+                CloudSyncPro
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-2">
+          {sidebarItems.map((item, index) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={index}
+                className={`w-full flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-1 cursor-pointer ${
+                  item.active
+                    ? "bg-[#061a4a]/10 text-[#061a4a] border border-[#061a4a]/20"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                {!sidebarCollapsed && (
+                  <>
+                    <span className="ml-3 flex-1 text-left">{item.label}</span>
+                    {item.count && (
+                      <span className="ml-2 bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full">
+                        {item.count}
+                      </span>
+                    )}
+                  </>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Storage Info */}
+        {!sidebarCollapsed && (
+          <div className="p-4 border-t border-gray-100">
+            <div className="flex items-center text-sm text-gray-600 mb-2">
+              <HardDrive className="w-4 h-4 mr-2" />
+              <span>Almacenamiento</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+              <div
+                className="bg-[#061a4a] h-2 rounded-full"
+                style={{ width: "65%" }}
+              ></div>
+            </div>
+            <p className="text-xs text-gray-500">6.5 GB de 10 GB utilizados</p>
+          </div>
+        )}
+
+        {/* Settings */}
+        <div className="p-2 border-t border-gray-100">
+          <button className="w-full flex items-center px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 cursor-pointer transition-colors">
+            <Settings className="w-5 h-5 flex-shrink-0" />
+            {!sidebarCollapsed && <span className="ml-3">Configuración</span>}
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Header */}
+        <header className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                title={sidebarCollapsed ? "Mostrar sidebar" : "Ocultar sidebar"}
+              >
+                <Menu className="w-5 h-5 text-gray-600" />
+              </button>
+
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar en CloudSyncPro"
+                  className="pl-10 pr-4 py-2 w-96 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#061a4a] focus:border-transparent cursor-text"
+                />
+              </div>
+            </div>
+
+            {/* User Menu */}
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-700">
                 Bienvenido,{" "}
@@ -79,138 +271,192 @@ const Dashboard = () => {
               </span>
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer"
               >
                 Cerrar sesión
               </button>
             </div>
           </div>
-        </div>
-      </div>
+        </header>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Dashboard</h2>
-          <p className="text-gray-600">Gestiona tus documentos y carpetas</p>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm p-6 border">
-            <div className="flex items-center">
-              <div className="p-3 rounded-lg bg-blue-100">
-                <svg
-                  className="w-6 h-6 text-blue-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Documentos</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6 border">
-            <div className="flex items-center">
-              <div className="p-3 rounded-lg bg-green-100">
-                <svg
-                  className="w-6 h-6 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"
-                  />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Carpetas</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6 border">
-            <div className="flex items-center">
-              <div className="p-3 rounded-lg bg-purple-100">
-                <svg
-                  className="w-6 h-6 text-purple-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
-                  />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Compartidos</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
-              </div>
-            </div>
+        {/* Breadcrumbs */}
+        <div className="bg-white border-b border-gray-100 px-6 py-3">
+          <div className="flex items-center text-sm text-gray-600">
+            <Home className="w-4 h-4" />
+            <ChevronRight className="w-4 h-4 mx-1" />
+            <span className="text-gray-900 font-medium">Inicio</span>
           </div>
         </div>
 
-        {/* Contenido principal */}
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">
-            Actividad reciente
-          </h3>
-          <div className="text-center py-12">
-            <svg
-              className="mx-auto h-12 w-12 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">
-              No hay documentos
-            </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Comienza subiendo tu primer documento.
-            </p>
-            <div className="mt-6">
-              <button
-                type="button"
-                onClick={() =>
-                  toast.warning("Función próximamente", {
-                    description:
-                      "La subida de documentos estará disponible pronto",
-                  })
-                }
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#082563] hover:bg-[#061a4a] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#082563]"
-              >
-                Subir documento
+        {/* Content Header */}
+        <div className="bg-white border-b border-gray-100 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-semibold text-gray-900">Inicio</h1>
+
+            {/* Toolbar */}
+            <div className="flex items-center space-x-2">
+              <button className="flex items-center px-4 py-2 bg-[#061a4a] text-white rounded-lg hover:bg-[#082563] transition-colors cursor-pointer">
+                <Plus className="w-4 h-4 mr-2" />
+                Nuevo
+              </button>
+              <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+                <Upload className="w-4 h-4 mr-2" />
+                Subir
+              </button>
+
+              {/* View Toggle */}
+              <div className="flex border border-gray-300 rounded-lg">
+                <button
+                  onClick={() => setCurrentView("grid")}
+                  className={`p-2 cursor-pointer transition-colors ${
+                    currentView === "grid"
+                      ? "bg-gray-100 text-gray-900"
+                      : "text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  <Grid3X3 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setCurrentView("list")}
+                  className={`p-2 cursor-pointer transition-colors ${
+                    currentView === "list"
+                      ? "bg-gray-100 text-gray-900"
+                      : "text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
+
+              <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                <Filter className="w-4 h-4 text-gray-600" />
+              </button>
+              <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                <MoreVertical className="w-4 h-4 text-gray-600" />
               </button>
             </div>
           </div>
         </div>
+
+        {/* Main Content Area */}
+        <main className="flex-1 p-6">
+          {/* Quick Access Section */}
+          <div className="mb-8">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              Acceso rápido
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <button
+                onClick={() => toast.info("Crear nueva carpeta - Próximamente")}
+                className="flex items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors group"
+              >
+                <Plus className="w-6 h-6 text-gray-400 group-hover:text-blue-500 mr-3" />
+                <span className="text-gray-600 group-hover:text-blue-700 cursor-pointer">
+                  Crear carpeta
+                </span>
+              </button>
+              <button
+                onClick={() => toast.info("Subir archivos - Próximamente")}
+                className="flex items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors group"
+              >
+                <Upload className="w-6 h-6 text-gray-400 group-hover:text-green-500 mr-3" />
+                <span className="text-gray-600 group-hover:text-green-700 cursor-pointer">
+                  Subir archivos
+                </span>
+              </button>
+              <button
+                onClick={() => toast.info("Ver compartidos - Próximamente")}
+                className="flex items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors group"
+              >
+                <Share2 className="w-6 h-6 text-gray-400 group-hover:text-purple-500 mr-3" />
+                <span className="text-gray-600 group-hover:text-purple-700 cursor-pointer">
+                  Ver compartidos
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Recent Files Section */}
+          <div>
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              Archivos recientes
+            </h2>
+
+            {currentView === "grid" ? (
+              /* Grid View */
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                {recentFiles.map((file) => (
+                  <div
+                    key={file.id}
+                    className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer group"
+                  >
+                    <div className="flex flex-col items-center">
+                      <div className="mb-3">{getFileIcon(file.type)}</div>
+                      <h3 className="text-sm font-medium text-gray-900 text-center mb-1 line-clamp-2">
+                        {file.name}
+                      </h3>
+                      <p className="text-xs text-gray-500 text-center">
+                        {file.size}
+                      </p>
+                      <p className="text-xs text-gray-400 text-center">
+                        {file.modified}
+                      </p>
+                      {file.shared && (
+                        <div className="mt-2">
+                          <Share className="w-3 h-3 text-[#061a4a]" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* List View */
+              <div className="bg-white rounded-lg border border-gray-200">
+                <div className="grid grid-cols-12 gap-4 p-4 border-b border-gray-100 text-sm font-medium text-gray-600">
+                  <div className="col-span-6">Nombre</div>
+                  <div className="col-span-2">Tamaño</div>
+                  <div className="col-span-3">Modificado</div>
+                  <div className="col-span-1"></div>
+                </div>
+                {recentFiles.map((file) => (
+                  <div
+                    key={file.id}
+                    className="grid grid-cols-12 gap-4 p-4 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 cursor-pointer transition-colors"
+                  >
+                    <div className="col-span-6 flex items-center">
+                      <div className="mr-3">{getFileIcon(file.type)}</div>
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-900">
+                          {file.name}
+                        </h3>
+                        {file.shared && (
+                          <div className="flex items-center mt-1">
+                            <Share className="w-3 h-3 text-[#061a4a] mr-1" />
+                            <span className="text-xs text-[#061a4a]">
+                              Compartido
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="col-span-2 flex items-center text-sm text-gray-600">
+                      {file.size}
+                    </div>
+                    <div className="col-span-3 flex items-center text-sm text-gray-600">
+                      {file.modified}
+                    </div>
+                    <div className="col-span-1 flex items-center justify-end">
+                      <button className="p-1 hover:bg-gray-200 rounded cursor-pointer transition-colors">
+                        <MoreHorizontal className="w-4 h-4 text-gray-400" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </main>
       </div>
     </div>
   );
