@@ -38,6 +38,16 @@ router.post(
   authController.login
 );
 
+// 🔄 NUEVA RUTA: Refresh Token
+router.post(
+  "/refresh",
+  [body("refreshToken").notEmpty().withMessage("Refresh token requerido")],
+  authController.refreshToken
+);
+
+// 🚪 NUEVA RUTA: Logout mejorado
+router.post("/logout", authController.logout);
+
 // Ruta de recuperación de contraseña (sin cambios)
 router.post(
   "/recover-password",
@@ -59,6 +69,7 @@ router.post(
   authController.resetPassword
 );
 
+// Ruta protegida de prueba
 router.get("/protected", verifyToken, (req, res) => {
   res.json({
     message: "Ruta protegida accedida correctamente",
@@ -66,6 +77,7 @@ router.get("/protected", verifyToken, (req, res) => {
   });
 });
 
+// Validación de contraseña para frontend
 router.post("/validate-password", (req, res) => {
   const { validatePasswordStrength } = require("../utils/passwordValidator");
   const password = req.body.password;

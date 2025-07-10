@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 09-07-2025 a las 21:25:33
+-- Tiempo de generación: 10-07-2025 a las 07:50:14
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -54,6 +54,24 @@ CREATE TABLE `folders` (
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `refresh_tokens`
+--
+
+CREATE TABLE `refresh_tokens` (
+  `id_refresh_token` int(11) NOT NULL,
+  `id_user` int(11) NOT NULL,
+  `token_hash_refresh_token` text NOT NULL,
+  `expires_at_refresh_token` datetime NOT NULL,
+  `user_agent_refresh_token` varchar(500) DEFAULT NULL,
+  `ip_address_refresh_token` varchar(45) DEFAULT NULL,
+  `is_revoked_refresh_token` tinyint(1) DEFAULT 0,
+  `created_at_refresh_token` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at_refresh_token` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `users`
 --
 
@@ -97,6 +115,14 @@ ALTER TABLE `folders`
   ADD KEY `parent_folder_id` (`parent_folder_id`);
 
 --
+-- Indices de la tabla `refresh_tokens`
+--
+ALTER TABLE `refresh_tokens`
+  ADD PRIMARY KEY (`id_refresh_token`),
+  ADD KEY `idx_id_user` (`id_user`),
+  ADD KEY `idx_expires_at_refresh_token` (`expires_at_refresh_token`);
+
+--
 -- Indices de la tabla `users`
 --
 ALTER TABLE `users`
@@ -118,6 +144,12 @@ ALTER TABLE `files`
 --
 ALTER TABLE `folders`
   MODIFY `id_folder` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de la tabla `refresh_tokens`
+--
+ALTER TABLE `refresh_tokens`
+  MODIFY `id_refresh_token` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `users`
@@ -142,6 +174,12 @@ ALTER TABLE `files`
 ALTER TABLE `folders`
   ADD CONSTRAINT `folders_ibfk_1` FOREIGN KEY (`owner_user_id`) REFERENCES `users` (`id_user`),
   ADD CONSTRAINT `folders_ibfk_2` FOREIGN KEY (`parent_folder_id`) REFERENCES `folders` (`id_folder`);
+
+--
+-- Filtros para la tabla `refresh_tokens`
+--
+ALTER TABLE `refresh_tokens`
+  ADD CONSTRAINT `refresh_tokens_ibfk_1` FOREIGN KEY (`id_user`) REFERENCES `users` (`id_user`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
