@@ -1,6 +1,6 @@
 const userService = require("../services/user.service");
 const { validationResult } = require("express-validator");
-const pool = require("../config/db.config");
+const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
 
 exports.getProfile = async (req, res) => {
