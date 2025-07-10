@@ -11,10 +11,12 @@ import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 
 // Componentes de rutas
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AuthRoute from "./components/auth/AuthRoute";
+import RoleProtectedRoute from "./components/auth/RoleProtectedRoute";
 
 function App() {
   return (
@@ -47,24 +49,38 @@ function App() {
             }
           />
 
-          {/* Rutas protegidas */}
+          {/* Rutas protegidas para usuarios regulares */}
           <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <RoleProtectedRoute allowedRoles={["user"]}>
+                  <Dashboard />
+                </RoleProtectedRoute>
               </ProtectedRoute>
             }
           />
 
-          {/* Redirección por defecto */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          {/* Rutas protegidas para administradores */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <RoleProtectedRoute allowedRoles={["admin"]}>
+                  <AdminDashboard />
+                </RoleProtectedRoute>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Redirección inteligente por defecto */}
+          <Route path="/" element={<SmartRedirect />} />
 
           {/* Ruta para URLs no encontradas */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
 
-        {/* Configuración global de Sonner - posición centrada arriba */}
+        {/* Configuración global de Sonner */}
         <Toaster
           position="top-center"
           expand={true}
@@ -83,5 +99,25 @@ function App() {
     </Router>
   );
 }
+
+// Componente para redirección inteligente según el rol
+const SmartRedirect = () => {
+  const token = localStorage.getItem("token");
+  const user = localStorage.getItem("user");
+
+  if (!token || !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const userData = JSON.parse(user);
+  const userRole = userData.role_user;
+
+  // Redirigir según el rol
+  if (userRole === "admin") {
+    return <Navigate to="/admin" replace />;
+  } else {
+    return <Navigate to="/dashboard" replace />;
+  }
+};
 
 export default App;
