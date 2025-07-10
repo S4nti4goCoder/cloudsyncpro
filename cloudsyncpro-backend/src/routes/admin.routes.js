@@ -5,6 +5,7 @@ const { body } = require("express-validator");
 const adminController = require("../controllers/admin.controller");
 const verifyToken = require("../middlewares/auth.middleware");
 const { requireAdminOnly } = require("../middlewares/roleAuth.middleware");
+const { validatePasswordMiddleware } = require("../utils/passwordValidator");
 
 // Aplicar middleware de autenticación y autorización a todas las rutas
 router.use(verifyToken);
@@ -18,7 +19,7 @@ router.get("/activity/recent", adminController.getRecentActivity);
 router.get("/users", adminController.getAllUsers);
 router.get("/users/:id", adminController.getUserById);
 
-// Crear nuevo usuario
+// ✅ MEJORADO: Crear nuevo usuario con validación avanzada
 router.post(
   "/users",
   [
@@ -28,14 +29,13 @@ router.post(
       .isLength({ min: 2, max: 100 })
       .withMessage("El nombre debe tener entre 2 y 100 caracteres"),
     body("email_user").isEmail().withMessage("Email inválido").normalizeEmail(),
-    body("password_user")
-      .isLength({ min: 6 })
-      .withMessage("La contraseña debe tener al menos 6 caracteres"),
+    body("password_user").notEmpty().withMessage("La contraseña es requerida"),
     body("role_user")
       .optional()
       .isIn(["admin", "user"])
       .withMessage("Rol inválido"),
   ],
+  validatePasswordMiddleware, // 🔥 NUEVO: Validación avanzada
   adminController.createUser
 );
 
