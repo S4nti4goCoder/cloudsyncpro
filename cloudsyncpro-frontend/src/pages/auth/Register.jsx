@@ -7,8 +7,10 @@ import { toast } from "sonner";
 
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
+import PasswordStrengthIndicator from "../../components/ui/PasswordStrengthIndicator";
 import { registerSchema } from "../../utils/validationSchemas";
 import { authService } from "../../services/authService";
+import usePasswordValidation from "../../hooks/usePasswordValidation";
 
 const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -21,9 +23,36 @@ const Register = () => {
     handleSubmit,
     formState: { errors },
     setError,
+    watch,
   } = useForm({
     resolver: yupResolver(registerSchema),
   });
+
+  // Observar campos para validación en tiempo real
+  const email = watch("email");
+  const password = watch("password");
+  const confirmPassword = watch("confirmPassword");
+
+  // Hook personalizado para validación de contraseña
+  const { validation, isLoading: validationLoading } =
+    usePasswordValidation(password);
+
+  // Lógica simple - solo 2 casos para deshabilitar
+  const isFormValid = () => {
+    // Caso 1: Email inválido
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (email && !emailRegex.test(email)) {
+      return false;
+    }
+
+    // Caso 2: Contraseñas no coinciden (si ambas están llenas)
+    if (password && confirmPassword && password !== confirmPassword) {
+      return false;
+    }
+
+    // En todos los demás casos, el botón está habilitado
+    return true;
+  };
 
   const onSubmit = async (data) => {
     setLoading(true);
@@ -32,7 +61,6 @@ const Register = () => {
       const result = await authService.register(data.email, data.password);
 
       if (result.success) {
-        // ✅ SUCCESS - Registro exitoso
         toast.success("¡Registro exitoso!", {
           description: "Tu cuenta ha sido creada correctamente",
           duration: 3000,
@@ -47,14 +75,12 @@ const Register = () => {
           });
         }, 1000);
       } else {
-        // ❌ ERROR - Error en el registro (email ya existe, etc.)
         toast.error("Error en el registro", {
           description: result.message,
         });
         setError("email", { message: result.message });
       }
     } catch (error) {
-      // ❌ ERROR - Error de conexión
       toast.error("Error de conexión", {
         description: "No se pudo conectar con el servidor",
       });
@@ -104,6 +130,13 @@ const Register = () => {
                 error={errors.password?.message}
                 {...register("password")}
               />
+
+              {/* Indicador de fortaleza - solo informativo */}
+              <PasswordStrengthIndicator
+                password={password}
+                validation={validation}
+                isLoading={validationLoading}
+              />
             </div>
 
             {/* Confirm Password */}
@@ -123,16 +156,66 @@ const Register = () => {
                 error={errors.confirmPassword?.message}
                 {...register("confirmPassword")}
               />
+
+              {/* Indicador de coincidencia de contraseñas */}
+              {password && confirmPassword && (
+                <div className="mt-2">
+                  <div
+                    className={`flex items-center space-x-2 text-xs ${
+                      password === confirmPassword
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {password === confirmPassword ? (
+                      <>
+                        <svg
+                          className="w-4 h-4"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <span>Las contraseñas coinciden</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-4 h-4"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <span>Las contraseñas no coinciden</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Submit Button */}
+            {/* Submit Button - sin tooltip */}
             <Button
               type="submit"
               size="full"
               loading={loading}
-              disabled={loading}
+              disabled={loading || !isFormValid()}
+              className={`w-full transition-all duration-200 ${
+                !isFormValid()
+                  ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed opacity-60"
+                  : ""
+              }`}
             >
-              Registrarse
+              {loading ? "Registrando..." : "Registrarse"}
             </Button>
 
             {/* Links */}
