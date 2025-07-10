@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 10-07-2025 a las 07:50:14
+-- Tiempo de generación: 10-07-2025 a las 18:20:39
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -68,6 +68,20 @@ CREATE TABLE `refresh_tokens` (
   `created_at_refresh_token` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at_refresh_token` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+--
+-- Volcado de datos para la tabla `refresh_tokens`
+--
+
+INSERT INTO `refresh_tokens` (`id_refresh_token`, `id_user`, `token_hash_refresh_token`, `expires_at_refresh_token`, `user_agent_refresh_token`, `ip_address_refresh_token`, `is_revoked_refresh_token`, `created_at_refresh_token`, `updated_at_refresh_token`) VALUES
+(1, 3, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZF91c2VyIjozLCJpYXQiOjE3NTIxMjcwMjYsImV4cCI6MTc1MjIxMzQyNn0.i4CsiKtECLp57c_oQlbID7QN7KSyzSb7NFKmcR_7jR4', '2025-07-11 00:57:06', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '::1', 0, '2025-07-10 05:57:06', '2025-07-10 05:57:06'),
+(2, 3, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZF91c2VyIjozLCJpYXQiOjE3NTIxMjcyMzksImV4cCI6MTc1MjIxMzYzOX0.DiM8mIjFCRlCy9hT7Gye3szQH_rM1ACvdDqBTvf1CWc', '2025-07-11 01:00:39', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '::1', 0, '2025-07-10 06:00:39', '2025-07-10 06:00:39'),
+(3, 3, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZF91c2VyIjozLCJpYXQiOjE3NTIxMjc1OTIsImV4cCI6MTc1MjIxMzk5Mn0.mTDV2RGf63ZO4p-MRjbUU7HqFPEu_ZaXyoIPhPF33DI', '2025-07-11 01:06:32', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '::1', 0, '2025-07-10 06:06:32', '2025-07-10 06:06:32'),
+(4, 3, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZF91c2VyIjozLCJpYXQiOjE3NTIxMjc4MzIsImV4cCI6MTc1MjIxNDIzMn0._RXRNK_nFMH2aSriN0B256OoMkXZTSLwDya8emfijHQ', '2025-07-11 01:10:32', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '::1', 0, '2025-07-10 06:10:32', '2025-07-10 06:10:32'),
+(5, 3, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZF91c2VyIjozLCJpYXQiOjE3NTIxMjk3MDcsImV4cCI6MTc1MjIxNjEwN30.JjDKWklfgMcNDFgPPvlR_jEN-vAYHOjkqsJDLZyjPGI', '2025-07-11 01:41:47', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '::1', 0, '2025-07-10 06:41:47', '2025-07-10 06:41:47'),
+(6, 3, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZF91c2VyIjozLCJpYXQiOjE3NTIxMjk3ODMsImV4cCI6MTc1MjIxNjE4M30.DN_wBSHIe4Ch_UzBSvYKKpWKMESHdzPvzTpOG0tSDwA', '2025-07-11 01:43:03', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '::1', 0, '2025-07-10 06:43:03', '2025-07-10 06:43:03'),
+(7, 3, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZF91c2VyIjozLCJpYXQiOjE3NTIxNjE5NDUsImV4cCI6MTc1MjI0ODM0NX0.nnqx6EWcHYSmrRogTxch6wf_4pcR8GSFFt05ImaTtYE', '2025-07-11 10:39:05', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '::1', 1, '2025-07-10 15:39:05', '2025-07-10 15:41:12'),
+(8, 3, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZF91c2VyIjozLCJpYXQiOjE3NTIxNjIwODksImV4cCI6MTc1MjI0ODQ4OX0.muplC4xQAkZm7hIP5G095woOEj6g3XVpnVN9DqYNdxE', '2025-07-11 10:41:29', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '::1', 1, '2025-07-10 15:41:29', '2025-07-10 15:41:45');
 
 -- --------------------------------------------------------
 
@@ -149,7 +163,7 @@ ALTER TABLE `folders`
 -- AUTO_INCREMENT de la tabla `refresh_tokens`
 --
 ALTER TABLE `refresh_tokens`
-  MODIFY `id_refresh_token` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_refresh_token` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT de la tabla `users`
