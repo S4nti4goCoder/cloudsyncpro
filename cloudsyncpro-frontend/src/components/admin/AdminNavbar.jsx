@@ -55,6 +55,7 @@ const AdminNavbar = ({
       dashboard: "Panel de Administración",
       users: "Gestión de Usuarios",
       activity: "Actividad del Sistema",
+      settings: "Configuración del Sistema",
     };
     return titles[view] || "Administración";
   };
@@ -64,6 +65,7 @@ const AdminNavbar = ({
       dashboard: "Resumen general del sistema",
       users: "Administrar usuarios y permisos",
       activity: "Monitoreo de actividad del sistema",
+      settings: "Configuraciones y ajustes generales",
     };
     return descriptions[view] || "";
   };
@@ -75,7 +77,7 @@ const AdminNavbar = ({
         <div className="flex items-center space-x-4">
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer lg:hidden"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
             title={sidebarCollapsed ? "Mostrar sidebar" : "Ocultar sidebar"}
           >
             <Menu className="w-5 h-5 text-gray-600" />

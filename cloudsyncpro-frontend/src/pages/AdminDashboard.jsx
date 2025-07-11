@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Settings } from "lucide-react";
 import { authService } from "../services/authService";
 import api from "../services/api";
 
@@ -273,6 +274,24 @@ const AdminDashboard = () => {
             recentActivity={recentActivity}
             formatDate={formatDate}
           />
+        );
+      case "settings":
+        return (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+              <Settings className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Configuración del Sistema
+              </h3>
+              <p className="text-gray-500 mb-6">
+                Panel de configuraciones y ajustes del sistema - Próximamente
+              </p>
+              <button className="inline-flex items-center px-4 py-2 bg-[#061a4a] text-white rounded-lg hover:bg-[#082563] transition-colors">
+                <Settings className="w-4 h-4 mr-2" />
+                Configurar Sistema
+              </button>
+            </div>
+          </div>
         );
       default:
         return (

@@ -29,6 +29,13 @@ const AdminSidebar = ({
       count: null,
       description: "Logs del sistema",
     },
+    {
+      id: "settings",
+      icon: Settings,
+      label: "Configuración",
+      count: null,
+      description: "Ajustes del sistema",
+    },
   ];
 
   return (
@@ -104,26 +111,6 @@ const AdminSidebar = ({
           );
         })}
       </nav>
-
-      {/* Settings */}
-      <div className="p-2 border-t border-gray-100">
-        <button className="w-full flex items-center px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 cursor-pointer transition-colors">
-          <Settings className="w-5 h-5 flex-shrink-0" />
-          {!sidebarCollapsed && <span className="ml-3">Configuración</span>}
-        </button>
-      </div>
-
-      {/* Toggle Button */}
-      <div className="p-2 border-t border-gray-100">
-        <button
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="w-full flex items-center px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 cursor-pointer transition-colors"
-          title={sidebarCollapsed ? "Expandir sidebar" : "Contraer sidebar"}
-        >
-          <Menu className="w-5 h-5 flex-shrink-0" />
-          {!sidebarCollapsed && <span className="ml-3">Contraer</span>}
-        </button>
-      </div>
     </div>
   );
 };

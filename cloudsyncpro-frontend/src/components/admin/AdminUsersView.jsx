@@ -13,7 +13,10 @@ import {
   Calendar,
   FileText,
   Folder,
+  Shield,
 } from "lucide-react";
+import { useState } from "react";
+import DeleteConfirmModal from "../ui/DeleteConfirmModal";
 
 const AdminUsersView = ({
   users,
@@ -24,6 +27,36 @@ const AdminUsersView = ({
   formatDate,
   loadUsers,
 }) => {
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    user: null,
+    isLoading: false,
+  });
+
+  const confirmDeleteUser = (user) => {
+    setDeleteModal({
+      isOpen: true,
+      user: user,
+      isLoading: false,
+    });
+  };
+
+  const handleDeleteConfirm = async () => {
+    setDeleteModal((prev) => ({ ...prev, isLoading: true }));
+
+    try {
+      await handleUserAction(deleteModal.user.id_user, "delete");
+      setDeleteModal({ isOpen: false, user: null, isLoading: false });
+    } catch (error) {
+      setDeleteModal((prev) => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    if (!deleteModal.isLoading) {
+      setDeleteModal({ isOpen: false, user: null, isLoading: false });
+    }
+  };
   const getStatusBadge = (status) => {
     const styles = {
       active: "bg-green-100 text-green-800 border-green-200",
@@ -74,11 +107,11 @@ const AdminUsersView = ({
           </p>
         </div>
         <div className="flex items-center space-x-3">
-          <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+          <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium cursor-pointer">
             <Download className="w-4 h-4 mr-2" />
             Exportar
           </button>
-          <button className="flex items-center px-4 py-2 bg-[#061a4a] text-white rounded-lg hover:bg-[#082563] transition-colors text-sm font-medium">
+          <button className="flex items-center px-4 py-2 bg-[#061a4a] text-white rounded-lg hover:bg-[#082563] transition-colors text-sm font-medium cursor-pointer">
             <Plus className="w-4 h-4 mr-2" />
             Nuevo Usuario
           </button>
@@ -97,7 +130,7 @@ const AdminUsersView = ({
                 placeholder="Buscar por nombre o email..."
                 value={userFilters.search}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#061a4a] focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#061a4a] focus:border-transparent cursor-text"
               />
             </div>
           </div>
@@ -107,7 +140,7 @@ const AdminUsersView = ({
             <select
               value={userFilters.role}
               onChange={(e) => handleFilterChange("role", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#061a4a] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#061a4a] focus:border-transparent cursor-pointer"
             >
               <option value="">Todos los roles</option>
               <option value="admin">Administradores</option>
@@ -120,7 +153,7 @@ const AdminUsersView = ({
             <select
               value={userFilters.status}
               onChange={(e) => handleFilterChange("status", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#061a4a] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#061a4a] focus:border-transparent cursor-pointer"
             >
               <option value="">Todos los estados</option>
               <option value="active">Activos</option>
@@ -166,22 +199,25 @@ const AdminUsersView = ({
                   {/* User Info */}
                   <td className="py-4 px-6">
                     <div className="flex items-center">
-                      <div className="w-10 h-10 bg-[#061a4a] rounded-full flex items-center justify-center">
-                        <span className="text-white text-sm font-medium">
+                      <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-md">
+                        <span className="text-white text-lg font-semibold">
                           {user.name_user?.charAt(0).toUpperCase()}
                         </span>
                       </div>
                       <div className="ml-4">
-                        <p className="font-medium text-gray-900">
-                          {user.name_user}
+                        <div className="flex items-center">
+                          <p className="font-semibold text-gray-900 text-base">
+                            {user.name_user}
+                          </p>
                           {user.id_user === currentUser?.id_user && (
-                            <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                            <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-1.5"></span>
                               Tú
                             </span>
                           )}
-                        </p>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Mail className="w-3 h-3 mr-1" />
+                        </div>
+                        <div className="flex items-center text-sm text-gray-500 mt-1">
+                          <Mail className="w-4 h-4 mr-2" />
                           {user.email_user}
                         </div>
                       </div>
@@ -191,21 +227,40 @@ const AdminUsersView = ({
                   {/* Role */}
                   <td className="py-4 px-6">
                     <span
-                      className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-full border ${getRoleBadge(
+                      className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full border ${getRoleBadge(
                         user.role_user
                       )}`}
                     >
-                      {user.role_user === "admin" ? "Administrador" : "Usuario"}
+                      {user.role_user === "admin" ? (
+                        <>
+                          <Shield className="w-3 h-3 mr-1" />
+                          Administrador
+                        </>
+                      ) : (
+                        <>
+                          <Users className="w-3 h-3 mr-1" />
+                          Usuario
+                        </>
+                      )}
                     </span>
                   </td>
 
                   {/* Status */}
                   <td className="py-4 px-6">
                     <span
-                      className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-full border ${getStatusBadge(
+                      className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full border ${getStatusBadge(
                         user.status_user
                       )}`}
                     >
+                      <div
+                        className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                          user.status_user === "active"
+                            ? "bg-green-500"
+                            : user.status_user === "banned"
+                            ? "bg-red-500"
+                            : "bg-gray-500"
+                        }`}
+                      ></div>
                       {user.status_user === "active"
                         ? "Activo"
                         : user.status_user === "banned"
@@ -216,14 +271,28 @@ const AdminUsersView = ({
 
                   {/* Activity */}
                   <td className="py-4 px-6">
-                    <div className="flex items-center space-x-4 text-sm text-gray-600">
-                      <div className="flex items-center">
-                        <FileText className="w-4 h-4 mr-1" />
-                        <span>{user.total_files || 0}</span>
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center px-3 py-1.5 bg-indigo-50 rounded-lg border border-indigo-200">
+                        <FileText className="w-5 h-5 text-indigo-600 mr-2" />
+                        <div>
+                          <span className="text-sm font-semibold text-indigo-900">
+                            {user.total_files || 0}
+                          </span>
+                          <span className="text-xs text-indigo-600 ml-1">
+                            archivos
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center">
-                        <Folder className="w-4 h-4 mr-1" />
-                        <span>{user.total_folders || 0}</span>
+                      <div className="flex items-center px-3 py-1.5 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <Folder className="w-5 h-5 text-yellow-600 mr-2" />
+                        <div>
+                          <span className="text-sm font-semibold text-yellow-900">
+                            {user.total_folders || 0}
+                          </span>
+                          <span className="text-xs text-yellow-600 ml-1">
+                            carpetas
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -238,19 +307,35 @@ const AdminUsersView = ({
 
                   {/* Actions */}
                   <td className="py-4 px-6">
-                    <div className="flex items-center space-x-2">
-                      {/* Role Selector */}
-                      <select
-                        value={user.role_user}
-                        onChange={(e) =>
-                          handleUserAction(user.id_user, "role", e.target.value)
-                        }
-                        disabled={user.id_user === currentUser?.id_user}
-                        className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[#061a4a] disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <option value="user">Usuario</option>
-                        <option value="admin">Admin</option>
-                      </select>
+                    <div className="flex items-center justify-end space-x-2">
+                      {/* Quick Role Toggle */}
+                      {user.id_user !== currentUser?.id_user ? (
+                        <button
+                          onClick={() =>
+                            handleUserAction(
+                              user.id_user,
+                              "role",
+                              user.role_user === "admin" ? "user" : "admin"
+                            )
+                          }
+                          className={`p-2 rounded-lg transition-colors ${
+                            user.role_user === "admin"
+                              ? "text-purple-600 hover:bg-purple-50"
+                              : "text-blue-600 hover:bg-blue-50"
+                          }`}
+                          title={
+                            user.role_user === "admin"
+                              ? "Cambiar a Usuario"
+                              : "Cambiar a Admin"
+                          }
+                        >
+                          <Shield className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <div className="p-2 opacity-50">
+                          <Shield className="w-4 h-4 text-gray-400" />
+                        </div>
+                      )}
 
                       {/* Status Selector */}
                       <select
@@ -263,7 +348,7 @@ const AdminUsersView = ({
                           )
                         }
                         disabled={user.id_user === currentUser?.id_user}
-                        className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[#061a4a] disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#061a4a] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed bg-white cursor-pointer"
                       >
                         <option value="active">Activo</option>
                         <option value="inactive">Inactivo</option>
@@ -271,20 +356,22 @@ const AdminUsersView = ({
                       </select>
 
                       {/* Delete Button */}
-                      {user.id_user !== currentUser?.id_user && (
+                      {user.id_user !== currentUser?.id_user ? (
                         <button
-                          onClick={() =>
-                            handleUserAction(user.id_user, "delete")
-                          }
-                          className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
+                          onClick={() => confirmDeleteUser(user)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                           title="Eliminar usuario"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
+                      ) : (
+                        <div className="p-2 opacity-50">
+                          <Trash2 className="w-4 h-4 text-gray-400" />
+                        </div>
                       )}
 
                       {/* More Options */}
-                      <button className="p-1 text-gray-400 hover:bg-gray-100 rounded transition-colors">
+                      <button className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
                         <MoreVertical className="w-4 h-4" />
                       </button>
                     </div>
@@ -324,7 +411,7 @@ const AdminUsersView = ({
                     handlePageChange(usersPagination.currentPage - 1)
                   }
                   disabled={!usersPagination.hasPrev}
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4 mr-1" />
                   Anterior
@@ -340,7 +427,7 @@ const AdminUsersView = ({
                     handlePageChange(usersPagination.currentPage + 1)
                   }
                   disabled={!usersPagination.hasNext}
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   Siguiente
                   <ChevronRight className="w-4 h-4 ml-1" />
@@ -363,12 +450,22 @@ const AdminUsersView = ({
               ? "Intenta ajustar los filtros de búsqueda"
               : "Aún no hay usuarios registrados en el sistema"}
           </p>
-          <button className="inline-flex items-center px-4 py-2 bg-[#061a4a] text-white rounded-lg hover:bg-[#082563] transition-colors">
+          <button className="inline-flex items-center px-4 py-2 bg-[#061a4a] text-white rounded-lg hover:bg-[#082563] transition-colors cursor-pointer">
             <Plus className="w-4 h-4 mr-2" />
             Crear primer usuario
           </button>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        userName={deleteModal.user?.name_user}
+        userEmail={deleteModal.user?.email_user}
+        isLoading={deleteModal.isLoading}
+      />
     </div>
   );
 };
