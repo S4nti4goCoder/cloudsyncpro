@@ -371,7 +371,7 @@ const AdminDashboardView = ({
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <button
               onClick={onCreateUser}
-              className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors text-sm font-medium text-gray-700 hover:text-blue-700"
+              className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors text-sm font-medium text-gray-700 hover:text-blue-700 cursor-pointer"
             >
               <Plus className="w-4 h-4 mr-2" />
               Crear Usuario
@@ -379,7 +379,7 @@ const AdminDashboardView = ({
 
             <button
               onClick={onBackupDatabase}
-              className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors text-sm font-medium text-gray-700 hover:text-green-700"
+              className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors text-sm font-medium text-gray-700 hover:text-green-700 cursor-pointer"
             >
               <Database className="w-4 h-4 mr-2" />
               Backup BD
@@ -387,7 +387,7 @@ const AdminDashboardView = ({
 
             <button
               onClick={() => setCurrentView("activity")}
-              className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-colors text-sm font-medium text-gray-700 hover:text-purple-700"
+              className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-colors text-sm font-medium text-gray-700 hover:text-purple-700 cursor-pointer"
             >
               <Activity className="w-4 h-4 mr-2" />
               Ver Actividad
@@ -395,7 +395,7 @@ const AdminDashboardView = ({
 
             <button
               onClick={onSystemMaintenance}
-              className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-yellow-50 hover:border-yellow-300 transition-colors text-sm font-medium text-gray-700 hover:text-yellow-700"
+              className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-yellow-50 hover:border-yellow-300 transition-colors text-sm font-medium text-gray-700 hover:text-yellow-700 cursor-pointer"
             >
               <HardDrive className="w-4 h-4 mr-2" />
               Mantenimiento
