@@ -190,7 +190,7 @@ const AdminDashboardView = ({
             </div>
             <button
               onClick={() => setCurrentView("users")}
-              className="text-sm text-[#061a4a] hover:text-[#082563] font-medium flex items-center hover:bg-blue-50 px-3 py-1 rounded transition-colors"
+              className="text-sm text-[#061a4a] hover:text-[#082563] font-medium flex items-center hover:bg-blue-50 px-3 py-1 rounded transition-colors cursor-pointer"
             >
               Ver todos
               <ChevronRight className="w-4 h-4 ml-1" />
