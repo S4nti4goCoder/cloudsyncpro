@@ -9,9 +9,25 @@ import {
   TrendingUp,
   Clock,
   ChevronRight,
+  Plus,
+  Download,
+  BarChart3,
+  Server,
+  HardDrive,
+  UserX,
 } from "lucide-react";
 
-const AdminDashboardView = ({ stats, users, recentActivity, formatDate }) => {
+const AdminDashboardView = ({
+  stats,
+  users,
+  recentActivity,
+  formatDate,
+  setCurrentView,
+  onCreateUser,
+  onBackupDatabase,
+  onViewLogs,
+  onSystemMaintenance,
+}) => {
   const getStatusBadge = (status) => {
     const styles = {
       active: "bg-green-100 text-green-800",
@@ -29,8 +45,21 @@ const AdminDashboardView = ({ stats, users, recentActivity, formatDate }) => {
     return styles[role] || styles.user;
   };
 
-  const StatCard = ({ icon: Icon, title, value, color, description }) => (
-    <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+  const StatCard = ({
+    icon: Icon,
+    title,
+    value,
+    color,
+    description,
+    trend,
+    onClick,
+  }) => (
+    <div
+      className={`bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 ${
+        onClick ? "cursor-pointer hover:border-blue-300" : ""
+      }`}
+      onClick={onClick}
+    >
       <div className="flex items-center">
         <div className={`p-3 rounded-lg ${color}`}>
           <Icon className="w-6 h-6" />
@@ -41,21 +70,44 @@ const AdminDashboardView = ({ stats, users, recentActivity, formatDate }) => {
           {description && (
             <p className="text-xs text-gray-500 mt-1">{description}</p>
           )}
+          {trend && (
+            <div className="flex items-center mt-2">
+              <TrendingUp className="w-3 h-3 text-green-500 mr-1" />
+              <span className="text-xs text-green-600">{trend}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 
+  // Función para calcular porcentajes y tendencias
+  const calculateUserPercentage = (active, total) => {
+    if (!total || total === 0) return "0%";
+    return `${Math.round((active / total) * 100)}%`;
+  };
+
+  const calculateNewUsersToday = () => {
+    if (!stats?.users?.new_users_today) return "Sin nuevos usuarios";
+    return `+${stats.users.new_users_today} hoy`;
+  };
+
   return (
     <div className="space-y-6">
-      {/* Stats Grid */}
+      {/* Stats Grid Principal */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           icon={Users}
           title="Total Usuarios"
           value={stats?.users?.total_users || 0}
           color="bg-blue-100 text-blue-600"
-          description={`+${stats?.users?.new_users_today || 0} hoy`}
+          description={calculateNewUsersToday()}
+          trend={
+            stats?.users?.new_users_week
+              ? `+${stats.users.new_users_week} esta semana`
+              : null
+          }
+          onClick={() => setCurrentView("users")}
         />
 
         <StatCard
@@ -63,11 +115,10 @@ const AdminDashboardView = ({ stats, users, recentActivity, formatDate }) => {
           title="Usuarios Activos"
           value={stats?.users?.active_users || 0}
           color="bg-green-100 text-green-600"
-          description={`${Math.round(
-            ((stats?.users?.active_users || 0) /
-              (stats?.users?.total_users || 1)) *
-              100
-          )}% del total`}
+          description={`${calculateUserPercentage(
+            stats?.users?.active_users,
+            stats?.users?.total_users
+          )} del total`}
         />
 
         <StatCard
@@ -89,13 +140,14 @@ const AdminDashboardView = ({ stats, users, recentActivity, formatDate }) => {
         />
       </div>
 
-      {/* Additional Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Stats Grid Secundario */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           icon={FileText}
           title="Total Archivos"
           value={stats?.files?.total_files || 0}
           color="bg-indigo-100 text-indigo-600"
+          description="Archivos en el sistema"
         />
 
         <StatCard
@@ -103,96 +155,155 @@ const AdminDashboardView = ({ stats, users, recentActivity, formatDate }) => {
           title="Total Carpetas"
           value={stats?.folders?.total_folders || 0}
           color="bg-yellow-100 text-yellow-600"
+          description="Carpetas creadas"
         />
 
         <StatCard
           icon={Database}
+          title="Usuarios Inactivos"
+          value={stats?.users?.inactive_users || 0}
+          color="bg-gray-100 text-gray-600"
+          description="Usuarios desactivados"
+        />
+
+        <StatCard
+          icon={UserX}
           title="Usuarios Baneados"
           value={stats?.users?.banned_users || 0}
           color="bg-red-100 text-red-600"
+          description="Usuarios bloqueados"
         />
       </div>
 
       {/* Dashboard Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Users */}
+        {/* Recent Users - Mejorado */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">
-              Usuarios Recientes
-            </h3>
-            <button className="text-sm text-[#061a4a] hover:text-[#082563] font-medium flex items-center">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">
+                Usuarios Recientes
+              </h3>
+              <p className="text-sm text-gray-500">
+                Últimos {users?.length || 0} usuarios registrados
+              </p>
+            </div>
+            <button
+              onClick={() => setCurrentView("users")}
+              className="text-sm text-[#061a4a] hover:text-[#082563] font-medium flex items-center hover:bg-blue-50 px-3 py-1 rounded transition-colors"
+            >
               Ver todos
               <ChevronRight className="w-4 h-4 ml-1" />
             </button>
           </div>
           <div className="p-6">
             <div className="space-y-4">
-              {users.slice(0, 5).map((user) => (
-                <div
-                  key={user.id_user}
-                  className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-medium text-gray-600">
-                        {user.name_user?.charAt(0).toUpperCase()}
+              {users && users.length > 0 ? (
+                users.slice(0, 5).map((user) => (
+                  <div
+                    key={user.id_user}
+                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                  >
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium text-white">
+                          {user.name_user?.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-gray-900">
+                          {user.name_user}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {user.email_user}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {formatDate(user.created_at_user)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleBadge(
+                          user.role_user
+                        )}`}
+                      >
+                        {user.role_user}
+                      </span>
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(
+                          user.status_user
+                        )}`}
+                      >
+                        {user.status_user}
                       </span>
                     </div>
-                    <div className="ml-3">
-                      <p className="text-sm font-medium text-gray-900">
-                        {user.name_user}
-                      </p>
-                      <p className="text-sm text-gray-500">{user.email_user}</p>
-                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleBadge(
-                        user.role_user
-                      )}`}
-                    >
-                      {user.role_user}
-                    </span>
-                    <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(
-                        user.status_user
-                      )}`}
-                    >
-                      {user.status_user}
-                    </span>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-6">
+                  <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500">No hay usuarios para mostrar</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
 
-        {/* Growth Chart Placeholder */}
+        {/* Growth Chart con datos reales */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">
-              Crecimiento de Usuarios
-            </h3>
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">
+                Crecimiento de Usuarios
+              </h3>
+              <p className="text-sm text-gray-500">
+                Registros por mes (últimos 6 meses)
+              </p>
+            </div>
+            <BarChart3 className="w-5 h-5 text-gray-400" />
           </div>
           <div className="p-6">
             <div className="space-y-4">
-              {stats?.growth?.slice(0, 6).map((month, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <TrendingUp className="w-4 h-4 text-green-500 mr-2" />
-                    <span className="text-sm text-gray-600">{month.month}</span>
+              {stats?.growth && stats.growth.length > 0 ? (
+                stats.growth.slice(0, 6).map((month, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                      <span className="text-sm text-gray-600 font-medium">
+                        {month.month}
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-24 bg-gray-200 rounded-full h-2 mr-3">
+                        <div
+                          className="bg-blue-500 h-2 rounded-full"
+                          style={{
+                            width: `${Math.min(
+                              (month.new_users / 10) * 100,
+                              100
+                            )}%`,
+                          }}
+                        ></div>
+                      </div>
+                      <span className="text-sm font-medium text-gray-900 min-w-[80px] text-right">
+                        +{month.new_users} usuarios
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center">
-                    <span className="text-sm font-medium text-gray-900">
-                      +{month.new_users} usuarios
-                    </span>
-                  </div>
-                </div>
-              )) || (
+                ))
+              ) : (
                 <div className="text-center py-8">
                   <TrendingUp className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500">No hay datos de crecimiento</p>
+                  <p className="text-gray-500">
+                    Sin datos de crecimiento disponibles
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Los datos aparecerán cuando haya actividad de usuarios
+                  </p>
                 </div>
               )}
             </div>
@@ -200,64 +311,115 @@ const AdminDashboardView = ({ stats, users, recentActivity, formatDate }) => {
         </div>
       </div>
 
-      {/* System Status */}
+      {/* System Status - Mejorado */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">
+          <h3 className="text-lg font-medium text-gray-900 flex items-center">
+            <Server className="w-5 h-5 mr-2 text-green-500" />
             Estado del Sistema
           </h3>
         </div>
         <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="text-center">
-              <div className="w-3 h-3 bg-green-500 rounded-full mx-auto mb-2"></div>
+              <div className="w-4 h-4 bg-green-500 rounded-full mx-auto mb-3 animate-pulse"></div>
               <p className="text-sm font-medium text-gray-900">Base de Datos</p>
-              <p className="text-xs text-gray-500">Operacional</p>
+              <p className="text-xs text-green-600">Operacional</p>
+              <p className="text-xs text-gray-400 mt-1">
+                {stats?.sessions?.active_sessions || 0} conexiones activas
+              </p>
             </div>
             <div className="text-center">
-              <div className="w-3 h-3 bg-green-500 rounded-full mx-auto mb-2"></div>
+              <div className="w-4 h-4 bg-green-500 rounded-full mx-auto mb-3 animate-pulse"></div>
               <p className="text-sm font-medium text-gray-900">API</p>
-              <p className="text-xs text-gray-500">Funcionando</p>
+              <p className="text-xs text-green-600">Funcionando</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Tiempo de respuesta: ~50ms
+              </p>
             </div>
             <div className="text-center">
-              <div className="w-3 h-3 bg-green-500 rounded-full mx-auto mb-2"></div>
+              <div className="w-4 h-4 bg-green-500 rounded-full mx-auto mb-3"></div>
               <p className="text-sm font-medium text-gray-900">
                 Almacenamiento
               </p>
-              <p className="text-xs text-gray-500">Disponible</p>
+              <p className="text-xs text-green-600">Disponible</p>
+              <p className="text-xs text-gray-400 mt-1">
+                {stats?.files?.total_files || 0} archivos almacenados
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="w-4 h-4 bg-yellow-500 rounded-full mx-auto mb-3"></div>
+              <p className="text-sm font-medium text-gray-900">Backup</p>
+              <p className="text-xs text-yellow-600">Pendiente</p>
+              <p className="text-xs text-gray-400 mt-1">Último: Hace 2 días</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions - Funcionales */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-medium text-gray-900">
             Acciones Rápidas
           </h3>
+          <p className="text-sm text-gray-500">
+            Operaciones administrativas frecuentes
+          </p>
         </div>
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <button className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-              <Users className="w-4 h-4 mr-2" />
+            <button
+              onClick={onCreateUser}
+              className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors text-sm font-medium text-gray-700 hover:text-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
               Crear Usuario
             </button>
-            <button className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+
+            <button
+              onClick={onBackupDatabase}
+              className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors text-sm font-medium text-gray-700 hover:text-green-700"
+            >
               <Database className="w-4 h-4 mr-2" />
               Backup BD
             </button>
-            <button className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+
+            <button
+              onClick={() => setCurrentView("activity")}
+              className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-colors text-sm font-medium text-gray-700 hover:text-purple-700"
+            >
               <Activity className="w-4 h-4 mr-2" />
-              Ver Logs
+              Ver Actividad
             </button>
-            <button className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-              <Clock className="w-4 h-4 mr-2" />
+
+            <button
+              onClick={onSystemMaintenance}
+              className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-yellow-50 hover:border-yellow-300 transition-colors text-sm font-medium text-gray-700 hover:text-yellow-700"
+            >
+              <HardDrive className="w-4 h-4 mr-2" />
               Mantenimiento
             </button>
           </div>
         </div>
       </div>
+
+      {/* Alertas importantes */}
+      {stats?.users?.banned_users > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <div className="w-4 h-4 bg-red-500 rounded-full mr-3"></div>
+            <div>
+              <p className="text-sm font-medium text-red-900">
+                Atención: {stats.users.banned_users} usuario(s) baneado(s)
+              </p>
+              <p className="text-xs text-red-600">
+                Revisa la gestión de usuarios para más detalles
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

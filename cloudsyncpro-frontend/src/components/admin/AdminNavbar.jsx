@@ -62,6 +62,14 @@ const AdminNavbar = ({
 
         {/* Right Section */}
         <div className="flex items-center space-x-4">
+          {/* System Status Indicator */}
+          <div className="hidden md:flex items-center space-x-2 px-3 py-1 bg-green-50 rounded-full border border-green-200">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-xs text-green-700 font-medium">
+              Sistema Operativo
+            </span>
+          </div>
+
           {/* Notifications */}
           <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
             <Bell className="w-5 h-5" />

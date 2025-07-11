@@ -13,18 +13,21 @@ const AdminSidebar = ({
       icon: Home,
       label: "Dashboard",
       count: null,
+      description: "Resumen del sistema",
     },
     {
       id: "users",
       icon: Users,
       label: "Usuarios",
       count: stats?.users?.total_users || 0,
+      description: `${stats?.users?.active_users || 0} activos`,
     },
     {
       id: "activity",
       icon: Activity,
       label: "Actividad",
       count: null,
+      description: "Logs del sistema",
     },
   ];
 
@@ -56,18 +59,42 @@ const AdminSidebar = ({
             <button
               key={item.id}
               onClick={() => setCurrentView(item.id)}
-              className={`w-full flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-1 cursor-pointer ${
+              className={`w-full flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 mb-1 cursor-pointer group ${
                 currentView === item.id
-                  ? "bg-[#061a4a]/10 text-[#061a4a] border border-[#061a4a]/20"
-                  : "text-gray-700 hover:bg-gray-100"
+                  ? "bg-[#061a4a]/10 text-[#061a4a] border border-[#061a4a]/20 shadow-sm"
+                  : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
               }`}
+              title={
+                !sidebarCollapsed
+                  ? item.description
+                  : `${item.label} - ${item.description}`
+              }
             >
-              <Icon className="w-5 h-5 flex-shrink-0" />
+              <Icon
+                className={`w-5 h-5 flex-shrink-0 transition-colors ${
+                  currentView === item.id
+                    ? "text-[#061a4a]"
+                    : "text-gray-600 group-hover:text-gray-700"
+                }`}
+              />
               {!sidebarCollapsed && (
                 <>
-                  <span className="ml-3 flex-1 text-left">{item.label}</span>
+                  <div className="ml-3 flex-1 text-left">
+                    <div className="font-medium">{item.label}</div>
+                    {item.description && (
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        {item.description}
+                      </div>
+                    )}
+                  </div>
                   {item.count !== null && (
-                    <span className="ml-2 bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full">
+                    <span
+                      className={`ml-2 text-xs px-2 py-1 rounded-full transition-colors ${
+                        currentView === item.id
+                          ? "bg-[#061a4a] text-white"
+                          : "bg-gray-200 text-gray-600 group-hover:bg-gray-300"
+                      }`}
+                    >
                       {item.count}
                     </span>
                   )}

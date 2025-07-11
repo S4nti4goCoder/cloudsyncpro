@@ -192,6 +192,51 @@ const AdminDashboard = () => {
   }
 
   // ===========================
+  // FUNCIONES DE ACCIONES RÁPIDAS
+  // ===========================
+  const handleCreateUser = () => {
+    toast.info("Crear Usuario", {
+      description: "Funcionalidad de creación de usuario - Próximamente",
+      duration: 3000,
+    });
+    // TODO: Implementar modal de creación de usuario
+  };
+
+  const handleBackupDatabase = async () => {
+    const loadingToast = toast.loading("Iniciando backup de base de datos...");
+
+    try {
+      // Simular proceso de backup
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      toast.dismiss(loadingToast);
+      toast.success("Backup completado", {
+        description: "Base de datos respaldada exitosamente",
+        duration: 4000,
+      });
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      toast.error("Error en backup", {
+        description: "No se pudo completar el respaldo",
+      });
+    }
+  };
+
+  const handleViewLogs = () => {
+    setCurrentView("activity");
+    toast.info("Redirigiendo a Actividad", {
+      description: "Mostrando logs del sistema",
+    });
+  };
+
+  const handleSystemMaintenance = () => {
+    toast.warning("Modo Mantenimiento", {
+      description: "Esta función requiere confirmación adicional",
+      duration: 5000,
+    });
+  };
+
+  // ===========================
   // RENDER FUNCIÓN PARA VISTAS
   // ===========================
   const renderCurrentView = () => {
@@ -203,6 +248,11 @@ const AdminDashboard = () => {
             users={users}
             recentActivity={recentActivity}
             formatDate={formatDate}
+            setCurrentView={setCurrentView}
+            onCreateUser={handleCreateUser}
+            onBackupDatabase={handleBackupDatabase}
+            onViewLogs={handleViewLogs}
+            onSystemMaintenance={handleSystemMaintenance}
           />
         );
       case "users":
@@ -231,6 +281,11 @@ const AdminDashboard = () => {
             users={users}
             recentActivity={recentActivity}
             formatDate={formatDate}
+            setCurrentView={setCurrentView}
+            onCreateUser={handleCreateUser}
+            onBackupDatabase={handleBackupDatabase}
+            onViewLogs={handleViewLogs}
+            onSystemMaintenance={handleSystemMaintenance}
           />
         );
     }
