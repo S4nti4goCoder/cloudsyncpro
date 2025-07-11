@@ -5,7 +5,6 @@ import {
   Download,
   Trash2,
   Edit,
-  MoreVertical,
   ChevronLeft,
   ChevronRight,
   Users,
@@ -17,6 +16,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import DeleteConfirmModal from "../ui/DeleteConfirmModal";
+import EditUserModal from "../ui/EditUserModal";
 
 const AdminUsersView = ({
   users,
@@ -33,6 +33,12 @@ const AdminUsersView = ({
     isLoading: false,
   });
 
+  const [editModal, setEditModal] = useState({
+    isOpen: false,
+    user: null,
+    isLoading: false,
+  });
+
   const confirmDeleteUser = (user) => {
     setDeleteModal({
       isOpen: true,
@@ -42,19 +48,62 @@ const AdminUsersView = ({
   };
 
   const handleDeleteConfirm = async () => {
-    setDeleteModal((prev) => ({ ...prev, isLoading: true }));
-
+    setDeleteModal(prev => ({ ...prev, isLoading: true }));
+    
     try {
       await handleUserAction(deleteModal.user.id_user, "delete");
       setDeleteModal({ isOpen: false, user: null, isLoading: false });
     } catch (error) {
-      setDeleteModal((prev) => ({ ...prev, isLoading: false }));
+      setDeleteModal(prev => ({ ...prev, isLoading: false }));
     }
   };
 
   const handleDeleteCancel = () => {
     if (!deleteModal.isLoading) {
       setDeleteModal({ isOpen: false, user: null, isLoading: false });
+    }
+  };
+
+  // Funciones para el modal de edición
+  const openEditModal = (user) => {
+    setEditModal({
+      isOpen: true,
+      user: user,
+      isLoading: false,
+    });
+  };
+
+  const handleEditSave = async (formData) => {
+    setEditModal(prev => ({ ...prev, isLoading: true }));
+    
+    try {
+      // Actualizar cada campo que haya cambiado
+      const promises = [];
+      
+      // Si cambió el rol
+      if (formData.role_user !== editModal.user.role_user) {
+        promises.push(handleUserAction(editModal.user.id_user, "role", formData.role_user));
+      }
+      
+      // Si cambió el estado
+      if (formData.status_user !== editModal.user.status_user) {
+        promises.push(handleUserAction(editModal.user.id_user, "status", formData.status_user));
+      }
+      
+      // TODO: Implementar actualización de nombre y email en el backend
+      // Por ahora solo simulamos la actualización
+      
+      await Promise.all(promises);
+      
+      setEditModal({ isOpen: false, user: null, isLoading: false });
+    } catch (error) {
+      setEditModal(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  const handleEditCancel = () => {
+    if (!editModal.isLoading) {
+      setEditModal({ isOpen: false, user: null, isLoading: false });
     }
   };
   const getStatusBadge = (status) => {
@@ -185,7 +234,7 @@ const AdminUsersView = ({
                 <th className="text-left py-4 px-6 font-medium text-gray-900 text-sm">
                   Registrado
                 </th>
-                <th className="text-left py-4 px-6 font-medium text-gray-900 text-sm">
+                <th className="text-center py-4 px-6 font-medium text-gray-900 text-sm">
                   Acciones
                 </th>
               </tr>
@@ -252,15 +301,13 @@ const AdminUsersView = ({
                         user.status_user
                       )}`}
                     >
-                      <div
-                        className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
-                          user.status_user === "active"
-                            ? "bg-green-500"
-                            : user.status_user === "banned"
-                            ? "bg-red-500"
-                            : "bg-gray-500"
-                        }`}
-                      ></div>
+                      <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                        user.status_user === "active" 
+                          ? "bg-green-500" 
+                          : user.status_user === "banned" 
+                          ? "bg-red-500" 
+                          : "bg-gray-500"
+                      }`}></div>
                       {user.status_user === "active"
                         ? "Activo"
                         : user.status_user === "banned"
@@ -278,9 +325,7 @@ const AdminUsersView = ({
                           <span className="text-sm font-semibold text-indigo-900">
                             {user.total_files || 0}
                           </span>
-                          <span className="text-xs text-indigo-600 ml-1">
-                            archivos
-                          </span>
+                          <span className="text-xs text-indigo-600 ml-1">archivos</span>
                         </div>
                       </div>
                       <div className="flex items-center px-3 py-1.5 bg-yellow-50 rounded-lg border border-yellow-200">
@@ -289,9 +334,7 @@ const AdminUsersView = ({
                           <span className="text-sm font-semibold text-yellow-900">
                             {user.total_folders || 0}
                           </span>
-                          <span className="text-xs text-yellow-600 ml-1">
-                            carpetas
-                          </span>
+                          <span className="text-xs text-yellow-600 ml-1">carpetas</span>
                         </div>
                       </div>
                     </div>
@@ -309,33 +352,32 @@ const AdminUsersView = ({
                   <td className="py-4 px-6">
                     <div className="flex items-center justify-end space-x-2">
                       {/* Quick Role Toggle */}
-                      {user.id_user !== currentUser?.id_user ? (
-                        <button
-                          onClick={() =>
-                            handleUserAction(
-                              user.id_user,
-                              "role",
-                              user.role_user === "admin" ? "user" : "admin"
-                            )
-                          }
-                          className={`p-2 rounded-lg transition-colors ${
-                            user.role_user === "admin"
-                              ? "text-purple-600 hover:bg-purple-50"
-                              : "text-blue-600 hover:bg-blue-50"
-                          }`}
-                          title={
-                            user.role_user === "admin"
-                              ? "Cambiar a Usuario"
-                              : "Cambiar a Admin"
-                          }
-                        >
-                          <Shield className="w-4 h-4" />
-                        </button>
-                      ) : (
-                        <div className="p-2 opacity-50">
-                          <Shield className="w-4 h-4 text-gray-400" />
-                        </div>
-                      )}
+                      <button
+                        onClick={() =>
+                          handleUserAction(
+                            user.id_user,
+                            "role",
+                            user.role_user === "admin" ? "user" : "admin"
+                          )
+                        }
+                        disabled={user.id_user === currentUser?.id_user}
+                        className={`p-2 rounded-lg transition-colors cursor-pointer ${
+                          user.id_user === currentUser?.id_user
+                            ? "opacity-50 cursor-not-allowed"
+                            : user.role_user === "admin"
+                            ? "text-purple-600 hover:bg-purple-50"
+                            : "text-blue-600 hover:bg-blue-50"
+                        }`}
+                        title={
+                          user.id_user === currentUser?.id_user
+                            ? "No puedes cambiar tu propio rol"
+                            : user.role_user === "admin"
+                            ? "Cambiar a Usuario"
+                            : "Cambiar a Admin"
+                        }
+                      >
+                        <Shield className="w-4 h-4" />
+                      </button>
 
                       {/* Status Selector */}
                       <select
@@ -355,6 +397,15 @@ const AdminUsersView = ({
                         <option value="banned">Baneado</option>
                       </select>
 
+                      {/* Edit Button */}
+                      <button
+                        onClick={() => openEditModal(user)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors cursor-pointer"
+                        title="Editar usuario"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+
                       {/* Delete Button */}
                       {user.id_user !== currentUser?.id_user ? (
                         <button
@@ -369,11 +420,6 @@ const AdminUsersView = ({
                           <Trash2 className="w-4 h-4 text-gray-400" />
                         </div>
                       )}
-
-                      {/* More Options */}
-                      <button className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
                     </div>
                   </td>
                 </tr>
@@ -456,6 +502,15 @@ const AdminUsersView = ({
           </button>
         </div>
       )}
+
+      {/* Edit User Modal */}
+      <EditUserModal
+        isOpen={editModal.isOpen}
+        onClose={handleEditCancel}
+        onSave={handleEditSave}
+        user={editModal.user}
+        isLoading={editModal.isLoading}
+      />
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmModal
