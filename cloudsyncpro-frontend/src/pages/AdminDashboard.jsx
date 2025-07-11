@@ -3,47 +3,45 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { authService } from "../services/authService";
 import api from "../services/api";
-import {
-  Users,
-  UserCheck,
-  UserX,
-  Shield,
-  Activity,
-  Database,
-  Folder,
-  FileText,
-  Clock,
-  TrendingUp,
-  Plus,
-  Search,
-  Filter,
-  Edit,
-  Trash2,
-  MoreVertical,
-  Settings,
-  LogOut,
-  Menu,
-  Home,
-  Bell,
-} from "lucide-react";
+
+// ✅ NUEVOS COMPONENTES MODULARES
+import AdminSidebar from "../components/admin/AdminSidebar";
+import AdminNavbar from "../components/admin/AdminNavbar";
+import AdminDashboardView from "../components/admin/AdminDashboardView";
+import AdminUsersView from "../components/admin/AdminUsersView";
+import AdminActivityView from "../components/admin/AdminActivityView";
 
 const AdminDashboard = () => {
+  // ===========================
+  // ESTADO PRINCIPAL
+  // ===========================
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [currentView, setCurrentView] = useState("dashboard");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const navigate = useNavigate();
+
+  // ===========================
+  // ESTADO DE DATOS
+  // ===========================
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [currentView, setCurrentView] = useState("dashboard");
+  const [usersPagination, setUsersPagination] = useState({});
+
+  // ===========================
+  // ESTADO DE FILTROS
+  // ===========================
   const [userFilters, setUserFilters] = useState({
     search: "",
     role: "",
     status: "",
     page: 1,
   });
-  const [usersPagination, setUsersPagination] = useState({});
-  const navigate = useNavigate();
 
+  // ===========================
+  // EFECTOS
+  // ===========================
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (savedUser) {
@@ -68,6 +66,9 @@ const AdminDashboard = () => {
     }
   }, [navigate]);
 
+  // ===========================
+  // FUNCIONES DE CARGA DE DATOS
+  // ===========================
   const loadDashboardData = async () => {
     setLoading(true);
     try {
@@ -109,6 +110,9 @@ const AdminDashboard = () => {
     }
   };
 
+  // ===========================
+  // FUNCIONES DE ACCIONES
+  // ===========================
   const handleUserAction = async (userId, action, value) => {
     try {
       let response;
@@ -158,6 +162,9 @@ const AdminDashboard = () => {
     }
   };
 
+  // ===========================
+  // FUNCIONES UTILITARIAS
+  // ===========================
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("es-ES", {
       year: "numeric",
@@ -168,23 +175,9 @@ const AdminDashboard = () => {
     });
   };
 
-  const getStatusBadge = (status) => {
-    const styles = {
-      active: "bg-green-100 text-green-800",
-      banned: "bg-red-100 text-red-800",
-      inactive: "bg-gray-100 text-gray-800",
-    };
-    return styles[status] || styles.inactive;
-  };
-
-  const getRoleBadge = (role) => {
-    const styles = {
-      admin: "bg-purple-100 text-purple-800",
-      user: "bg-blue-100 text-blue-800",
-    };
-    return styles[role] || styles.user;
-  };
-
+  // ===========================
+  // RENDER CONDICIONAL - LOADING
+  // ===========================
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -198,423 +191,78 @@ const AdminDashboard = () => {
     );
   }
 
+  // ===========================
+  // RENDER FUNCIÓN PARA VISTAS
+  // ===========================
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case "dashboard":
+        return (
+          <AdminDashboardView
+            stats={stats}
+            users={users}
+            recentActivity={recentActivity}
+            formatDate={formatDate}
+          />
+        );
+      case "users":
+        return (
+          <AdminUsersView
+            users={users}
+            usersPagination={usersPagination}
+            userFilters={userFilters}
+            setUserFilters={setUserFilters}
+            handleUserAction={handleUserAction}
+            formatDate={formatDate}
+            loadUsers={loadUsers}
+          />
+        );
+      case "activity":
+        return (
+          <AdminActivityView
+            recentActivity={recentActivity}
+            formatDate={formatDate}
+          />
+        );
+      default:
+        return (
+          <AdminDashboardView
+            stats={stats}
+            users={users}
+            recentActivity={recentActivity}
+            formatDate={formatDate}
+          />
+        );
+    }
+  };
+
+  // ===========================
+  // RENDER PRINCIPAL
+  // ===========================
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <div
-        className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ${
-          sidebarCollapsed ? "w-16" : "w-64"
-        }`}
-      >
-        {/* Sidebar Header */}
-        <div className="p-4 border-b border-gray-100">
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-[#061a4a] rounded-lg flex items-center justify-center">
-              <Shield className="w-5 h-5 text-white" />
-            </div>
-            {!sidebarCollapsed && (
-              <span className="ml-3 font-semibold text-gray-900">
-                Admin Panel
-              </span>
-            )}
-          </div>
-        </div>
+      {/* ✅ SIDEBAR MODULAR */}
+      <AdminSidebar
+        sidebarCollapsed={sidebarCollapsed}
+        setSidebarCollapsed={setSidebarCollapsed}
+        currentView={currentView}
+        setCurrentView={setCurrentView}
+        stats={stats}
+      />
 
-        {/* Navigation */}
-        <nav className="flex-1 p-2">
-          <button
-            onClick={() => setCurrentView("dashboard")}
-            className={`w-full flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-1 cursor-pointer ${
-              currentView === "dashboard"
-                ? "bg-[#061a4a]/10 text-[#061a4a] border border-[#061a4a]/20"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            <Home className="w-5 h-5 flex-shrink-0" />
-            {!sidebarCollapsed && <span className="ml-3">Dashboard</span>}
-          </button>
-
-          <button
-            onClick={() => setCurrentView("users")}
-            className={`w-full flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-1 cursor-pointer ${
-              currentView === "users"
-                ? "bg-[#061a4a]/10 text-[#061a4a] border border-[#061a4a]/20"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            <Users className="w-5 h-5 flex-shrink-0" />
-            {!sidebarCollapsed && (
-              <>
-                <span className="ml-3 flex-1 text-left">Usuarios</span>
-                <span className="ml-2 bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full">
-                  {stats?.users?.total_users || 0}
-                </span>
-              </>
-            )}
-          </button>
-
-          <button
-            onClick={() => setCurrentView("activity")}
-            className={`w-full flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-1 cursor-pointer ${
-              currentView === "activity"
-                ? "bg-[#061a4a]/10 text-[#061a4a] border border-[#061a4a]/20"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            <Activity className="w-5 h-5 flex-shrink-0" />
-            {!sidebarCollapsed && <span className="ml-3">Actividad</span>}
-          </button>
-        </nav>
-
-        {/* Settings */}
-        <div className="p-2 border-t border-gray-100">
-          <button className="w-full flex items-center px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 cursor-pointer transition-colors">
-            <Settings className="w-5 h-5 flex-shrink-0" />
-            {!sidebarCollapsed && <span className="ml-3">Configuración</span>}
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content */}
+      {/* ✅ CONTENIDO PRINCIPAL */}
       <div className="flex-1 flex flex-col">
-        {/* Top Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-              >
-                <Menu className="w-5 h-5 text-gray-600" />
-              </button>
-              <h1 className="text-xl font-semibold text-gray-900">
-                {currentView === "dashboard" && "Panel de Administración"}
-                {currentView === "users" && "Gestión de Usuarios"}
-                {currentView === "activity" && "Actividad del Sistema"}
-              </h1>
-            </div>
+        {/* ✅ NAVBAR MODULAR */}
+        <AdminNavbar
+          currentView={currentView}
+          user={user}
+          sidebarCollapsed={sidebarCollapsed}
+          setSidebarCollapsed={setSidebarCollapsed}
+          handleLogout={handleLogout}
+        />
 
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700">
-                Admin: <span className="font-medium">{user?.name_user}</span>
-              </span>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer"
-              >
-                <LogOut className="w-4 h-4 inline mr-2" />
-                Cerrar sesión
-              </button>
-            </div>
-          </div>
-        </header>
-
-        {/* Content Area */}
-        <main className="flex-1 p-6">
-          {currentView === "dashboard" && (
-            <div className="space-y-6">
-              {/* Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-                  <div className="flex items-center">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Users className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">
-                        Total Usuarios
-                      </p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {stats?.users?.total_users || 0}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-                  <div className="flex items-center">
-                    <div className="p-2 bg-green-100 rounded-lg">
-                      <UserCheck className="w-6 h-6 text-green-600" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">
-                        Usuarios Activos
-                      </p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {stats?.users?.active_users || 0}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-                  <div className="flex items-center">
-                    <div className="p-2 bg-purple-100 rounded-lg">
-                      <Shield className="w-6 h-6 text-purple-600" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">
-                        Administradores
-                      </p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {stats?.users?.total_admins || 0}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-                  <div className="flex items-center">
-                    <div className="p-2 bg-orange-100 rounded-lg">
-                      <Activity className="w-6 h-6 text-orange-600" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">
-                        Sesiones Activas
-                      </p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {stats?.sessions?.active_sessions || 0}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Recent Users */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-medium text-gray-900">
-                    Usuarios Recientes
-                  </h3>
-                </div>
-                <div className="p-6">
-                  <div className="space-y-4">
-                    {users.slice(0, 5).map((user) => (
-                      <div
-                        key={user.id_user}
-                        className="flex items-center justify-between"
-                      >
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                            <Users className="w-4 h-4 text-gray-600" />
-                          </div>
-                          <div className="ml-3">
-                            <p className="text-sm font-medium text-gray-900">
-                              {user.name_user}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {user.email_user}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span
-                            className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleBadge(
-                              user.role_user
-                            )}`}
-                          >
-                            {user.role_user}
-                          </span>
-                          <span
-                            className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(
-                              user.status_user
-                            )}`}
-                          >
-                            {user.status_user}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {currentView === "users" && (
-            <div className="space-y-6">
-              {/* Users Header */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Gestión de Usuarios
-                  </h2>
-                  <p className="text-sm text-gray-600">
-                    Total: {usersPagination.totalUsers || 0} usuarios
-                  </p>
-                </div>
-                <button className="px-4 py-2 bg-[#061a4a] text-white rounded-lg hover:bg-[#082563] transition-colors cursor-pointer">
-                  <Plus className="w-4 h-4 inline mr-2" />
-                  Nuevo Usuario
-                </button>
-              </div>
-
-              {/* Users Table */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div className="p-6">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-gray-200">
-                          <th className="text-left py-3 px-4 font-medium text-gray-900">
-                            Usuario
-                          </th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-900">
-                            Rol
-                          </th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-900">
-                            Estado
-                          </th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-900">
-                            Archivos
-                          </th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-900">
-                            Registrado
-                          </th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-900">
-                            Acciones
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {users.map((user) => (
-                          <tr
-                            key={user.id_user}
-                            className="border-b border-gray-100"
-                          >
-                            <td className="py-3 px-4">
-                              <div>
-                                <p className="font-medium text-gray-900">
-                                  {user.name_user}
-                                </p>
-                                <p className="text-sm text-gray-500">
-                                  {user.email_user}
-                                </p>
-                              </div>
-                            </td>
-                            <td className="py-3 px-4">
-                              <span
-                                className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleBadge(
-                                  user.role_user
-                                )}`}
-                              >
-                                {user.role_user}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4">
-                              <span
-                                className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(
-                                  user.status_user
-                                )}`}
-                              >
-                                {user.status_user}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4">
-                              <span className="text-sm text-gray-600">
-                                {user.total_files || 0}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4">
-                              <span className="text-sm text-gray-600">
-                                {formatDate(user.created_at_user)}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4">
-                              <div className="flex items-center space-x-2">
-                                <select
-                                  value={user.role_user}
-                                  onChange={(e) =>
-                                    handleUserAction(
-                                      user.id_user,
-                                      "role",
-                                      e.target.value
-                                    )
-                                  }
-                                  className="text-xs border border-gray-300 rounded px-2 py-1 cursor-pointer"
-                                  disabled={
-                                    user.id_user ===
-                                    JSON.parse(localStorage.getItem("user"))
-                                      ?.id_user
-                                  }
-                                >
-                                  <option value="user">User</option>
-                                  <option value="admin">Admin</option>
-                                </select>
-                                <select
-                                  value={user.status_user}
-                                  onChange={(e) =>
-                                    handleUserAction(
-                                      user.id_user,
-                                      "status",
-                                      e.target.value
-                                    )
-                                  }
-                                  className="text-xs border border-gray-300 rounded px-2 py-1 cursor-pointer"
-                                  disabled={
-                                    user.id_user ===
-                                    JSON.parse(localStorage.getItem("user"))
-                                      ?.id_user
-                                  }
-                                >
-                                  <option value="active">Active</option>
-                                  <option value="inactive">Inactive</option>
-                                  <option value="banned">Banned</option>
-                                </select>
-                                {user.id_user !==
-                                  JSON.parse(localStorage.getItem("user"))
-                                    ?.id_user && (
-                                  <button
-                                    onClick={() =>
-                                      handleUserAction(user.id_user, "delete")
-                                    }
-                                    className="p-1 text-red-600 hover:bg-red-100 rounded cursor-pointer"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {currentView === "activity" && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Actividad Reciente del Sistema
-              </h2>
-
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div className="p-6">
-                  <div className="space-y-4">
-                    {recentActivity.map((activity, index) => (
-                      <div key={index} className="flex items-center">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <Users className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <div className="ml-3">
-                          <p className="text-sm font-medium text-gray-900">
-                            Nuevo usuario registrado: {activity.description}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {formatDate(activity.created_at)}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </main>
+        {/* ✅ ÁREA DE CONTENIDO - VISTA ACTUAL */}
+        <main className="flex-1 p-6">{renderCurrentView()}</main>
       </div>
     </div>
   );
