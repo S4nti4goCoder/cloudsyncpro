@@ -1,4 +1,14 @@
-import { LogOut, Bell, Search, Menu } from "lucide-react";
+import {
+  LogOut,
+  Bell,
+  Search,
+  Menu,
+  ChevronDown,
+  User,
+  Settings,
+  Shield,
+} from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 
 const AdminNavbar = ({
   currentView,
@@ -7,6 +17,39 @@ const AdminNavbar = ({
   setSidebarCollapsed,
   handleLogout,
 }) => {
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Cerrar dropdown al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setUserDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleProfileClick = () => {
+    setUserDropdownOpen(false);
+    // TODO: Implementar modal de perfil
+    console.log("Ver perfil clicked");
+  };
+
+  const handleSettingsClick = () => {
+    setUserDropdownOpen(false);
+    // TODO: Implementar configuraciones
+    console.log("Configuraciones clicked");
+  };
+
+  const handleLogoutClick = () => {
+    setUserDropdownOpen(false);
+    handleLogout();
+  };
   const getViewTitle = (view) => {
     const titles = {
       dashboard: "Panel de Administración",
@@ -78,31 +121,83 @@ const AdminNavbar = ({
             </span>
           </button>
 
-          {/* User Info */}
-          <div className="flex items-center space-x-3 pl-3 border-l border-gray-200">
-            <div className="hidden sm:block text-right">
-              <p className="text-sm font-medium text-gray-900">
-                {user?.name_user}
-              </p>
-              <p className="text-xs text-gray-500">Administrador</p>
-            </div>
+          {/* User Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+              className="flex items-center space-x-3 pl-3 border-l border-gray-200 hover:bg-gray-50 rounded-r-lg transition-colors cursor-pointer"
+            >
+              <div className="hidden sm:block text-right">
+                <p className="text-sm font-medium text-gray-900">
+                  {user?.name_user}
+                </p>
+                <div className="flex items-center justify-end mt-1">
+                  <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
+                    <Shield className="w-3 h-3 mr-1" />
+                    Administrador
+                  </span>
+                </div>
+              </div>
 
-            <div className="w-8 h-8 bg-[#061a4a] rounded-full flex items-center justify-center">
-              <span className="text-white text-sm font-medium">
-                {user?.name_user?.charAt(0).toUpperCase() || "A"}
-              </span>
-            </div>
+              <div className="w-8 h-8 bg-[#061a4a] rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-medium">
+                  {user?.name_user?.charAt(0).toUpperCase() || "A"}
+                </span>
+              </div>
+
+              <ChevronDown
+                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                  userDropdownOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {/* Dropdown Menu */}
+            {userDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                {/* User Info Header */}
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p className="text-sm font-medium text-gray-900">
+                    {user?.name_user}
+                  </p>
+                  <p className="text-xs text-gray-500">{user?.email_user}</p>
+                  <span className="inline-flex items-center px-2 py-1 mt-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
+                    <Shield className="w-3 h-3 mr-1" />
+                    Administrador
+                  </span>
+                </div>
+
+                {/* Menu Items */}
+                <div className="py-1">
+                  <button
+                    onClick={handleProfileClick}
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                  >
+                    <User className="w-4 h-4 mr-3 text-gray-400" />
+                    Ver Perfil
+                  </button>
+
+                  <button
+                    onClick={handleSettingsClick}
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                  >
+                    <Settings className="w-4 h-4 mr-3 text-gray-400" />
+                    Configuraciones
+                  </button>
+
+                  <div className="border-t border-gray-100 my-1"></div>
+
+                  <button
+                    onClick={handleLogoutClick}
+                    className="flex items-center w-full px-4 py-2 text-sm text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4 mr-3 text-red-500" />
+                    Cerrar Sesión
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-
-          {/* Logout Button */}
-          <button
-            onClick={handleLogout}
-            className="flex items-center px-3 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer"
-            title="Cerrar sesión"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Cerrar sesión</span>
-          </button>
         </div>
       </div>
 
