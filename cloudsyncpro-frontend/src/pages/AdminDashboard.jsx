@@ -5,7 +5,7 @@ import { Settings } from "lucide-react";
 import { authService } from "../services/authService";
 import api from "../services/api";
 
-// ✅ NUEVOS COMPONENTES MODULARES
+// ✅ COMPONENTES MODULARES
 import AdminSidebar from "../components/admin/AdminSidebar";
 import AdminNavbar from "../components/admin/AdminNavbar";
 import AdminDashboardView from "../components/admin/AdminDashboardView";
@@ -73,6 +73,15 @@ const AdminDashboard = () => {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Sesión expirada", {
+          description: "Por favor, inicia sesión nuevamente",
+        });
+        navigate("/login");
+        return;
+      }
+
       const [statsResponse, usersResponse, activityResponse] =
         await Promise.all([
           api.get("/admin/dashboard/stats"),
@@ -86,6 +95,16 @@ const AdminDashboard = () => {
       setRecentActivity(activityResponse.data.data);
     } catch (error) {
       console.error("Error loading dashboard data:", error);
+
+      if (error.response?.status === 401) {
+        toast.error("Sesión expirada", {
+          description: "Por favor, inicia sesión nuevamente",
+        });
+        localStorage.clear();
+        navigate("/login");
+        return;
+      }
+
       toast.error("Error al cargar datos del dashboard");
     } finally {
       setLoading(false);
@@ -94,6 +113,15 @@ const AdminDashboard = () => {
 
   const loadUsers = async (filters = userFilters) => {
     try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Sesión expirada", {
+          description: "Por favor, inicia sesión nuevamente",
+        });
+        navigate("/login");
+        return;
+      }
+
       const params = new URLSearchParams({
         page: filters.page,
         limit: 10,
@@ -107,6 +135,16 @@ const AdminDashboard = () => {
       setUsersPagination(response.data.pagination);
     } catch (error) {
       console.error("Error loading users:", error);
+
+      if (error.response?.status === 401) {
+        toast.error("Sesión expirada", {
+          description: "Por favor, inicia sesión nuevamente",
+        });
+        localStorage.clear();
+        navigate("/login");
+        return;
+      }
+
       toast.error("Error al cargar usuarios");
     }
   };
@@ -126,17 +164,19 @@ const AdminDashboard = () => {
           });
           message = `Rol actualizado a ${value}`;
           break;
+
         case "status":
           response = await api.put(`/admin/users/${userId}/status`, {
             status: value,
           });
           message = `Estado actualizado a ${value}`;
           break;
+
         case "delete":
           response = await api.delete(`/admin/users/${userId}`);
           message = "Usuario eliminado";
           break;
-        // ← NUEVO CASO: Crear usuario
+
         case "create":
           response = await api.post("/admin/users", {
             name_user: value.name_user,
@@ -146,6 +186,7 @@ const AdminDashboard = () => {
           });
           message = `Usuario ${value.name_user} creado exitosamente`;
           break;
+
         default:
           return;
       }
@@ -158,13 +199,17 @@ const AdminDashboard = () => {
               : undefined,
           duration: action === "create" ? 6000 : 4000,
         });
-        loadUsers();
-        loadDashboardData(); // Recargar stats
+
+        await loadUsers();
+        await loadDashboardData();
+      } else {
+        toast.error("Error en la operación", {
+          description: response.data.message || "Error desconocido",
+        });
       }
     } catch (error) {
       console.error("Error en acción de usuario:", error);
 
-      // Manejo de errores específicos para crear usuario
       if (action === "create") {
         const errorMessage =
           error.response?.data?.message || "Error al crear usuario";
@@ -184,6 +229,15 @@ const AdminDashboard = () => {
           });
         }
       } else {
+        if (error.response?.status === 401) {
+          toast.error("Sesión expirada", {
+            description: "Por favor, inicia sesión nuevamente",
+          });
+          localStorage.clear();
+          navigate("/login");
+          return;
+        }
+
         toast.error(
           error.response?.data?.message || "Error al realizar la acción"
         );
@@ -239,14 +293,12 @@ const AdminDashboard = () => {
       description: "Funcionalidad de creación de usuario - Próximamente",
       duration: 3000,
     });
-    // TODO: Implementar modal de creación de usuario
   };
 
   const handleBackupDatabase = async () => {
     const loadingToast = toast.loading("Iniciando backup de base de datos...");
 
     try {
-      // Simular proceso de backup
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       toast.dismiss(loadingToast);
@@ -354,7 +406,6 @@ const AdminDashboard = () => {
   // ===========================
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* ✅ SIDEBAR MODULAR */}
       <AdminSidebar
         sidebarCollapsed={sidebarCollapsed}
         setSidebarCollapsed={setSidebarCollapsed}
@@ -363,9 +414,7 @@ const AdminDashboard = () => {
         stats={stats}
       />
 
-      {/* ✅ CONTENIDO PRINCIPAL */}
       <div className="flex-1 flex flex-col">
-        {/* ✅ NAVBAR MODULAR */}
         <AdminNavbar
           currentView={currentView}
           user={user}
@@ -374,7 +423,6 @@ const AdminDashboard = () => {
           handleLogout={handleLogout}
         />
 
-        {/* ✅ ÁREA DE CONTENIDO - VISTA ACTUAL */}
         <main className="flex-1 p-6">{renderCurrentView()}</main>
       </div>
     </div>

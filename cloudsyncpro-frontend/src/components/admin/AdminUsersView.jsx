@@ -18,9 +18,9 @@ import DeleteConfirmModal from "../ui/DeleteConfirmModal";
 import EditUserModal from "../ui/EditUserModal";
 import RoleChangeConfirmModal from "../ui/RoleChangeConfirmModal";
 import StatusChangeConfirmModal from "../ui/StatusChangeConfirmModal";
-import CreateUserModal from "../ui/CreateUserModal"; // ← NUEVA IMPORTACIÓN
+import CreateUserModal from "../ui/CreateUserModal";
 
-// 🎯 COMPONENTES EXTRAÍDOS (sin cambios)
+// 🎯 COMPONENTES EXTRAÍDOS
 const UserAvatar = ({ user, currentUser }) => (
   <div className="flex items-center">
     <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-md">
@@ -141,7 +141,6 @@ const UserActions = ({
 
   return (
     <div className="flex items-center justify-center space-x-2">
-      {/* Role Selector */}
       <select
         value={user.role_user}
         onChange={(e) => {
@@ -156,7 +155,6 @@ const UserActions = ({
         <option value="admin">Administrador</option>
       </select>
 
-      {/* Status Selector */}
       <select
         value={user.status_user}
         onChange={(e) => {
@@ -172,7 +170,6 @@ const UserActions = ({
         <option value="banned">Baneado</option>
       </select>
 
-      {/* Edit Button */}
       <button
         onClick={() => openEditModal(user)}
         className="p-2 text-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors cursor-pointer"
@@ -181,7 +178,6 @@ const UserActions = ({
         <Edit className="w-4 h-4" />
       </button>
 
-      {/* Delete Button */}
       {!isCurrentUser ? (
         <button
           onClick={() => confirmDeleteUser(user)}
@@ -202,7 +198,6 @@ const UserActions = ({
 const SearchFilters = ({ userFilters, handleSearch, handleFilterChange }) => (
   <div className="bg-white rounded-lg border border-gray-200 p-4">
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-      {/* Search */}
       <div className="md:col-span-2">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -216,7 +211,6 @@ const SearchFilters = ({ userFilters, handleSearch, handleFilterChange }) => (
         </div>
       </div>
 
-      {/* Filters */}
       {[
         {
           key: "role",
@@ -254,9 +248,7 @@ const SearchFilters = ({ userFilters, handleSearch, handleFilterChange }) => (
   </div>
 );
 
-const EmptyState = (
-  { userFilters, openCreateModal } // ← MODIFICADO: Agregar prop
-) => (
+const EmptyState = ({ userFilters, openCreateModal }) => (
   <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
     <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
     <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -268,7 +260,7 @@ const EmptyState = (
         : "Aún no hay usuarios registrados en el sistema"}
     </p>
     <button
-      onClick={openCreateModal} // ← MODIFICADO: Función en lugar de placeholder
+      onClick={openCreateModal}
       className="inline-flex items-center px-4 py-2 bg-[#061a4a] text-white rounded-lg hover:bg-[#082563] transition-colors cursor-pointer"
     >
       <Plus className="w-4 h-4 mr-2" />
@@ -277,7 +269,7 @@ const EmptyState = (
   </div>
 );
 
-// 🎯 COMPONENTE PRINCIPAL REFACTORIZADO
+// 🎯 COMPONENTE PRINCIPAL
 const AdminUsersView = ({
   users,
   usersPagination,
@@ -309,14 +301,12 @@ const AdminUsersView = ({
     newStatus: null,
     isLoading: false,
   });
-
-  // ← NUEVO ESTADO PARA MODAL DE CREAR USUARIO
   const [createModal, setCreateModal] = useState({
     isOpen: false,
     isLoading: false,
   });
 
-  // 🔧 HANDLERS SIMPLIFICADOS
+  // 🔧 HANDLERS
   const confirmDeleteUser = (user) =>
     setDeleteModal({ isOpen: true, user, isLoading: false });
   const openEditModal = (user) =>
@@ -340,7 +330,6 @@ const AdminUsersView = ({
     });
   };
 
-  // ← NUEVO HANDLER PARA MODAL DE CREAR USUARIO
   const openCreateModal = () => {
     setCreateModal({ isOpen: true, isLoading: false });
   };
@@ -418,18 +407,17 @@ const AdminUsersView = ({
     }
   };
 
-  // ← NUEVO HANDLER PARA CREAR USUARIO
   const handleCreateUser = async (userData) => {
     setCreateModal((prev) => ({ ...prev, isLoading: true }));
+
     try {
-      await handleUserAction("create", "user", userData);
+      await handleUserAction("create", "create", userData);
       setCreateModal({ isOpen: false, isLoading: false });
     } catch (error) {
       setCreateModal((prev) => ({ ...prev, isLoading: false }));
     }
   };
 
-  // ← NUEVO HANDLER PARA EXPORTAR USUARIOS
   const handleExportUsers = () => {
     try {
       const exportData = users.map((user) => ({
@@ -454,11 +442,6 @@ const AdminUsersView = ({
       linkElement.setAttribute("href", dataUri);
       linkElement.setAttribute("download", exportFileDefaultName);
       linkElement.click();
-
-      // También podríamos usar CSV si prefieres
-      // const csvContent = "data:text/csv;charset=utf-8,"
-      //   + "Nombre,Email,Rol,Estado,Archivos,Carpetas,Registrado\n"
-      //   + exportData.map(row => Object.values(row).join(",")).join("\n");
     } catch (error) {
       console.error("Error exportando usuarios:", error);
     }
@@ -498,14 +481,14 @@ const AdminUsersView = ({
         </div>
         <div className="flex items-center space-x-3">
           <button
-            onClick={handleExportUsers} // ← MODIFICADO: Función real
+            onClick={handleExportUsers}
             className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium cursor-pointer"
           >
             <Download className="w-4 h-4 mr-2" />
             Exportar
           </button>
           <button
-            onClick={openCreateModal} // ← MODIFICADO: Función real
+            onClick={openCreateModal}
             className="flex items-center px-4 py-2 bg-[#061a4a] text-white rounded-lg hover:bg-[#082563] transition-colors text-sm font-medium cursor-pointer"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -644,7 +627,7 @@ const AdminUsersView = ({
       {users.length === 0 && (
         <EmptyState
           userFilters={userFilters}
-          openCreateModal={openCreateModal} // ← MODIFICADO: Pasar función
+          openCreateModal={openCreateModal}
         />
       )}
 
@@ -706,7 +689,6 @@ const AdminUsersView = ({
         isLoading={statusChangeModal.isLoading}
       />
 
-      {/* ← NUEVO MODAL DE CREAR USUARIO */}
       <CreateUserModal
         isOpen={createModal.isOpen}
         onClose={() =>

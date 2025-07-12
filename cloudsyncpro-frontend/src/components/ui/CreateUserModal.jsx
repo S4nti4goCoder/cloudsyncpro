@@ -56,12 +56,8 @@ const CreateUserModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
   });
 
   const password = watch("password_user");
-  const formData = watch();
   const { validation, isLoading: validationLoading } =
     usePasswordValidation(password);
-
-  console.log("📊 Form data en tiempo real:", formData);
-  console.log("🔑 Password actual:", password);
 
   // Cerrar modal con ESC
   useEffect(() => {
@@ -90,16 +86,9 @@ const CreateUserModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
   }, [isOpen, reset]);
 
   const handleFormSubmit = (data) => {
-    console.log("🔥 handleFormSubmit ejecutado con data:", data);
-
-    // Validar que la contraseña sea válida antes de enviar
     if (validation && !validation.isValid) {
-      console.log("❌ Contraseña no válida, validation:", validation);
-      return; // No enviar si la contraseña no es válida
+      return;
     }
-
-    console.log("✅ Contraseña válida, enviando datos...");
-    console.log("🚀 Llamando onSave con:", data);
     onSave(data);
   };
 
@@ -139,19 +128,11 @@ const CreateUserModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
           </button>
         </div>
 
-        {/* ⭐ FORM DEBE INCLUIR CONTENIDO Y FOOTER */}
-        <form
-          onSubmit={(e) => {
-            console.log("🚀 FORM ONSUBMIT EJECUTADO");
-            e.preventDefault();
-            handleSubmit(handleFormSubmit)(e);
-          }}
-        >
+        {/* Form */}
+        <form onSubmit={handleSubmit(handleFormSubmit)}>
           {/* Content */}
           <div className="p-6">
             <div className="space-y-4">
-              {/* Todos los campos van aquí */}
-
               {/* Nombre completo */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -165,6 +146,12 @@ const CreateUserModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
                   className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors cursor-text border-gray-300 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                   placeholder="Ingresa el nombre completo"
                 />
+                {errors.name_user && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    {errors.name_user.message}
+                  </p>
+                )}
               </div>
 
               {/* Email */}
@@ -180,6 +167,12 @@ const CreateUserModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
                   className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors cursor-text border-gray-300 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                   placeholder="usuario@ejemplo.com"
                 />
+                {errors.email_user && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    {errors.email_user.message}
+                  </p>
+                )}
               </div>
 
               {/* Contraseña */}
@@ -210,6 +203,13 @@ const CreateUserModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
                   </button>
                 </div>
 
+                {errors.password_user && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    {errors.password_user.message}
+                  </p>
+                )}
+
                 <PasswordStrengthIndicator
                   password={password}
                   validation={validation}
@@ -231,6 +231,12 @@ const CreateUserModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
                   <option value="user">Usuario</option>
                   <option value="admin">Administrador</option>
                 </select>
+                {errors.role_user && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    {errors.role_user.message}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -252,7 +258,7 @@ const CreateUserModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
             </div>
           </div>
 
-          {/* ⭐ FOOTER DEBE ESTAR DENTRO DEL FORM */}
+          {/* Footer */}
           <div className="flex items-center justify-end space-x-3 p-6 bg-gray-50 rounded-b-2xl border-t border-gray-100">
             <button
               type="button"
