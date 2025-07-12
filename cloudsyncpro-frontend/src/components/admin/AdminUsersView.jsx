@@ -17,9 +17,10 @@ import { useState } from "react";
 import DeleteConfirmModal from "../ui/DeleteConfirmModal";
 import EditUserModal from "../ui/EditUserModal";
 import RoleChangeConfirmModal from "../ui/RoleChangeConfirmModal";
-import StatusChangeConfirmModal from "../ui/StatusChangeConfirmModal"; // ← NUEVA IMPORTACIÓN
+import StatusChangeConfirmModal from "../ui/StatusChangeConfirmModal";
+import CreateUserModal from "../ui/CreateUserModal"; // ← NUEVA IMPORTACIÓN
 
-// 🎯 COMPONENTES EXTRAÍDOS
+// 🎯 COMPONENTES EXTRAÍDOS (sin cambios)
 const UserAvatar = ({ user, currentUser }) => (
   <div className="flex items-center">
     <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-md">
@@ -134,7 +135,7 @@ const UserActions = ({
   openEditModal,
   confirmDeleteUser,
   openRoleChangeModal,
-  openStatusChangeModal, // ← NUEVA PROP
+  openStatusChangeModal,
 }) => {
   const isCurrentUser = user.id_user === currentUser?.id_user;
 
@@ -144,7 +145,6 @@ const UserActions = ({
       <select
         value={user.role_user}
         onChange={(e) => {
-          // Solo abrir modal si realmente cambió el rol
           if (e.target.value !== user.role_user) {
             openRoleChangeModal(user, e.target.value);
           }
@@ -156,11 +156,10 @@ const UserActions = ({
         <option value="admin">Administrador</option>
       </select>
 
-      {/* Status Selector - MODIFICADO */}
+      {/* Status Selector */}
       <select
         value={user.status_user}
         onChange={(e) => {
-          // Solo abrir modal si realmente cambió el estado
           if (e.target.value !== user.status_user) {
             openStatusChangeModal(user, e.target.value);
           }
@@ -255,7 +254,9 @@ const SearchFilters = ({ userFilters, handleSearch, handleFilterChange }) => (
   </div>
 );
 
-const EmptyState = ({ userFilters }) => (
+const EmptyState = (
+  { userFilters, openCreateModal } // ← MODIFICADO: Agregar prop
+) => (
   <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
     <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
     <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -266,7 +267,10 @@ const EmptyState = ({ userFilters }) => (
         ? "Intenta ajustar los filtros de búsqueda"
         : "Aún no hay usuarios registrados en el sistema"}
     </p>
-    <button className="inline-flex items-center px-4 py-2 bg-[#061a4a] text-white rounded-lg hover:bg-[#082563] transition-colors cursor-pointer">
+    <button
+      onClick={openCreateModal} // ← MODIFICADO: Función en lugar de placeholder
+      className="inline-flex items-center px-4 py-2 bg-[#061a4a] text-white rounded-lg hover:bg-[#082563] transition-colors cursor-pointer"
+    >
       <Plus className="w-4 h-4 mr-2" />
       Crear primer usuario
     </button>
@@ -299,12 +303,16 @@ const AdminUsersView = ({
     newRole: null,
     isLoading: false,
   });
-
-  // ← NUEVO ESTADO PARA MODAL DE CAMBIO DE ESTADO
   const [statusChangeModal, setStatusChangeModal] = useState({
     isOpen: false,
     user: null,
     newStatus: null,
+    isLoading: false,
+  });
+
+  // ← NUEVO ESTADO PARA MODAL DE CREAR USUARIO
+  const [createModal, setCreateModal] = useState({
+    isOpen: false,
     isLoading: false,
   });
 
@@ -323,7 +331,6 @@ const AdminUsersView = ({
     });
   };
 
-  // ← NUEVO HANDLER PARA MODAL DE CAMBIO DE ESTADO
   const openStatusChangeModal = (user, newStatus) => {
     setStatusChangeModal({
       isOpen: true,
@@ -331,6 +338,11 @@ const AdminUsersView = ({
       newStatus,
       isLoading: false,
     });
+  };
+
+  // ← NUEVO HANDLER PARA MODAL DE CREAR USUARIO
+  const openCreateModal = () => {
+    setCreateModal({ isOpen: true, isLoading: false });
   };
 
   const handleDeleteConfirm = async () => {
@@ -387,7 +399,6 @@ const AdminUsersView = ({
     }
   };
 
-  // ← NUEVO HANDLER PARA CONFIRMAR CAMBIO DE ESTADO
   const handleStatusChangeConfirm = async () => {
     setStatusChangeModal((prev) => ({ ...prev, isLoading: true }));
     try {
@@ -404,6 +415,52 @@ const AdminUsersView = ({
       });
     } catch (error) {
       setStatusChangeModal((prev) => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  // ← NUEVO HANDLER PARA CREAR USUARIO
+  const handleCreateUser = async (userData) => {
+    setCreateModal((prev) => ({ ...prev, isLoading: true }));
+    try {
+      await handleUserAction("create", "user", userData);
+      setCreateModal({ isOpen: false, isLoading: false });
+    } catch (error) {
+      setCreateModal((prev) => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  // ← NUEVO HANDLER PARA EXPORTAR USUARIOS
+  const handleExportUsers = () => {
+    try {
+      const exportData = users.map((user) => ({
+        nombre: user.name_user,
+        email: user.email_user,
+        rol: user.role_user,
+        estado: user.status_user,
+        archivos: user.total_files || 0,
+        carpetas: user.total_folders || 0,
+        registrado: formatDate(user.created_at_user),
+      }));
+
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const dataUri =
+        "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
+
+      const exportFileDefaultName = `usuarios-${
+        new Date().toISOString().split("T")[0]
+      }.json`;
+
+      const linkElement = document.createElement("a");
+      linkElement.setAttribute("href", dataUri);
+      linkElement.setAttribute("download", exportFileDefaultName);
+      linkElement.click();
+
+      // También podríamos usar CSV si prefieres
+      // const csvContent = "data:text/csv;charset=utf-8,"
+      //   + "Nombre,Email,Rol,Estado,Archivos,Carpetas,Registrado\n"
+      //   + exportData.map(row => Object.values(row).join(",")).join("\n");
+    } catch (error) {
+      console.error("Error exportando usuarios:", error);
     }
   };
 
@@ -440,11 +497,17 @@ const AdminUsersView = ({
           </p>
         </div>
         <div className="flex items-center space-x-3">
-          <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium cursor-pointer">
+          <button
+            onClick={handleExportUsers} // ← MODIFICADO: Función real
+            className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium cursor-pointer"
+          >
             <Download className="w-4 h-4 mr-2" />
             Exportar
           </button>
-          <button className="flex items-center px-4 py-2 bg-[#061a4a] text-white rounded-lg hover:bg-[#082563] transition-colors text-sm font-medium cursor-pointer">
+          <button
+            onClick={openCreateModal} // ← MODIFICADO: Función real
+            className="flex items-center px-4 py-2 bg-[#061a4a] text-white rounded-lg hover:bg-[#082563] transition-colors text-sm font-medium cursor-pointer"
+          >
             <Plus className="w-4 h-4 mr-2" />
             Nuevo Usuario
           </button>
@@ -515,7 +578,7 @@ const AdminUsersView = ({
                       openEditModal={openEditModal}
                       confirmDeleteUser={confirmDeleteUser}
                       openRoleChangeModal={openRoleChangeModal}
-                      openStatusChangeModal={openStatusChangeModal} // ← NUEVA PROP
+                      openStatusChangeModal={openStatusChangeModal}
                     />
                   </td>
                 </tr>
@@ -578,7 +641,12 @@ const AdminUsersView = ({
       </div>
 
       {/* Empty State */}
-      {users.length === 0 && <EmptyState userFilters={userFilters} />}
+      {users.length === 0 && (
+        <EmptyState
+          userFilters={userFilters}
+          openCreateModal={openCreateModal} // ← MODIFICADO: Pasar función
+        />
+      )}
 
       {/* Modals */}
       <EditUserModal
@@ -621,7 +689,6 @@ const AdminUsersView = ({
         isLoading={roleChangeModal.isLoading}
       />
 
-      {/* ← NUEVO MODAL DE CAMBIO DE ESTADO */}
       <StatusChangeConfirmModal
         isOpen={statusChangeModal.isOpen}
         onClose={() =>
@@ -637,6 +704,17 @@ const AdminUsersView = ({
         user={statusChangeModal.user}
         newStatus={statusChangeModal.newStatus}
         isLoading={statusChangeModal.isLoading}
+      />
+
+      {/* ← NUEVO MODAL DE CREAR USUARIO */}
+      <CreateUserModal
+        isOpen={createModal.isOpen}
+        onClose={() =>
+          !createModal.isLoading &&
+          setCreateModal({ isOpen: false, isLoading: false })
+        }
+        onSave={handleCreateUser}
+        isLoading={createModal.isLoading}
       />
     </div>
   );

@@ -136,19 +136,58 @@ const AdminDashboard = () => {
           response = await api.delete(`/admin/users/${userId}`);
           message = "Usuario eliminado";
           break;
+        // ← NUEVO CASO: Crear usuario
+        case "create":
+          response = await api.post("/admin/users", {
+            name_user: value.name_user,
+            email_user: value.email_user,
+            password_user: value.password_user,
+            role_user: value.role_user,
+          });
+          message = `Usuario ${value.name_user} creado exitosamente`;
+          break;
         default:
           return;
       }
 
       if (response.data.success) {
-        toast.success(message);
+        toast.success(message, {
+          description:
+            action === "create"
+              ? `El usuario puede iniciar sesión con: ${value.email_user}`
+              : undefined,
+          duration: action === "create" ? 6000 : 4000,
+        });
         loadUsers();
         loadDashboardData(); // Recargar stats
       }
     } catch (error) {
-      toast.error(
-        error.response?.data?.message || "Error al realizar la acción"
-      );
+      console.error("Error en acción de usuario:", error);
+
+      // Manejo de errores específicos para crear usuario
+      if (action === "create") {
+        const errorMessage =
+          error.response?.data?.message || "Error al crear usuario";
+
+        if (errorMessage.includes("ya está registrado")) {
+          toast.error("Email ya registrado", {
+            description: "Este correo electrónico ya está en uso",
+          });
+        } else if (errorMessage.includes("contraseña")) {
+          toast.error("Error de contraseña", {
+            description:
+              "La contraseña no cumple con los requisitos de seguridad",
+          });
+        } else {
+          toast.error("Error al crear usuario", {
+            description: errorMessage,
+          });
+        }
+      } else {
+        toast.error(
+          error.response?.data?.message || "Error al realizar la acción"
+        );
+      }
     }
   };
 
