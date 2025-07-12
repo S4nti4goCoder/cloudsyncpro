@@ -16,6 +16,8 @@ import {
 import { useState } from "react";
 import DeleteConfirmModal from "../ui/DeleteConfirmModal";
 import EditUserModal from "../ui/EditUserModal";
+import RoleChangeConfirmModal from "../ui/RoleChangeConfirmModal";
+import StatusChangeConfirmModal from "../ui/StatusChangeConfirmModal"; // ← NUEVA IMPORTACIÓN
 
 // 🎯 COMPONENTES EXTRAÍDOS
 const UserAvatar = ({ user, currentUser }) => (
@@ -131,6 +133,8 @@ const UserActions = ({
   handleUserAction,
   openEditModal,
   confirmDeleteUser,
+  openRoleChangeModal,
+  openStatusChangeModal, // ← NUEVA PROP
 }) => {
   const isCurrentUser = user.id_user === currentUser?.id_user;
 
@@ -139,7 +143,12 @@ const UserActions = ({
       {/* Role Selector */}
       <select
         value={user.role_user}
-        onChange={(e) => handleUserAction(user.id_user, "role", e.target.value)}
+        onChange={(e) => {
+          // Solo abrir modal si realmente cambió el rol
+          if (e.target.value !== user.role_user) {
+            openRoleChangeModal(user, e.target.value);
+          }
+        }}
         disabled={isCurrentUser}
         className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#061a4a] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed bg-white cursor-pointer min-w-[110px]"
       >
@@ -147,12 +156,15 @@ const UserActions = ({
         <option value="admin">Administrador</option>
       </select>
 
-      {/* Status Selector */}
+      {/* Status Selector - MODIFICADO */}
       <select
         value={user.status_user}
-        onChange={(e) =>
-          handleUserAction(user.id_user, "status", e.target.value)
-        }
+        onChange={(e) => {
+          // Solo abrir modal si realmente cambió el estado
+          if (e.target.value !== user.status_user) {
+            openStatusChangeModal(user, e.target.value);
+          }
+        }}
         disabled={isCurrentUser}
         className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#061a4a] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed bg-white cursor-pointer min-w-[100px]"
       >
@@ -281,12 +293,45 @@ const AdminUsersView = ({
     user: null,
     isLoading: false,
   });
+  const [roleChangeModal, setRoleChangeModal] = useState({
+    isOpen: false,
+    user: null,
+    newRole: null,
+    isLoading: false,
+  });
+
+  // ← NUEVO ESTADO PARA MODAL DE CAMBIO DE ESTADO
+  const [statusChangeModal, setStatusChangeModal] = useState({
+    isOpen: false,
+    user: null,
+    newStatus: null,
+    isLoading: false,
+  });
 
   // 🔧 HANDLERS SIMPLIFICADOS
   const confirmDeleteUser = (user) =>
     setDeleteModal({ isOpen: true, user, isLoading: false });
   const openEditModal = (user) =>
     setEditModal({ isOpen: true, user, isLoading: false });
+
+  const openRoleChangeModal = (user, newRole) => {
+    setRoleChangeModal({
+      isOpen: true,
+      user,
+      newRole,
+      isLoading: false,
+    });
+  };
+
+  // ← NUEVO HANDLER PARA MODAL DE CAMBIO DE ESTADO
+  const openStatusChangeModal = (user, newStatus) => {
+    setStatusChangeModal({
+      isOpen: true,
+      user,
+      newStatus,
+      isLoading: false,
+    });
+  };
 
   const handleDeleteConfirm = async () => {
     setDeleteModal((prev) => ({ ...prev, isLoading: true }));
@@ -320,6 +365,45 @@ const AdminUsersView = ({
       setEditModal({ isOpen: false, user: null, isLoading: false });
     } catch (error) {
       setEditModal((prev) => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  const handleRoleChangeConfirm = async () => {
+    setRoleChangeModal((prev) => ({ ...prev, isLoading: true }));
+    try {
+      await handleUserAction(
+        roleChangeModal.user.id_user,
+        "role",
+        roleChangeModal.newRole
+      );
+      setRoleChangeModal({
+        isOpen: false,
+        user: null,
+        newRole: null,
+        isLoading: false,
+      });
+    } catch (error) {
+      setRoleChangeModal((prev) => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  // ← NUEVO HANDLER PARA CONFIRMAR CAMBIO DE ESTADO
+  const handleStatusChangeConfirm = async () => {
+    setStatusChangeModal((prev) => ({ ...prev, isLoading: true }));
+    try {
+      await handleUserAction(
+        statusChangeModal.user.id_user,
+        "status",
+        statusChangeModal.newStatus
+      );
+      setStatusChangeModal({
+        isOpen: false,
+        user: null,
+        newStatus: null,
+        isLoading: false,
+      });
+    } catch (error) {
+      setStatusChangeModal((prev) => ({ ...prev, isLoading: false }));
     }
   };
 
@@ -430,6 +514,8 @@ const AdminUsersView = ({
                       handleUserAction={handleUserAction}
                       openEditModal={openEditModal}
                       confirmDeleteUser={confirmDeleteUser}
+                      openRoleChangeModal={openRoleChangeModal}
+                      openStatusChangeModal={openStatusChangeModal} // ← NUEVA PROP
                     />
                   </td>
                 </tr>
@@ -516,6 +602,41 @@ const AdminUsersView = ({
         userName={deleteModal.user?.name_user}
         userEmail={deleteModal.user?.email_user}
         isLoading={deleteModal.isLoading}
+      />
+
+      <RoleChangeConfirmModal
+        isOpen={roleChangeModal.isOpen}
+        onClose={() =>
+          !roleChangeModal.isLoading &&
+          setRoleChangeModal({
+            isOpen: false,
+            user: null,
+            newRole: null,
+            isLoading: false,
+          })
+        }
+        onConfirm={handleRoleChangeConfirm}
+        user={roleChangeModal.user}
+        newRole={roleChangeModal.newRole}
+        isLoading={roleChangeModal.isLoading}
+      />
+
+      {/* ← NUEVO MODAL DE CAMBIO DE ESTADO */}
+      <StatusChangeConfirmModal
+        isOpen={statusChangeModal.isOpen}
+        onClose={() =>
+          !statusChangeModal.isLoading &&
+          setStatusChangeModal({
+            isOpen: false,
+            user: null,
+            newStatus: null,
+            isLoading: false,
+          })
+        }
+        onConfirm={handleStatusChangeConfirm}
+        user={statusChangeModal.user}
+        newStatus={statusChangeModal.newStatus}
+        isLoading={statusChangeModal.isLoading}
       />
     </div>
   );
