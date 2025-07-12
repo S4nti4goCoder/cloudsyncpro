@@ -340,28 +340,124 @@ const adminService = {
     }
   },
 
-  // Obtener actividad reciente
-  getRecentActivity: async (limit) => {
+  // ⭐ MÉTODO MEJORADO: Obtener actividad reciente con datos reales
+  getRecentActivity: async (limit = 50) => {
     try {
-      // Obtener usuarios recientes
-      const [recentUsers] = await db.query(
+      // 1. Obtener registros de usuarios (últimos 30 días)
+      const [userRegistrations] = await db.query(
         `
         SELECT 
           'user_registered' as activity_type,
-          name_user as description,
-          created_at_user as created_at,
-          'user' as icon
+          CONCAT('Nuevo usuario registrado: ', name_user) as description,
+          name_user as user_name,
+          email_user as user_email,
+          created_at_user as timestamp,
+          'success' as severity,
+          'info' as extra_info,
+          NULL as ip_address
         FROM users 
+        WHERE created_at_user >= DATE_SUB(NOW(), INTERVAL 30 DAY)
         ORDER BY created_at_user DESC 
         LIMIT ?
       `,
-        [limit]
+        [Math.floor(limit * 0.3)] // 30% del límite para registros
       );
 
-      // En el futuro aquí podrías agregar más tipos de actividad
-      // como archivos subidos, carpetas creadas, etc.
+      // 2. Obtener inicios de sesión (últimos 7 días)
+      const [userLogins] = await db.query(
+        `
+        SELECT 
+          'user_login' as activity_type,
+          CONCAT('Inicio de sesión: ', u.name_user) as description,
+          u.name_user as user_name,
+          u.email_user as user_email,
+          rt.created_at_refresh_token as timestamp,
+          'info' as severity,
+          CASE 
+            WHEN rt.is_revoked_refresh_token = 1 THEN 'session_revoked'
+            ELSE 'active_session'
+          END as extra_info,
+          rt.ip_address_refresh_token as ip_address
+        FROM refresh_tokens rt
+        JOIN users u ON rt.id_user = u.id_user
+        WHERE rt.created_at_refresh_token >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        ORDER BY rt.created_at_refresh_token DESC 
+        LIMIT ?
+      `,
+        [Math.floor(limit * 0.4)] // 40% del límite para logins
+      );
 
-      return recentUsers;
+      // 3. Obtener sesiones revocadas (logout/security)
+      const [sessionRevokes] = await db.query(
+        `
+        SELECT 
+          'user_logout' as activity_type,
+          CONCAT('Sesión cerrada: ', u.name_user) as description,
+          u.name_user as user_name,
+          u.email_user as user_email,
+          rt.updated_at_refresh_token as timestamp,
+          'warning' as severity,
+          'session_revoked' as extra_info,
+          rt.ip_address_refresh_token as ip_address
+        FROM refresh_tokens rt
+        JOIN users u ON rt.id_user = u.id_user
+        WHERE rt.is_revoked_refresh_token = 1 
+        AND rt.updated_at_refresh_token >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        AND rt.updated_at_refresh_token != rt.created_at_refresh_token
+        ORDER BY rt.updated_at_refresh_token DESC 
+        LIMIT ?
+      `,
+        [Math.floor(limit * 0.2)] // 20% del límite para logouts
+      );
+
+      // 4. Detectar actividad sospechosa (múltiples intentos fallidos)
+      const [suspiciousActivity] = await db.query(
+        `
+        SELECT 
+          'security_alert' as activity_type,
+          CONCAT('Múltiples intentos de acceso desde IP: ', ip_address_refresh_token) as description,
+          'Sistema de Seguridad' as user_name,
+          'security@system.local' as user_email,
+          created_at_refresh_token as timestamp,
+          'error' as severity,
+          'multiple_attempts' as extra_info,
+          ip_address_refresh_token as ip_address
+        FROM refresh_tokens
+        WHERE created_at_refresh_token >= DATE_SUB(NOW(), INTERVAL 1 DAY)
+        AND ip_address_refresh_token IS NOT NULL
+        GROUP BY ip_address_refresh_token
+        HAVING COUNT(*) > 5
+        ORDER BY created_at_refresh_token DESC
+        LIMIT ?
+      `,
+        [Math.floor(limit * 0.1)] // 10% del límite para alertas
+      );
+
+      // 5. Combinar todas las actividades
+      const allActivities = [
+        ...userRegistrations,
+        ...userLogins,
+        ...sessionRevokes,
+        ...suspiciousActivity,
+      ];
+
+      // 6. Ordenar por timestamp descendente y limitar
+      const sortedActivities = allActivities
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .slice(0, limit)
+        .map((activity, index) => ({
+          id: index + 1,
+          type: activity.activity_type,
+          description: activity.description,
+          user: activity.user_email,
+          user_name: activity.user_name,
+          timestamp: activity.timestamp,
+          ip: activity.ip_address || "No disponible",
+          severity: activity.severity,
+          extra_info: activity.extra_info,
+        }));
+
+      return sortedActivities;
     } catch (error) {
       console.error("Error obteniendo actividad:", error);
       throw new Error("Error al obtener actividad reciente");
