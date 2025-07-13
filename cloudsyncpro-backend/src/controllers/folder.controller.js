@@ -73,8 +73,12 @@ const folderController = {
   // Crear una nueva carpeta
   createFolder: async (req, res) => {
     try {
+      console.log("📝 Datos recibidos para crear carpeta:", req.body);
+      console.log("👤 Usuario:", req.user);
+
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
+        console.log("❌ Errores de validación:", errors.array());
         return res.status(400).json({
           success: false,
           message: "Datos de entrada inválidos",
@@ -86,6 +90,13 @@ const folderController = {
       const userId = req.user.id_user;
       const userRole = req.user.role_user;
 
+      console.log("✅ Datos validados:", {
+        name_folder,
+        parent_folder_id,
+        userId,
+        userRole,
+      });
+
       const newFolder = await folderService.createFolder(
         {
           name_folder,
@@ -96,13 +107,15 @@ const folderController = {
         userRole
       );
 
+      console.log("🎉 Carpeta creada exitosamente:", newFolder);
+
       res.status(201).json({
         success: true,
         message: "Carpeta creada exitosamente",
         data: newFolder,
       });
     } catch (error) {
-      console.error("Error al crear carpeta:", error);
+      console.error("💥 Error al crear carpeta:", error);
 
       if (
         error.message ===

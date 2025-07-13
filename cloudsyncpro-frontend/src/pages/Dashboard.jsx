@@ -26,7 +26,19 @@ import {
   Share,
   MoreHorizontal,
   Menu,
+  FolderPlus,
+  AlertCircle,
 } from "lucide-react";
+
+// Importar componentes de carpetas
+import {
+  FolderGrid,
+  CreateFolderModal,
+  EditFolderModal,
+  DeleteFolderModal,
+  Breadcrumbs,
+  folderService,
+} from "../components/folders";
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
@@ -35,6 +47,39 @@ const Dashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const navigate = useNavigate();
 
+  // ===========================
+  // ESTADO DE CARPETAS
+  // ===========================
+  const [folders, setFolders] = useState([]);
+  const [foldersLoading, setFoldersLoading] = useState(true);
+  const [foldersError, setFoldersError] = useState(null);
+  const [currentFolderId, setCurrentFolderId] = useState(null); // null = raíz
+  const [currentPath, setCurrentPath] = useState([]); // Para breadcrumbs
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // ===========================
+  // ESTADO DE MODALES
+  // ===========================
+  const [createFolderModal, setCreateFolderModal] = useState({
+    isOpen: false,
+    isLoading: false,
+  });
+
+  const [editFolderModal, setEditFolderModal] = useState({
+    isOpen: false,
+    isLoading: false,
+    folder: null,
+  });
+
+  const [deleteFolderModal, setDeleteFolderModal] = useState({
+    isOpen: false,
+    isLoading: false,
+    folder: null,
+  });
+
+  // ===========================
+  // EFECTOS INICIALES
+  // ===========================
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (savedUser) {
@@ -50,8 +95,260 @@ const Dashboard = () => {
         }, 100);
         setHasShownWelcome(true);
       }
+
+      // Cargar carpetas iniciales
+      loadFolders();
     }
   }, [hasShownWelcome]);
+
+  // ===========================
+  // FUNCIONES DE CARGA DE DATOS
+  // ===========================
+  const loadFolders = async (parentId = null, searchQuery = "") => {
+    setFoldersLoading(true);
+    setFoldersError(null);
+
+    try {
+      let result;
+
+      if (searchQuery.trim()) {
+        // Si hay búsqueda, usar endpoint de búsqueda
+        result = await folderService.searchFolders({
+          query: searchQuery.trim(),
+          parent_id: parentId,
+        });
+      } else {
+        // Carga normal de carpetas
+        result = await folderService.getFolders({
+          parent_id: parentId,
+        });
+      }
+
+      if (result.success) {
+        setFolders(result.data);
+
+        // Si cambió el directorio actual, actualizar path
+        if (parentId !== currentFolderId) {
+          await updateCurrentPath(parentId);
+        }
+      } else {
+        setFoldersError(result.message);
+        toast.error("Error al cargar carpetas", {
+          description: result.message,
+        });
+      }
+    } catch (error) {
+      console.error("Error cargando carpetas:", error);
+      setFoldersError("Error de conexión");
+      toast.error("Error al cargar carpetas", {
+        description: "No se pudo conectar con el servidor",
+      });
+    } finally {
+      setFoldersLoading(false);
+    }
+  };
+
+  const updateCurrentPath = async (folderId) => {
+    if (!folderId) {
+      setCurrentPath([]);
+      setCurrentFolderId(null);
+      return;
+    }
+
+    try {
+      const result = await folderService.getFolderPath(folderId);
+      if (result.success) {
+        const breadcrumbs = folderService.buildBreadcrumbs(result.data);
+        // Remover el primer elemento (Inicio) ya que lo manejamos por separado
+        setCurrentPath(breadcrumbs.slice(1));
+        setCurrentFolderId(folderId);
+      }
+    } catch (error) {
+      console.error("Error obteniendo ruta:", error);
+    }
+  };
+
+  // ===========================
+  // MANEJADORES DE CARPETAS
+  // ===========================
+  const handleFolderClick = (folder) => {
+    // Navegar dentro de la carpeta
+    setCurrentFolderId(folder.id_folder);
+    loadFolders(folder.id_folder, searchTerm);
+  };
+
+  const handleNavigate = (folderId) => {
+    // Navegar a una carpeta específica desde breadcrumbs
+    setCurrentFolderId(folderId);
+    loadFolders(folderId, searchTerm);
+  };
+
+  const handleCreateFolder = () => {
+    setCreateFolderModal({ isOpen: true, isLoading: false });
+  };
+
+  const handleCreateFolderSave = async (folderData) => {
+    setCreateFolderModal((prev) => ({ ...prev, isLoading: true }));
+
+    try {
+      console.log("Datos enviados:", folderData); // Para debugging
+
+      const result = await folderService.createFolder({
+        name_folder: folderData.name_folder,
+        parent_folder_id: folderData.parent_folder_id,
+      });
+
+      if (result.success) {
+        toast.success("Carpeta creada exitosamente", {
+          description: `La carpeta "${folderData.name_folder}" ha sido creada`,
+        });
+
+        // Recargar carpetas
+        await loadFolders(currentFolderId, searchTerm);
+
+        // Cerrar modal
+        setCreateFolderModal({ isOpen: false, isLoading: false });
+      } else {
+        toast.error("Error al crear carpeta", {
+          description: result.message,
+        });
+        setCreateFolderModal((prev) => ({ ...prev, isLoading: false }));
+      }
+    } catch (error) {
+      console.error("Error creando carpeta:", error);
+      toast.error("Error al crear carpeta", {
+        description: "No se pudo conectar con el servidor",
+      });
+      setCreateFolderModal((prev) => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  const handleEditFolder = async (folder) => {
+    setEditFolderModal({
+      isOpen: true,
+      isLoading: false,
+      folder,
+    });
+  };
+
+  const handleEditFolderSave = async (folderId, updateData) => {
+    setEditFolderModal((prev) => ({ ...prev, isLoading: true }));
+
+    try {
+      const result = await folderService.updateFolder(folderId, updateData);
+
+      if (result.success) {
+        toast.success("Carpeta actualizada", {
+          description: `La carpeta ha sido renombrada exitosamente`,
+        });
+
+        // Recargar carpetas
+        await loadFolders(currentFolderId, searchTerm);
+
+        // Cerrar modal
+        setEditFolderModal({ isOpen: false, isLoading: false, folder: null });
+      } else {
+        toast.error("Error al actualizar carpeta", {
+          description: result.message,
+        });
+        setEditFolderModal((prev) => ({ ...prev, isLoading: false }));
+      }
+    } catch (error) {
+      console.error("Error actualizando carpeta:", error);
+      toast.error("Error al actualizar carpeta", {
+        description: "No se pudo conectar con el servidor",
+      });
+      setEditFolderModal((prev) => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  const handleDeleteFolder = async (folder) => {
+    setDeleteFolderModal({
+      isOpen: true,
+      isLoading: false,
+      folder,
+    });
+  };
+
+  const handleDeleteFolderConfirm = async () => {
+    if (!deleteFolderModal.folder) return;
+
+    setDeleteFolderModal((prev) => ({ ...prev, isLoading: true }));
+
+    try {
+      const result = await folderService.deleteFolder(
+        deleteFolderModal.folder.id_folder
+      );
+
+      if (result.success) {
+        toast.success("Carpeta eliminada", {
+          description: `La carpeta "${deleteFolderModal.folder.name_folder}" ha sido eliminada`,
+        });
+
+        // Recargar carpetas
+        await loadFolders(currentFolderId, searchTerm);
+
+        // Cerrar modal
+        setDeleteFolderModal({ isOpen: false, isLoading: false, folder: null });
+      } else {
+        toast.error("Error al eliminar carpeta", {
+          description: result.message,
+        });
+        setDeleteFolderModal((prev) => ({ ...prev, isLoading: false }));
+      }
+    } catch (error) {
+      console.error("Error eliminando carpeta:", error);
+      toast.error("Error al eliminar carpeta", {
+        description: "No se pudo conectar con el servidor",
+      });
+      setDeleteFolderModal((prev) => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  const handleDuplicateFolder = async (folder) => {
+    try {
+      const result = await folderService.duplicateFolder(folder.id_folder);
+
+      if (result.success) {
+        toast.success("Carpeta duplicada", {
+          description: `Se creó una copia de "${folder.name_folder}"`,
+        });
+        await loadFolders(currentFolderId, searchTerm);
+      } else {
+        toast.error("Error al duplicar", {
+          description: result.message,
+        });
+      }
+    } catch (error) {
+      toast.error("Error al duplicar carpeta");
+    }
+  };
+
+  const handleMoveFolder = async (folder) => {
+    // TODO: Implementar modal de movimiento
+    toast.info("Mover carpeta", {
+      description: `Funcionalidad de movimiento para "${folder.name_folder}" - Próximamente`,
+    });
+  };
+
+  const handleShareFolder = async (folder) => {
+    // TODO: Implementar modal de compartir
+    toast.info("Compartir carpeta", {
+      description: `Funcionalidad de compartir para "${folder.name_folder}" - Próximamente`,
+    });
+  };
+
+  const handleFileUpload = () => {
+    toast.info("Subir archivos", {
+      description: "Funcionalidad de subida de archivos - Próximamente",
+    });
+  };
+
+  const handleSearchChange = (query) => {
+    setSearchTerm(query);
+    // Recargar carpetas con el nuevo término de búsqueda
+    loadFolders(currentFolderId, query);
+  };
 
   const handleLogout = async () => {
     const loadingToast = toast.loading("Cerrando sesión...");
@@ -72,84 +369,39 @@ const Dashboard = () => {
     }
   };
 
-  // Datos temporales para demostración
+  // ===========================
+  // FUNCIÓN DE FORMATEO
+  // ===========================
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString("es-ES", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  // ===========================
+  // DATOS DE SIDEBAR
+  // ===========================
   const sidebarItems = [
     { icon: Home, label: "Inicio", count: null, active: true },
-    { icon: Folder, label: "Mis archivos", count: 12, active: false },
+    {
+      icon: Folder,
+      label: "Mis archivos",
+      count: folders.length,
+      active: false,
+    },
     { icon: Star, label: "Destacados", count: 3, active: false },
     { icon: Share2, label: "Compartidos", count: 5, active: false },
     { icon: Clock, label: "Recientes", count: null, active: false },
     { icon: Trash2, label: "Papelera", count: 2, active: false },
   ];
 
-  const recentFiles = [
-    {
-      id: 1,
-      name: "Proyecto CloudSync.pdf",
-      type: "pdf",
-      size: "2.4 MB",
-      modified: "Hace 2 horas",
-      shared: false,
-    },
-    {
-      id: 2,
-      name: "Presentación Q4.pptx",
-      type: "presentation",
-      size: "8.1 MB",
-      modified: "Ayer",
-      shared: true,
-    },
-    {
-      id: 3,
-      name: "Documentos",
-      type: "folder",
-      size: "15 archivos",
-      modified: "Hace 3 días",
-      shared: false,
-    },
-    {
-      id: 4,
-      name: "Logo CloudSync.png",
-      type: "image",
-      size: "342 KB",
-      modified: "Hace 1 semana",
-      shared: false,
-    },
-    {
-      id: 5,
-      name: "Contratos 2025",
-      type: "folder",
-      size: "8 archivos",
-      modified: "Hace 2 semanas",
-      shared: true,
-    },
-    {
-      id: 6,
-      name: "Análisis competencia.xlsx",
-      type: "spreadsheet",
-      size: "1.8 MB",
-      modified: "Hace 3 semanas",
-      shared: false,
-    },
-  ];
-
-  const getFileIcon = (type) => {
-    switch (type) {
-      case "folder":
-        return <Folder className="w-8 h-8 text-blue-500" />;
-      case "pdf":
-        return <FileText className="w-8 h-8 text-red-500" />;
-      case "image":
-        return <Image className="w-8 h-8 text-green-500" />;
-      case "presentation":
-        return <File className="w-8 h-8 text-orange-500" />;
-      case "spreadsheet":
-        return <File className="w-8 h-8 text-green-600" />;
-      default:
-        return <File className="w-8 h-8 text-gray-500" />;
-    }
-  };
-
+  // ===========================
+  // RENDER CONDICIONAL
+  // ===========================
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -200,7 +452,7 @@ const Dashboard = () => {
                 {!sidebarCollapsed && (
                   <>
                     <span className="ml-3 flex-1 text-left">{item.label}</span>
-                    {item.count && (
+                    {item.count !== null && (
                       <span className="ml-2 bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full">
                         {item.count}
                       </span>
@@ -258,6 +510,8 @@ const Dashboard = () => {
                 <input
                   type="text"
                   placeholder="Buscar en CloudSyncPro"
+                  value={searchTerm}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="pl-10 pr-4 py-2 w-96 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#061a4a] focus:border-transparent cursor-text"
                 />
               </div>
@@ -281,25 +535,37 @@ const Dashboard = () => {
 
         {/* Breadcrumbs */}
         <div className="bg-white border-b border-gray-100 px-6 py-3">
-          <div className="flex items-center text-sm text-gray-600">
-            <Home className="w-4 h-4" />
-            <ChevronRight className="w-4 h-4 mx-1" />
-            <span className="text-gray-900 font-medium">Inicio</span>
-          </div>
+          <Breadcrumbs
+            currentPath={currentPath}
+            onNavigate={handleNavigate}
+            currentFolder={folders.find((f) => f.id_folder === currentFolderId)}
+            showActions={true}
+            maxVisibleItems={4}
+          />
         </div>
 
         {/* Content Header */}
         <div className="bg-white border-b border-gray-100 px-6 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-gray-900">Inicio</h1>
+            <h1 className="text-xl font-semibold text-gray-900">
+              {currentPath.length > 0
+                ? currentPath[currentPath.length - 1].name
+                : "Inicio"}
+            </h1>
 
             {/* Toolbar */}
             <div className="flex items-center space-x-2">
-              <button className="flex items-center px-4 py-2 bg-[#061a4a] text-white rounded-lg hover:bg-[#082563] transition-colors cursor-pointer">
+              <button
+                onClick={handleCreateFolder}
+                className="flex items-center px-4 py-2 bg-[#061a4a] text-white rounded-lg hover:bg-[#082563] transition-colors cursor-pointer"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Nuevo
               </button>
-              <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+              <button
+                onClick={handleFileUpload}
+                className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+              >
                 <Upload className="w-4 h-4 mr-2" />
                 Subir
               </button>
@@ -340,124 +606,71 @@ const Dashboard = () => {
 
         {/* Main Content Area */}
         <main className="flex-1 p-6">
-          {/* Quick Access Section */}
-          <div className="mb-8">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">
-              Acceso rápido
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button
-                onClick={() => toast.info("Crear nueva carpeta - Próximamente")}
-                className="flex items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors group"
-              >
-                <Plus className="w-6 h-6 text-gray-400 group-hover:text-blue-500 mr-3" />
-                <span className="text-gray-600 group-hover:text-blue-700 cursor-pointer">
-                  Crear carpeta
-                </span>
-              </button>
-              <button
-                onClick={() => toast.info("Subir archivos - Próximamente")}
-                className="flex items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors group"
-              >
-                <Upload className="w-6 h-6 text-gray-400 group-hover:text-green-500 mr-3" />
-                <span className="text-gray-600 group-hover:text-green-700 cursor-pointer">
-                  Subir archivos
-                </span>
-              </button>
-              <button
-                onClick={() => toast.info("Ver compartidos - Próximamente")}
-                className="flex items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors group"
-              >
-                <Share2 className="w-6 h-6 text-gray-400 group-hover:text-purple-500 mr-3" />
-                <span className="text-gray-600 group-hover:text-purple-700 cursor-pointer">
-                  Ver compartidos
-                </span>
-              </button>
-            </div>
-          </div>
-
-          {/* Recent Files Section */}
-          <div>
-            <h2 className="text-lg font-medium text-gray-900 mb-4">
-              Archivos recientes
-            </h2>
-
-            {currentView === "grid" ? (
-              /* Grid View */
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                {recentFiles.map((file) => (
-                  <div
-                    key={file.id}
-                    className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer group"
-                  >
-                    <div className="flex flex-col items-center">
-                      <div className="mb-3">{getFileIcon(file.type)}</div>
-                      <h3 className="text-sm font-medium text-gray-900 text-center mb-1 line-clamp-2">
-                        {file.name}
-                      </h3>
-                      <p className="text-xs text-gray-500 text-center">
-                        {file.size}
-                      </p>
-                      <p className="text-xs text-gray-400 text-center">
-                        {file.modified}
-                      </p>
-                      {file.shared && (
-                        <div className="mt-2">
-                          <Share className="w-3 h-3 text-[#061a4a]" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              /* List View */
-              <div className="bg-white rounded-lg border border-gray-200">
-                <div className="grid grid-cols-12 gap-4 p-4 border-b border-gray-100 text-sm font-medium text-gray-600">
-                  <div className="col-span-6">Nombre</div>
-                  <div className="col-span-2">Tamaño</div>
-                  <div className="col-span-3">Modificado</div>
-                  <div className="col-span-1"></div>
-                </div>
-                {recentFiles.map((file) => (
-                  <div
-                    key={file.id}
-                    className="grid grid-cols-12 gap-4 p-4 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 cursor-pointer transition-colors"
-                  >
-                    <div className="col-span-6 flex items-center">
-                      <div className="mr-3">{getFileIcon(file.type)}</div>
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-900">
-                          {file.name}
-                        </h3>
-                        {file.shared && (
-                          <div className="flex items-center mt-1">
-                            <Share className="w-3 h-3 text-[#061a4a] mr-1" />
-                            <span className="text-xs text-[#061a4a]">
-                              Compartido
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="col-span-2 flex items-center text-sm text-gray-600">
-                      {file.size}
-                    </div>
-                    <div className="col-span-3 flex items-center text-sm text-gray-600">
-                      {file.modified}
-                    </div>
-                    <div className="col-span-1 flex items-center justify-end">
-                      <button className="p-1 hover:bg-gray-200 rounded cursor-pointer transition-colors">
-                        <MoreHorizontal className="w-4 h-4 text-gray-400" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Folders Grid Component */}
+          <FolderGrid
+            folders={folders}
+            loading={foldersLoading}
+            error={foldersError}
+            viewType={currentView}
+            onViewTypeChange={setCurrentView}
+            onFolderClick={handleFolderClick}
+            onFolderCreate={handleCreateFolder}
+            onFolderEdit={handleEditFolder}
+            onFolderDelete={handleDeleteFolder}
+            onFolderDuplicate={handleDuplicateFolder}
+            onFolderMove={handleMoveFolder}
+            onFolderShare={handleShareFolder}
+            onFileUpload={handleFileUpload}
+            currentPath={currentPath}
+            onNavigate={handleNavigate}
+            searchTerm={searchTerm}
+            onSearchChange={handleSearchChange}
+            currentUser={user}
+            formatDate={formatDate}
+            canCreateFolders={true}
+          />
         </main>
       </div>
+
+      {/* Modales */}
+      <CreateFolderModal
+        isOpen={createFolderModal.isOpen}
+        onClose={() =>
+          setCreateFolderModal({ isOpen: false, isLoading: false })
+        }
+        onSave={handleCreateFolderSave}
+        isLoading={createFolderModal.isLoading}
+        currentPath={currentPath}
+        parentFolderId={currentFolderId}
+        existingFolders={folders}
+      />
+
+      <EditFolderModal
+        isOpen={editFolderModal.isOpen}
+        onClose={() =>
+          setEditFolderModal({ isOpen: false, isLoading: false, folder: null })
+        }
+        onSave={handleEditFolderSave}
+        folder={editFolderModal.folder}
+        isLoading={editFolderModal.isLoading}
+        currentPath={currentPath}
+        existingFolders={folders}
+      />
+
+      <DeleteFolderModal
+        isOpen={deleteFolderModal.isOpen}
+        onClose={() =>
+          setDeleteFolderModal({
+            isOpen: false,
+            isLoading: false,
+            folder: null,
+          })
+        }
+        onConfirm={handleDeleteFolderConfirm}
+        folder={deleteFolderModal.folder}
+        isLoading={deleteFolderModal.isLoading}
+        currentPath={currentPath}
+      />
     </div>
   );
 };

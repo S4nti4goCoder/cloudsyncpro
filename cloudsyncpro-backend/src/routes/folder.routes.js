@@ -60,12 +60,26 @@ router.post(
       .withMessage("El nombre de la carpeta es obligatorio")
       .isLength({ min: 1, max: 100 })
       .withMessage("El nombre debe tener entre 1 y 100 caracteres")
-      .matches(/^[^\/\\:*?"<>|]+$/)
-      .withMessage("El nombre contiene caracteres no válidos"),
+      .custom((value) => {
+        // Verificar caracteres válidos
+        const invalidChars = /[\/\\:*?"<>|]/;
+        if (invalidChars.test(value)) {
+          throw new Error("El nombre contiene caracteres no válidos");
+        }
+        return true;
+      }),
     body("parent_folder_id")
-      .optional()
-      .isNumeric()
-      .withMessage("El ID de la carpeta padre debe ser numérico"),
+      .optional({ nullable: true })
+      .custom((value) => {
+        if (
+          value !== null &&
+          value !== undefined &&
+          !Number.isInteger(Number(value))
+        ) {
+          throw new Error("El ID de la carpeta padre debe ser un número");
+        }
+        return true;
+      }),
   ],
   folderController.createFolder
 );
