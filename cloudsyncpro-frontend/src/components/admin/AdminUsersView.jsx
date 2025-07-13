@@ -577,12 +577,13 @@ const AdminUsersView = ({
               <div className="text-sm text-gray-700">
                 Mostrando{" "}
                 <span className="font-medium">
-                  {(usersPagination.currentPage - 1) * 10 + 1}
+                  {(usersPagination.currentPage - 1) * 5 + 1}{" "}
+                  {/* ⭐ CAMBIADO DE 10 A 5 */}
                 </span>{" "}
                 a{" "}
                 <span className="font-medium">
                   {Math.min(
-                    usersPagination.currentPage * 10,
+                    usersPagination.currentPage * 5, // ⭐ CAMBIADO DE 10 A 5
                     usersPagination.totalUsers
                   )}
                 </span>{" "}
@@ -603,6 +604,35 @@ const AdminUsersView = ({
                   <ChevronLeft className="w-4 h-4 mr-1" />
                   Anterior
                 </button>
+
+                {/* ⭐ NUEVO: Números de página */}
+                <div className="flex items-center space-x-1">
+                  {Array.from(
+                    { length: usersPagination.totalPages },
+                    (_, i) => i + 1
+                  )
+                    .slice(
+                      Math.max(0, usersPagination.currentPage - 3),
+                      Math.min(
+                        usersPagination.totalPages,
+                        usersPagination.currentPage + 2
+                      )
+                    )
+                    .map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+                          pageNum === usersPagination.currentPage
+                            ? "bg-[#061a4a] text-white"
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
+                </div>
+
                 <span className="text-sm text-gray-700">
                   Página {usersPagination.currentPage} de{" "}
                   {usersPagination.totalPages}

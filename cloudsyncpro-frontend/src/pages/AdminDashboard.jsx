@@ -85,7 +85,7 @@ const AdminDashboard = () => {
       const [statsResponse, usersResponse, activityResponse] =
         await Promise.all([
           api.get("/admin/dashboard/stats"),
-          api.get("/admin/users?limit=10"),
+          api.get("/admin/users?limit=5"), // ⭐ CAMBIADO DE 10 A 5
           api.get("/admin/activity/recent?limit=10"),
         ]);
 
@@ -124,7 +124,7 @@ const AdminDashboard = () => {
 
       const params = new URLSearchParams({
         page: filters.page,
-        limit: 10,
+        limit: 5, // ⭐ CAMBIADO DE 10 A 5 PARA FORZAR PAGINACIÓN
         ...(filters.search && { search: filters.search }),
         ...(filters.role && { role: filters.role }),
         ...(filters.status && { status: filters.status }),
