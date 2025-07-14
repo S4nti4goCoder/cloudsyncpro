@@ -77,7 +77,6 @@ const CreateFolderModal = ({
   existingFolders = [],
 }) => {
   const [realTimeValidation, setRealTimeValidation] = useState(null);
-  const [isMounted, setIsMounted] = useState(false);
 
   const {
     register,
@@ -96,11 +95,6 @@ const CreateFolderModal = ({
 
   const folderName = watch("name_folder");
 
-  // Manejar montaje del componente para evitar hydration warnings
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
   // Cerrar modal con ESC
   useEffect(() => {
     const handleEscape = (e) => {
@@ -109,32 +103,32 @@ const CreateFolderModal = ({
       }
     };
 
-    if (isOpen && isMounted) {
+    if (isOpen) {
       document.addEventListener("keydown", handleEscape);
       document.body.style.overflow = "hidden";
     }
 
     return () => {
       document.removeEventListener("keydown", handleEscape);
-      if (isMounted) {
+      if (typeof document !== "undefined") {
         document.body.style.overflow = "unset";
       }
     };
-  }, [isOpen, onClose, isLoading, isMounted]);
+  }, [isOpen, onClose, isLoading]);
 
   // Reset form cuando se abre el modal
   useEffect(() => {
-    if (isOpen && isMounted) {
+    if (isOpen) {
       reset({
         name_folder: "",
       });
       setRealTimeValidation(null);
     }
-  }, [isOpen, reset, isMounted]);
+  }, [isOpen, reset]);
 
   // Validación en tiempo real
   useEffect(() => {
-    if (folderName && isMounted) {
+    if (folderName) {
       const validation = folderService.validateFolderName(folderName);
       setRealTimeValidation(validation);
 
@@ -153,10 +147,10 @@ const CreateFolderModal = ({
           clearErrors("name_folder");
         }
       }
-    } else if (!folderName && isMounted) {
+    } else {
       setRealTimeValidation(null);
     }
-  }, [folderName, existingFolders, setError, clearErrors, isMounted]);
+  }, [folderName, existingFolders, setError, clearErrors]);
 
   const handleFormSubmit = async (data) => {
     // Validación final antes de enviar
@@ -188,8 +182,8 @@ const CreateFolderModal = ({
     });
   };
 
-  // No renderizar hasta que el componente esté montado
-  if (!isMounted || !isOpen) return null;
+  // No renderizar hasta que el modal esté abierto
+  if (!isOpen) return null;
 
   // Construir breadcrumbs para mostrar ubicación
   const buildLocationPath = () => {
@@ -225,9 +219,9 @@ const CreateFolderModal = ({
               <h3 className="text-xl font-semibold text-gray-900">
                 Nueva Carpeta
               </h3>
-              <p className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500">
                 Crear carpeta en la ubicación actual
-              </p>
+              </div>
             </div>
           </div>
           <button
@@ -304,30 +298,30 @@ const CreateFolderModal = ({
 
               {/* Error message */}
               {errors.name_folder && (
-                <p className="mt-1 text-sm text-red-600 flex items-center">
+                <div className="mt-1 text-sm text-red-600 flex items-center">
                   <AlertCircle className="w-4 h-4 mr-1" />
                   {errors.name_folder.message}
-                </p>
+                </div>
               )}
 
               {/* Real-time validation feedback */}
               {!errors.name_folder && realTimeValidation && (
                 <div className="mt-2">
                   {realTimeValidation.isValid ? (
-                    <p className="text-sm text-green-600 flex items-center">
+                    <div className="text-sm text-green-600 flex items-center">
                       <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
                       Nombre válido
-                    </p>
+                    </div>
                   ) : (
                     <div className="space-y-1">
                       {realTimeValidation.errors.map((error, index) => (
-                        <p
+                        <div
                           key={index}
                           className="text-sm text-red-600 flex items-center"
                         >
                           <AlertCircle className="w-3 h-3 mr-1 flex-shrink-0" />
                           {error}
-                        </p>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -347,17 +341,17 @@ const CreateFolderModal = ({
               <div className="flex items-start">
                 <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-blue-800 mb-1">
+                  <div className="text-sm font-medium text-blue-800 mb-1">
                     Consejos para nombres de carpetas
-                  </p>
-                  <ul className="text-sm text-blue-700 space-y-1">
-                    <li>• Usa nombres descriptivos y claros</li>
-                    <li>
+                  </div>
+                  <div className="text-sm text-blue-700 space-y-1">
+                    <div>• Usa nombres descriptivos y claros</div>
+                    <div>
                       • Evita caracteres especiales: / \ : * ? " &lt; &gt; |
-                    </li>
-                    <li>• No uses nombres reservados del sistema</li>
-                    <li>• Máximo 100 caracteres</li>
-                  </ul>
+                    </div>
+                    <div>• No uses nombres reservados del sistema</div>
+                    <div>• Máximo 100 caracteres</div>
+                  </div>
                 </div>
               </div>
             </div>

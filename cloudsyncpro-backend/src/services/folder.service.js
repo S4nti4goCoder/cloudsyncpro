@@ -1,4 +1,4 @@
-// services/folder.service.js
+// services/folder.service.js - CORRECCIONES APLICADAS
 const db = require("../config/db");
 const {
   isAdmin,
@@ -6,7 +6,7 @@ const {
 } = require("../middlewares/roleAuth.middleware");
 
 const folderService = {
-  // Obtener carpetas del usuario con filtros
+  // ✅ CORRECCIÓN: getUserFolders con parámetros WHERE corregidos
   getUserFolders: async (userId, userRole, parentId = null, search = "") => {
     try {
       let whereClause = "";
@@ -15,18 +15,20 @@ const folderService = {
       // Construir la consulta base según el rol
       if (isAdmin({ role_user: userRole })) {
         // Admin puede ver todas las carpetas
-        whereClause = "WHERE parent_folder_id IS NULL";
         if (parentId) {
           whereClause = "WHERE parent_folder_id = ?";
           params.push(parentId);
+        } else {
+          whereClause = "WHERE parent_folder_id IS NULL";
         }
       } else {
         // Usuario normal solo ve sus carpetas
-        whereClause = "WHERE owner_user_id = ? AND parent_folder_id IS NULL";
-        params.push(userId);
         if (parentId) {
           whereClause = "WHERE owner_user_id = ? AND parent_folder_id = ?";
-          params.push(parentId);
+          params.push(userId, parentId); // ✅ CORRECCIÓN: Ambos parámetros
+        } else {
+          whereClause = "WHERE owner_user_id = ? AND parent_folder_id IS NULL";
+          params.push(userId);
         }
       }
 
@@ -111,15 +113,23 @@ const folderService = {
     }
   },
 
-  // Crear una nueva carpeta
+  // ✅ CORRECCIÓN: createFolder con mejor manejo de parent_folder_id
   createFolder: async (folderData, userId, userRole) => {
     try {
       const { name_folder, parent_folder_id, owner_user_id } = folderData;
 
+      // Normalizar parent_folder_id
+      const normalizedParentId =
+        parent_folder_id === null ||
+        parent_folder_id === undefined ||
+        parent_folder_id === ""
+          ? null
+          : parseInt(parent_folder_id);
+
       // Verificar si la carpeta padre existe (si se especifica)
-      if (parent_folder_id) {
+      if (normalizedParentId) {
         const parentFolder = await folderService.getFolderById(
-          parent_folder_id,
+          normalizedParentId,
           userId,
           userRole
         );
@@ -133,11 +143,11 @@ const folderService = {
         `
         SELECT id_folder FROM folders 
         WHERE name_folder = ? 
-        AND parent_folder_id ${parent_folder_id ? "= ?" : "IS NULL"}
+        AND parent_folder_id ${normalizedParentId ? "= ?" : "IS NULL"}
         AND owner_user_id = ?
       `,
-        parent_folder_id
-          ? [name_folder, parent_folder_id, owner_user_id]
+        normalizedParentId
+          ? [name_folder, normalizedParentId, owner_user_id]
           : [name_folder, owner_user_id]
       );
 
@@ -147,13 +157,13 @@ const folderService = {
         );
       }
 
-      // Crear la carpeta
+      // ✅ CORRECCIÓN: Crear la carpeta con valores normalizados
       const [result] = await db.query(
         `
         INSERT INTO folders (name_folder, parent_folder_id, owner_user_id)
         VALUES (?, ?, ?)
       `,
-        [name_folder, parent_folder_id, owner_user_id]
+        [name_folder.trim(), normalizedParentId, owner_user_id]
       );
 
       // Obtener la carpeta creada con todos los datos
@@ -212,12 +222,12 @@ const folderService = {
       `,
         folder.parent_folder_id
           ? [
-              name_folder,
+              name_folder.trim(),
               folder.parent_folder_id,
               folder.owner_user_id,
               folderId,
             ]
-          : [name_folder, folder.owner_user_id, folderId]
+          : [name_folder.trim(), folder.owner_user_id, folderId]
       );
 
       if (existing.length > 0) {
@@ -228,7 +238,7 @@ const folderService = {
 
       // Actualizar la carpeta
       await db.query("UPDATE folders SET name_folder = ? WHERE id_folder = ?", [
-        name_folder,
+        name_folder.trim(),
         folderId,
       ]);
 
@@ -314,9 +324,15 @@ const folderService = {
     }
   },
 
-  // Mover una carpeta a otro padre
+  // ✅ CORRECCIÓN: moveFolder con mejor validación
   moveFolder: async (folderId, newParentId, userId, userRole) => {
     try {
+      // Normalizar newParentId
+      const normalizedNewParentId =
+        newParentId === null || newParentId === undefined || newParentId === ""
+          ? null
+          : parseInt(newParentId);
+
       // Verificar que la carpeta existe y el usuario tiene permisos
       const folder = await folderService.getFolderById(
         folderId,
@@ -338,14 +354,17 @@ const folderService = {
       }
 
       // Verificar que no se mueva dentro de sí misma
-      if (newParentId && parseInt(newParentId) === parseInt(folderId)) {
+      if (
+        normalizedNewParentId &&
+        parseInt(normalizedNewParentId) === parseInt(folderId)
+      ) {
         throw new Error("No puedes mover una carpeta dentro de sí misma");
       }
 
       // Si se especifica un nuevo padre, verificar que existe y el usuario tiene acceso
-      if (newParentId) {
+      if (normalizedNewParentId) {
         const parentFolder = await folderService.getFolderById(
-          newParentId,
+          normalizedNewParentId,
           userId,
           userRole
         );
@@ -355,7 +374,7 @@ const folderService = {
 
         // Verificar que no se cree un bucle (la carpeta de destino no puede estar dentro de la que se mueve)
         const isDescendant = await folderService.isDescendantFolder(
-          newParentId,
+          normalizedNewParentId,
           folderId
         );
         if (isDescendant) {
@@ -368,12 +387,17 @@ const folderService = {
         `
         SELECT id_folder FROM folders 
         WHERE name_folder = ? 
-        AND parent_folder_id ${newParentId ? "= ?" : "IS NULL"}
+        AND parent_folder_id ${normalizedNewParentId ? "= ?" : "IS NULL"}
         AND owner_user_id = ?
         AND id_folder != ?
       `,
-        newParentId
-          ? [folder.name_folder, newParentId, folder.owner_user_id, folderId]
+        normalizedNewParentId
+          ? [
+              folder.name_folder,
+              normalizedNewParentId,
+              folder.owner_user_id,
+              folderId,
+            ]
           : [folder.name_folder, folder.owner_user_id, folderId]
       );
 
@@ -384,7 +408,7 @@ const folderService = {
       // Mover la carpeta
       await db.query(
         "UPDATE folders SET parent_folder_id = ? WHERE id_folder = ?",
-        [newParentId, folderId]
+        [normalizedNewParentId, folderId]
       );
 
       // Retornar la carpeta movida
@@ -440,7 +464,7 @@ const folderService = {
     }
   },
 
-  // Obtener la ruta completa de una carpeta (breadcrumbs)
+  // Obtener la ruta completa de una carpeta (breadcrumb)
   getFolderPath: async (folderId, userId, userRole) => {
     try {
       // Verificar que el usuario tiene acceso a la carpeta

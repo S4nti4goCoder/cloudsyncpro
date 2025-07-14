@@ -1,9 +1,79 @@
-// controllers/folder.controller.js
+// controllers/folder.controller.js - LOGS REMOVIDOS Y OPTIMIZADO
 const { validationResult } = require("express-validator");
 const folderService = require("../services/folder.service");
 const { isOwnerOrAdmin } = require("../middlewares/roleAuth.middleware");
 
 const folderController = {
+  // Crear una nueva carpeta - VERSIÓN OPTIMIZADA
+  createFolder: async (req, res) => {
+    try {
+      // Validar errores de entrada
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: "Datos de entrada inválidos",
+          errors: errors.array(),
+        });
+      }
+
+      const { name_folder, parent_folder_id = null } = req.body;
+      const userId = req.user.id_user;
+      const userRole = req.user.role_user;
+
+      // ✅ CORRECCIÓN: Normalizar parent_folder_id
+      const normalizedParentId =
+        parent_folder_id === null ||
+        parent_folder_id === undefined ||
+        parent_folder_id === ""
+          ? null
+          : parseInt(parent_folder_id);
+
+      const newFolder = await folderService.createFolder(
+        {
+          name_folder: name_folder.trim(),
+          parent_folder_id: normalizedParentId,
+          owner_user_id: userId,
+        },
+        userId,
+        userRole
+      );
+
+      res.status(201).json({
+        success: true,
+        message: "Carpeta creada exitosamente",
+        data: newFolder,
+      });
+    } catch (error) {
+      // Log solo en desarrollo
+      if (process.env.NODE_ENV === "development") {
+        console.error("Error al crear carpeta:", error);
+      }
+
+      if (
+        error.message ===
+        "Ya existe una carpeta con ese nombre en esta ubicación"
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      if (error.message === "La carpeta padre no existe o no tienes acceso") {
+        return res.status(400).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: "Error interno del servidor",
+      });
+    }
+  },
+
   // Obtener todas las carpetas del usuario
   getFolders: async (req, res) => {
     try {
@@ -24,7 +94,9 @@ const folderController = {
         data: folders,
       });
     } catch (error) {
-      console.error("Error al obtener carpetas:", error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("Error al obtener carpetas:", error);
+      }
       res.status(500).json({
         success: false,
         message: "Error interno del servidor",
@@ -54,81 +126,12 @@ const folderController = {
         data: folder,
       });
     } catch (error) {
-      console.error("Error al obtener carpeta:", error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("Error al obtener carpeta:", error);
+      }
 
       if (error.message === "No tienes permisos para acceder a esta carpeta") {
         return res.status(403).json({
-          success: false,
-          message: error.message,
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: "Error interno del servidor",
-      });
-    }
-  },
-
-  // Crear una nueva carpeta
-  createFolder: async (req, res) => {
-    try {
-      console.log("📝 Datos recibidos para crear carpeta:", req.body);
-      console.log("👤 Usuario:", req.user);
-
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        console.log("❌ Errores de validación:", errors.array());
-        return res.status(400).json({
-          success: false,
-          message: "Datos de entrada inválidos",
-          errors: errors.array(),
-        });
-      }
-
-      const { name_folder, parent_folder_id = null } = req.body;
-      const userId = req.user.id_user;
-      const userRole = req.user.role_user;
-
-      console.log("✅ Datos validados:", {
-        name_folder,
-        parent_folder_id,
-        userId,
-        userRole,
-      });
-
-      const newFolder = await folderService.createFolder(
-        {
-          name_folder,
-          parent_folder_id,
-          owner_user_id: userId,
-        },
-        userId,
-        userRole
-      );
-
-      console.log("🎉 Carpeta creada exitosamente:", newFolder);
-
-      res.status(201).json({
-        success: true,
-        message: "Carpeta creada exitosamente",
-        data: newFolder,
-      });
-    } catch (error) {
-      console.error("💥 Error al crear carpeta:", error);
-
-      if (
-        error.message ===
-        "Ya existe una carpeta con ese nombre en esta ubicación"
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: error.message,
-        });
-      }
-
-      if (error.message === "La carpeta padre no existe o no tienes acceso") {
-        return res.status(400).json({
           success: false,
           message: error.message,
         });
@@ -160,7 +163,7 @@ const folderController = {
 
       const updatedFolder = await folderService.updateFolder(
         id,
-        { name_folder },
+        { name_folder: name_folder.trim() },
         userId,
         userRole
       );
@@ -171,7 +174,9 @@ const folderController = {
         data: updatedFolder,
       });
     } catch (error) {
-      console.error("Error al actualizar carpeta:", error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("Error al actualizar carpeta:", error);
+      }
 
       if (error.message === "Carpeta no encontrada") {
         return res.status(404).json({
@@ -219,7 +224,9 @@ const folderController = {
         data: result,
       });
     } catch (error) {
-      console.error("Error al eliminar carpeta:", error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("Error al eliminar carpeta:", error);
+      }
 
       if (error.message === "Carpeta no encontrada") {
         return res.status(404).json({
@@ -252,7 +259,7 @@ const folderController = {
     }
   },
 
-  // Mover una carpeta a otro padre
+  // Resto de métodos sin cambios importantes...
   moveFolder: async (req, res) => {
     try {
       const errors = validationResult(req);
@@ -282,7 +289,9 @@ const folderController = {
         data: movedFolder,
       });
     } catch (error) {
-      console.error("Error al mover carpeta:", error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("Error al mover carpeta:", error);
+      }
 
       if (error.message === "Carpeta no encontrada") {
         return res.status(404).json({
@@ -330,7 +339,6 @@ const folderController = {
     }
   },
 
-  // Obtener la ruta completa de una carpeta (breadcrumb)
   getFolderPath: async (req, res) => {
     try {
       const { id } = req.params;
@@ -345,7 +353,9 @@ const folderController = {
         data: path,
       });
     } catch (error) {
-      console.error("Error al obtener ruta de carpeta:", error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("Error al obtener ruta de carpeta:", error);
+      }
 
       if (error.message === "Carpeta no encontrada") {
         return res.status(404).json({
@@ -368,7 +378,6 @@ const folderController = {
     }
   },
 
-  // Obtener estadísticas de una carpeta
   getFolderStats: async (req, res) => {
     try {
       const { id } = req.params;
@@ -383,7 +392,9 @@ const folderController = {
         data: stats,
       });
     } catch (error) {
-      console.error("Error al obtener estadísticas:", error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("Error al obtener estadísticas:", error);
+      }
 
       if (error.message === "Carpeta no encontrada") {
         return res.status(404).json({
@@ -406,7 +417,6 @@ const folderController = {
     }
   },
 
-  // Buscar carpetas
   searchFolders: async (req, res) => {
     try {
       const { query, parent_id = null } = req.query;
@@ -433,7 +443,9 @@ const folderController = {
         data: results,
       });
     } catch (error) {
-      console.error("Error al buscar carpetas:", error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("Error al buscar carpetas:", error);
+      }
       res.status(500).json({
         success: false,
         message: "Error interno del servidor",
@@ -441,7 +453,6 @@ const folderController = {
     }
   },
 
-  // Duplicar una carpeta
   duplicateFolder: async (req, res) => {
     try {
       const { id } = req.params;
@@ -462,7 +473,9 @@ const folderController = {
         data: duplicatedFolder,
       });
     } catch (error) {
-      console.error("Error al duplicar carpeta:", error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("Error al duplicar carpeta:", error);
+      }
 
       if (error.message === "Carpeta no encontrada") {
         return res.status(404).json({
