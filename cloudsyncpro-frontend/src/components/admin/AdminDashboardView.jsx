@@ -55,20 +55,22 @@ const AdminDashboardView = ({
     onClick,
   }) => (
     <div
-      className={`bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 ${
+      className={`bg-white rounded-lg p-4 lg:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 ${
         onClick ? "cursor-pointer hover:border-blue-300" : ""
       }`}
       onClick={onClick}
     >
       <div className="flex items-center">
-        <div className={`p-3 rounded-lg ${color}`}>
-          <Icon className="w-6 h-6" />
+        <div className={`p-2 lg:p-3 rounded-lg ${color}`}>
+          <Icon className="w-5 h-5 lg:w-6 lg:h-6" />
         </div>
-        <div className="ml-4 flex-1">
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
+        <div className="ml-3 lg:ml-4 flex-1 min-w-0">
+          <p className="text-xs lg:text-sm font-medium text-gray-600 truncate">
+            {title}
+          </p>
+          <p className="text-lg lg:text-2xl font-bold text-gray-900">{value}</p>
           {description && (
-            <p className="text-xs text-gray-500 mt-1">{description}</p>
+            <p className="text-xs text-gray-500 mt-1 truncate">{description}</p>
           )}
           {trend && (
             <div className="flex items-center mt-2">
@@ -93,9 +95,9 @@ const AdminDashboardView = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Stats Grid Principal */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="space-y-4 lg:space-y-6">
+      {/* Stats Grid Principal - Responsive */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
         <StatCard
           icon={Users}
           title="Total Usuarios"
@@ -140,8 +142,8 @@ const AdminDashboardView = ({
         />
       </div>
 
-      {/* Stats Grid Secundario */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Stats Grid Secundario - Responsive */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
         <StatCard
           icon={FileText}
           title="Total Archivos"
@@ -175,13 +177,13 @@ const AdminDashboardView = ({
         />
       </div>
 
-      {/* Dashboard Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Users - Mejorado */}
+      {/* Dashboard Content Grid - Responsive */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
+        {/* Recent Users - CORREGIDO PARA EMAILS LARGOS */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <div className="px-4 lg:px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-medium text-gray-900">
+              <h3 className="text-base lg:text-lg font-medium text-gray-900">
                 Usuarios Recientes
               </h3>
               <p className="text-sm text-gray-500">
@@ -196,47 +198,60 @@ const AdminDashboardView = ({
               <ChevronRight className="w-4 h-4 ml-1" />
             </button>
           </div>
-          <div className="p-6">
-            <div className="space-y-4">
+          <div className="p-4 lg:p-6">
+            <div className="space-y-3 lg:space-y-4">
               {users && users.length > 0 ? (
                 users.slice(0, 5).map((user) => (
                   <div
                     key={user.id_user}
-                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                    className="border border-gray-100 rounded-lg p-3 hover:bg-gray-50 hover:border-blue-200 transition-all duration-200"
                   >
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                    <div className="flex items-start space-x-3">
+                      {/* Avatar */}
+                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
                         <span className="text-sm font-medium text-white">
                           {user.name_user?.charAt(0).toUpperCase()}
                         </span>
                       </div>
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-900">
-                          {user.name_user}
-                        </p>
-                        <p className="text-sm text-gray-500">
+
+                      {/* User Info */}
+                      <div className="flex-1 min-w-0">
+                        {/* Primera línea: Nombre + Badges */}
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-sm font-medium text-gray-900 truncate pr-2">
+                            {user.name_user}
+                          </p>
+                          <div className="flex space-x-1 flex-shrink-0">
+                            <span
+                              className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleBadge(
+                                user.role_user
+                              )}`}
+                            >
+                              {user.role_user}
+                            </span>
+                            <span
+                              className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(
+                                user.status_user
+                              )}`}
+                            >
+                              {user.status_user}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Segunda línea: Email */}
+                        <p
+                          className="text-sm text-gray-500 break-all mb-1"
+                          title={user.email_user}
+                        >
                           {user.email_user}
                         </p>
-                        <p className="text-xs text-gray-400">
+
+                        {/* Tercera línea: Fecha (solo desktop) */}
+                        <p className="text-xs text-gray-400 hidden lg:block">
                           {formatDate(user.created_at_user)}
                         </p>
                       </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleBadge(
-                          user.role_user
-                        )}`}
-                      >
-                        {user.role_user}
-                      </span>
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(
-                          user.status_user
-                        )}`}
-                      >
-                        {user.status_user}
-                      </span>
                     </div>
                   </div>
                 ))
@@ -250,11 +265,11 @@ const AdminDashboardView = ({
           </div>
         </div>
 
-        {/* Growth Chart con datos reales */}
+        {/* Growth Chart con datos reales - Responsive */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <div className="px-4 lg:px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-medium text-gray-900">
+              <h3 className="text-base lg:text-lg font-medium text-gray-900">
                 Crecimiento de Usuarios
               </h3>
               <p className="text-sm text-gray-500">
@@ -263,22 +278,22 @@ const AdminDashboardView = ({
             </div>
             <BarChart3 className="w-5 h-5 text-gray-400" />
           </div>
-          <div className="p-6">
-            <div className="space-y-4">
+          <div className="p-4 lg:p-6">
+            <div className="space-y-3 lg:space-y-4">
               {stats?.growth && stats.growth.length > 0 ? (
                 stats.growth.slice(0, 6).map((month, index) => (
                   <div
                     key={index}
                     className="flex items-center justify-between"
                   >
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
-                      <span className="text-sm text-gray-600 font-medium">
+                    <div className="flex items-center min-w-0 flex-1">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full mr-3 flex-shrink-0"></div>
+                      <span className="text-sm text-gray-600 font-medium truncate">
                         {month.month}
                       </span>
                     </div>
-                    <div className="flex items-center">
-                      <div className="w-24 bg-gray-200 rounded-full h-2 mr-3">
+                    <div className="flex items-center ml-3">
+                      <div className="w-16 lg:w-24 bg-gray-200 rounded-full h-2 mr-3">
                         <div
                           className="bg-blue-500 h-2 rounded-full"
                           style={{
@@ -289,8 +304,8 @@ const AdminDashboardView = ({
                           }}
                         ></div>
                       </div>
-                      <span className="text-sm font-medium text-gray-900 min-w-[80px] text-right">
-                        +{month.new_users} usuarios
+                      <span className="text-sm font-medium text-gray-900 min-w-[60px] lg:min-w-[80px] text-right">
+                        +{month.new_users}
                       </span>
                     </div>
                   </div>
@@ -311,31 +326,29 @@ const AdminDashboardView = ({
         </div>
       </div>
 
-      {/* System Status - Mejorado */}
+      {/* System Status - Responsive */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900 flex items-center">
+        <div className="px-4 lg:px-6 py-4 border-b border-gray-200">
+          <h3 className="text-base lg:text-lg font-medium text-gray-900 flex items-center">
             <Server className="w-5 h-5 mr-2 text-green-500" />
             Estado del Sistema
           </h3>
         </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="p-4 lg:p-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
             <div className="text-center">
               <div className="w-4 h-4 bg-green-500 rounded-full mx-auto mb-3 animate-pulse"></div>
               <p className="text-sm font-medium text-gray-900">Base de Datos</p>
               <p className="text-xs text-green-600">Operacional</p>
               <p className="text-xs text-gray-400 mt-1">
-                {stats?.sessions?.active_sessions || 0} conexiones activas
+                {stats?.sessions?.active_sessions || 0} conexiones
               </p>
             </div>
             <div className="text-center">
               <div className="w-4 h-4 bg-green-500 rounded-full mx-auto mb-3 animate-pulse"></div>
               <p className="text-sm font-medium text-gray-900">API</p>
               <p className="text-xs text-green-600">Funcionando</p>
-              <p className="text-xs text-gray-400 mt-1">
-                Tiempo de respuesta: ~50ms
-              </p>
+              <p className="text-xs text-gray-400 mt-1">~50ms respuesta</p>
             </div>
             <div className="text-center">
               <div className="w-4 h-4 bg-green-500 rounded-full mx-auto mb-3"></div>
@@ -344,72 +357,72 @@ const AdminDashboardView = ({
               </p>
               <p className="text-xs text-green-600">Disponible</p>
               <p className="text-xs text-gray-400 mt-1">
-                {stats?.files?.total_files || 0} archivos almacenados
+                {stats?.files?.total_files || 0} archivos
               </p>
             </div>
             <div className="text-center">
               <div className="w-4 h-4 bg-yellow-500 rounded-full mx-auto mb-3"></div>
               <p className="text-sm font-medium text-gray-900">Backup</p>
               <p className="text-xs text-yellow-600">Pendiente</p>
-              <p className="text-xs text-gray-400 mt-1">Último: Hace 2 días</p>
+              <p className="text-xs text-gray-400 mt-1">Hace 2 días</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Quick Actions - Funcionales */}
+      {/* Quick Actions - Responsive */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">
+        <div className="px-4 lg:px-6 py-4 border-b border-gray-200">
+          <h3 className="text-base lg:text-lg font-medium text-gray-900">
             Acciones Rápidas
           </h3>
           <p className="text-sm text-gray-500">
             Operaciones administrativas frecuentes
           </p>
         </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="p-4 lg:p-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
             <button
               onClick={onCreateUser}
-              className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors text-sm font-medium text-gray-700 hover:text-blue-700 cursor-pointer"
+              className="flex flex-col lg:flex-row items-center justify-center px-3 lg:px-4 py-3 border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors text-sm font-medium text-gray-700 hover:text-blue-700 cursor-pointer"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Crear Usuario
+              <Plus className="w-4 h-4 mb-1 lg:mb-0 lg:mr-2" />
+              <span className="text-center lg:text-left">Crear Usuario</span>
             </button>
 
             <button
               onClick={onBackupDatabase}
-              className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors text-sm font-medium text-gray-700 hover:text-green-700 cursor-pointer"
+              className="flex flex-col lg:flex-row items-center justify-center px-3 lg:px-4 py-3 border border-gray-300 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors text-sm font-medium text-gray-700 hover:text-green-700 cursor-pointer"
             >
-              <Database className="w-4 h-4 mr-2" />
-              Backup BD
+              <Database className="w-4 h-4 mb-1 lg:mb-0 lg:mr-2" />
+              <span className="text-center lg:text-left">Backup BD</span>
             </button>
 
             <button
               onClick={() => setCurrentView("activity")}
-              className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-colors text-sm font-medium text-gray-700 hover:text-purple-700 cursor-pointer"
+              className="flex flex-col lg:flex-row items-center justify-center px-3 lg:px-4 py-3 border border-gray-300 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-colors text-sm font-medium text-gray-700 hover:text-purple-700 cursor-pointer"
             >
-              <Activity className="w-4 h-4 mr-2" />
-              Ver Actividad
+              <Activity className="w-4 h-4 mb-1 lg:mb-0 lg:mr-2" />
+              <span className="text-center lg:text-left">Ver Actividad</span>
             </button>
 
             <button
               onClick={onSystemMaintenance}
-              className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-yellow-50 hover:border-yellow-300 transition-colors text-sm font-medium text-gray-700 hover:text-yellow-700 cursor-pointer"
+              className="flex flex-col lg:flex-row items-center justify-center px-3 lg:px-4 py-3 border border-gray-300 rounded-lg hover:bg-yellow-50 hover:border-yellow-300 transition-colors text-sm font-medium text-gray-700 hover:text-yellow-700 cursor-pointer"
             >
-              <HardDrive className="w-4 h-4 mr-2" />
-              Mantenimiento
+              <HardDrive className="w-4 h-4 mb-1 lg:mb-0 lg:mr-2" />
+              <span className="text-center lg:text-left">Mantenimiento</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Alertas importantes */}
+      {/* Alertas importantes - Responsive */}
       {stats?.users?.banned_users > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <div className="w-4 h-4 bg-red-500 rounded-full mr-3"></div>
-            <div>
+          <div className="flex items-start">
+            <div className="w-4 h-4 bg-red-500 rounded-full mr-3 mt-0.5 flex-shrink-0"></div>
+            <div className="min-w-0">
               <p className="text-sm font-medium text-red-900">
                 Atención: {stats.users.banned_users} usuario(s) baneado(s)
               </p>

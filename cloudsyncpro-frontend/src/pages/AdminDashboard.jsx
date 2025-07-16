@@ -20,6 +20,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [currentView, setCurrentView] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // ← Estado para menú móvil
   const navigate = useNavigate();
 
   // ===========================
@@ -41,7 +42,36 @@ const AdminDashboard = () => {
   });
 
   // ===========================
-  // EFECTOS
+  // RESPONSIVE: Detectar resize y cerrar menú móvil
+  // ===========================
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        // lg breakpoint
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // ===========================
+  // RESPONSIVE: Cerrar menú al presionar ESC
+  // ===========================
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === "Escape" && isMobileMenuOpen) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isMobileMenuOpen]);
+
+  // ===========================
+  // EFECTOS PRINCIPALES
   // ===========================
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
@@ -85,7 +115,7 @@ const AdminDashboard = () => {
       const [statsResponse, usersResponse, activityResponse] =
         await Promise.all([
           api.get("/admin/dashboard/stats"),
-          api.get("/admin/users?limit=5"), // ⭐ CAMBIADO DE 10 A 5
+          api.get("/admin/users?limit=5"),
           api.get("/admin/activity/recent?limit=10"),
         ]);
 
@@ -124,7 +154,7 @@ const AdminDashboard = () => {
 
       const params = new URLSearchParams({
         page: filters.page,
-        limit: 5, // ⭐ CAMBIADO DE 10 A 5 PARA FORZAR PAGINACIÓN
+        limit: 5,
         ...(filters.search && { search: filters.search }),
         ...(filters.role && { role: filters.role }),
         ...(filters.status && { status: filters.status }),
@@ -402,28 +432,38 @@ const AdminDashboard = () => {
   };
 
   // ===========================
-  // RENDER PRINCIPAL
+  // RENDER PRINCIPAL RESPONSIVE
   // ===========================
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 flex relative">
+      {/* Sidebar con soporte móvil */}
       <AdminSidebar
         sidebarCollapsed={sidebarCollapsed}
         setSidebarCollapsed={setSidebarCollapsed}
         currentView={currentView}
         setCurrentView={setCurrentView}
         stats={stats}
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
-      <div className="flex-1 flex flex-col">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Navbar responsive */}
         <AdminNavbar
           currentView={currentView}
           user={user}
           sidebarCollapsed={sidebarCollapsed}
           setSidebarCollapsed={setSidebarCollapsed}
           handleLogout={handleLogout}
+          isMobileMenuOpen={isMobileMenuOpen}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
         />
 
-        <main className="flex-1 p-6">{renderCurrentView()}</main>
+        {/* Main Content con padding responsive */}
+        <main className="flex-1 p-4 lg:p-6 overflow-x-auto">
+          <div className="max-w-full">{renderCurrentView()}</div>
+        </main>
       </div>
     </div>
   );

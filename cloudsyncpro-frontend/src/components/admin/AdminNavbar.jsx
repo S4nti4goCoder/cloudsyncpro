@@ -7,6 +7,7 @@ import {
   User,
   Settings,
   Shield,
+  X,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
@@ -16,8 +17,11 @@ const AdminNavbar = ({
   sidebarCollapsed,
   setSidebarCollapsed,
   handleLogout,
+  isMobileMenuOpen = false, // ← Valor por defecto
+  setIsMobileMenuOpen = () => {}, // ← Función por defecto vacía
 }) => {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
   const dropdownRef = useRef(null);
 
   // Cerrar dropdown al hacer click fuera
@@ -36,13 +40,11 @@ const AdminNavbar = ({
 
   const handleProfileClick = () => {
     setUserDropdownOpen(false);
-    // TODO: Implementar modal de perfil
     console.log("Ver perfil clicked");
   };
 
   const handleSettingsClick = () => {
     setUserDropdownOpen(false);
-    // TODO: Implementar configuraciones
     console.log("Configuraciones clicked");
   };
 
@@ -50,6 +52,7 @@ const AdminNavbar = ({
     setUserDropdownOpen(false);
     handleLogout();
   };
+
   const getViewTitle = (view) => {
     const titles = {
       dashboard: "Panel de Administración",
@@ -71,29 +74,47 @@ const AdminNavbar = ({
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
+    <header className="bg-white border-b border-gray-200 px-4 lg:px-6 py-4">
       <div className="flex items-center justify-between">
         {/* Left Section */}
         <div className="flex items-center space-x-4">
+          {/* Mobile menu button */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+            title="Abrir menú"
+          >
+            <Menu className="w-5 h-5 text-gray-600" />
+          </button>
+
+          {/* Desktop sidebar toggle */}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+            className="hidden lg:flex p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
             title={sidebarCollapsed ? "Mostrar sidebar" : "Ocultar sidebar"}
           >
             <Menu className="w-5 h-5 text-gray-600" />
           </button>
 
-          <div>
+          {/* Title Section */}
+          <div className="hidden sm:block">
             <h1 className="text-xl font-semibold text-gray-900">
               {getViewTitle(currentView)}
             </h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 mt-1 hidden md:block">
               {getViewDescription(currentView)}
             </p>
           </div>
+
+          {/* Mobile title (simplified) */}
+          <div className="sm:hidden">
+            <h1 className="text-lg font-semibold text-gray-900">
+              {getViewTitle(currentView).split(" ")[0]}
+            </h1>
+          </div>
         </div>
 
-        {/* Center Section - Search (visible on larger screens) */}
+        {/* Center Section - Search (responsive) */}
         <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -101,14 +122,21 @@ const AdminNavbar = ({
               type="text"
               placeholder="Buscar usuarios, actividad..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#061a4a] focus:border-transparent text-sm"
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
             />
           </div>
         </div>
 
         {/* Right Section */}
-        <div className="flex items-center space-x-4">
-          {/* System Status Indicator */}
-          <div className="hidden md:flex items-center space-x-2 px-3 py-1 bg-green-50 rounded-full border border-green-200">
+        <div className="flex items-center space-x-2 lg:space-x-4">
+          {/* Mobile search button */}
+          <button className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
+            <Search className="w-5 h-5" />
+          </button>
+
+          {/* System Status Indicator - hidden on small screens */}
+          <div className="hidden xl:flex items-center space-x-2 px-3 py-1 bg-green-50 rounded-full border border-green-200">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <span className="text-xs text-green-700 font-medium">
               Sistema Operativo
@@ -127,9 +155,10 @@ const AdminNavbar = ({
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-              className="flex items-center space-x-3 pl-3 border-l border-gray-200 hover:bg-gray-50 rounded-r-lg transition-colors cursor-pointer"
+              className="flex items-center space-x-2 lg:space-x-3 pl-2 lg:pl-3 border-l border-gray-200 hover:bg-gray-50 rounded-r-lg transition-colors cursor-pointer"
             >
-              <div className="hidden sm:block text-right">
+              {/* User info - responsive */}
+              <div className="hidden lg:block text-right">
                 <p className="text-sm font-medium text-gray-900">
                   {user?.name_user}
                 </p>
@@ -141,14 +170,16 @@ const AdminNavbar = ({
                 </div>
               </div>
 
+              {/* Avatar */}
               <div className="w-8 h-8 bg-[#061a4a] rounded-full flex items-center justify-center">
                 <span className="text-white text-sm font-medium">
                   {user?.name_user?.charAt(0).toUpperCase() || "A"}
                 </span>
               </div>
 
+              {/* Dropdown arrow - hidden on mobile */}
               <ChevronDown
-                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                className={`hidden sm:block w-4 h-4 text-gray-400 transition-transform duration-200 ${
                   userDropdownOpen ? "rotate-180" : ""
                 }`}
               />
@@ -203,7 +234,7 @@ const AdminNavbar = ({
         </div>
       </div>
 
-      {/* Mobile Search */}
+      {/* Mobile Search - appears below navbar when needed */}
       <div className="md:hidden mt-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
