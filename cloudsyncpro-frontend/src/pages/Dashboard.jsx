@@ -40,6 +40,9 @@ import {
   folderService,
 } from "../components/folders";
 
+// Importar componentes de archivos
+import { FileUploadZone, FileGrid } from "../components/files";
+
 const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [hasShownWelcome, setHasShownWelcome] = useState(false);
@@ -53,9 +56,20 @@ const Dashboard = () => {
   const [folders, setFolders] = useState([]);
   const [foldersLoading, setFoldersLoading] = useState(true);
   const [foldersError, setFoldersError] = useState(null);
-  const [currentFolderId, setCurrentFolderId] = useState(null); // null = raíz
-  const [currentPath, setCurrentPath] = useState([]); // Para breadcrumbs
+  const [currentFolderId, setCurrentFolderId] = useState(null);
+  const [currentPath, setCurrentPath] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // ===========================
+  // ESTADO DE ARCHIVOS
+  // ===========================
+  const [files, setFiles] = useState([]);
+  const [filesLoading, setFilesLoading] = useState(false);
+  const [filesError, setFilesError] = useState(null);
+  const [fileFilters, setFileFilters] = useState({
+    type: "all", // all | images | documents | videos | audio
+    search: "",
+  });
 
   // ===========================
   // ESTADO DE MODALES
@@ -77,6 +91,11 @@ const Dashboard = () => {
     folder: null,
   });
 
+  const [uploadModal, setUploadModal] = useState({
+    isOpen: false,
+    isLoading: false,
+  });
+
   // ===========================
   // EFECTOS INICIALES
   // ===========================
@@ -96,8 +115,9 @@ const Dashboard = () => {
         setHasShownWelcome(true);
       }
 
-      // Cargar carpetas iniciales
+      // Cargar datos iniciales
       loadFolders();
+      loadFiles();
     }
   }, [hasShownWelcome]);
 
@@ -112,13 +132,11 @@ const Dashboard = () => {
       let result;
 
       if (searchQuery.trim()) {
-        // Si hay búsqueda, usar endpoint de búsqueda
         result = await folderService.searchFolders({
           query: searchQuery.trim(),
           parent_id: parentId,
         });
       } else {
-        // Carga normal de carpetas
         result = await folderService.getFolders({
           parent_id: parentId,
         });
@@ -127,7 +145,6 @@ const Dashboard = () => {
       if (result.success) {
         setFolders(result.data);
 
-        // Si cambió el directorio actual, actualizar path
         if (parentId !== currentFolderId) {
           await updateCurrentPath(parentId);
         }
@@ -148,6 +165,60 @@ const Dashboard = () => {
     }
   };
 
+  const loadFiles = async () => {
+    setFilesLoading(true);
+    setFilesError(null);
+
+    try {
+      // Simular datos de archivos (reemplazar con API real)
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const mockFiles = [
+        {
+          id_file: 1,
+          name_file: "Documento_importante.pdf",
+          type_file: "application/pdf",
+          size_file: 2048576,
+          folder_id: currentFolderId,
+          owner_user_id: user?.id_user,
+          created_at_file: new Date().toISOString(),
+          url_file: "/uploads/documento_importante.pdf",
+        },
+        {
+          id_file: 2,
+          name_file: "Presentacion_proyecto.pptx",
+          type_file:
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+          size_file: 5242880,
+          folder_id: currentFolderId,
+          owner_user_id: user?.id_user,
+          created_at_file: new Date().toISOString(),
+          url_file: "/uploads/presentacion_proyecto.pptx",
+        },
+        {
+          id_file: 3,
+          name_file: "Imagen_perfil.jpg",
+          type_file: "image/jpeg",
+          size_file: 1024000,
+          folder_id: currentFolderId,
+          owner_user_id: user?.id_user,
+          created_at_file: new Date().toISOString(),
+          url_file: "/uploads/imagen_perfil.jpg",
+        },
+      ];
+
+      setFiles(mockFiles);
+    } catch (error) {
+      console.error("Error cargando archivos:", error);
+      setFilesError("Error al cargar archivos");
+      toast.error("Error al cargar archivos", {
+        description: "No se pudo conectar con el servidor",
+      });
+    } finally {
+      setFilesLoading(false);
+    }
+  };
+
   const updateCurrentPath = async (folderId) => {
     if (!folderId) {
       setCurrentPath([]);
@@ -159,7 +230,6 @@ const Dashboard = () => {
       const result = await folderService.getFolderPath(folderId);
       if (result.success) {
         const breadcrumbs = folderService.buildBreadcrumbs(result.data);
-        // Remover el primer elemento (Inicio) ya que lo manejamos por separado
         setCurrentPath(breadcrumbs.slice(1));
         setCurrentFolderId(folderId);
       }
@@ -172,15 +242,15 @@ const Dashboard = () => {
   // MANEJADORES DE CARPETAS
   // ===========================
   const handleFolderClick = (folder) => {
-    // Navegar dentro de la carpeta
     setCurrentFolderId(folder.id_folder);
     loadFolders(folder.id_folder, searchTerm);
+    loadFiles(); // Recargar archivos para la nueva carpeta
   };
 
   const handleNavigate = (folderId) => {
-    // Navegar a una carpeta específica desde breadcrumbs
     setCurrentFolderId(folderId);
     loadFolders(folderId, searchTerm);
+    loadFiles(); // Recargar archivos para la nueva carpeta
   };
 
   const handleCreateFolder = () => {
@@ -191,8 +261,6 @@ const Dashboard = () => {
     setCreateFolderModal((prev) => ({ ...prev, isLoading: true }));
 
     try {
-      console.log("Datos enviados:", folderData); // Para debugging
-
       const result = await folderService.createFolder({
         name_folder: folderData.name_folder,
         parent_folder_id: folderData.parent_folder_id,
@@ -203,10 +271,7 @@ const Dashboard = () => {
           description: `La carpeta "${folderData.name_folder}" ha sido creada`,
         });
 
-        // Recargar carpetas
         await loadFolders(currentFolderId, searchTerm);
-
-        // Cerrar modal
         setCreateFolderModal({ isOpen: false, isLoading: false });
       } else {
         toast.error("Error al crear carpeta", {
@@ -242,10 +307,7 @@ const Dashboard = () => {
           description: `La carpeta ha sido renombrada exitosamente`,
         });
 
-        // Recargar carpetas
         await loadFolders(currentFolderId, searchTerm);
-
-        // Cerrar modal
         setEditFolderModal({ isOpen: false, isLoading: false, folder: null });
       } else {
         toast.error("Error al actualizar carpeta", {
@@ -285,10 +347,7 @@ const Dashboard = () => {
           description: `La carpeta "${deleteFolderModal.folder.name_folder}" ha sido eliminada`,
         });
 
-        // Recargar carpetas
         await loadFolders(currentFolderId, searchTerm);
-
-        // Cerrar modal
         setDeleteFolderModal({ isOpen: false, isLoading: false, folder: null });
       } else {
         toast.error("Error al eliminar carpeta", {
@@ -325,29 +384,87 @@ const Dashboard = () => {
   };
 
   const handleMoveFolder = async (folder) => {
-    // TODO: Implementar modal de movimiento
     toast.info("Mover carpeta", {
       description: `Funcionalidad de movimiento para "${folder.name_folder}" - Próximamente`,
     });
   };
 
   const handleShareFolder = async (folder) => {
-    // TODO: Implementar modal de compartir
     toast.info("Compartir carpeta", {
       description: `Funcionalidad de compartir para "${folder.name_folder}" - Próximamente`,
     });
   };
 
+  // ===========================
+  // MANEJADORES DE ARCHIVOS
+  // ===========================
   const handleFileUpload = () => {
-    toast.info("Subir archivos", {
-      description: "Funcionalidad de subida de archivos - Próximamente",
+    setUploadModal({ isOpen: true, isLoading: false });
+  };
+
+  const handleFileUploadSave = async (uploadedFiles) => {
+    setUploadModal((prev) => ({ ...prev, isLoading: true }));
+
+    try {
+      // Simular subida de archivos
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      toast.success("Archivos subidos exitosamente", {
+        description: `Se subieron ${uploadedFiles.length} archivo(s)`,
+      });
+
+      await loadFiles(); // Recargar archivos
+      setUploadModal({ isOpen: false, isLoading: false });
+    } catch (error) {
+      console.error("Error subiendo archivos:", error);
+      toast.error("Error al subir archivos", {
+        description: "No se pudo conectar con el servidor",
+      });
+      setUploadModal((prev) => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  const handleFileEdit = (file) => {
+    toast.info("Editar archivo", {
+      description: `Funcionalidad de edición para "${file.name_file}" - Próximamente`,
+    });
+  };
+
+  const handleFileDelete = (file) => {
+    toast.info("Eliminar archivo", {
+      description: `Funcionalidad de eliminación para "${file.name_file}" - Próximamente`,
+    });
+  };
+
+  const handleFileDownload = (file) => {
+    toast.info("Descargar archivo", {
+      description: `Descargando "${file.name_file}"...`,
+    });
+  };
+
+  const handleFileShare = (file) => {
+    toast.info("Compartir archivo", {
+      description: `Funcionalidad de compartir para "${file.name_file}" - Próximamente`,
+    });
+  };
+
+  const handleFilePreview = (file) => {
+    toast.info("Vista previa", {
+      description: `Abriendo vista previa de "${file.name_file}" - Próximamente`,
     });
   };
 
   const handleSearchChange = (query) => {
     setSearchTerm(query);
-    // Recargar carpetas con el nuevo término de búsqueda
+    setFileFilters((prev) => ({ ...prev, search: query }));
     loadFolders(currentFolderId, query);
+  };
+
+  const handleFileFilterChange = (filterType, value) => {
+    setFileFilters((prev) => ({
+      ...prev,
+      [filterType]: value,
+    }));
   };
 
   const handleLogout = async () => {
@@ -604,31 +721,75 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Main Content Area */}
+        {/* Main Content Area - DISEÑO MIXTO RESTAURADO */}
         <main className="flex-1 p-6">
-          {/* Folders Grid Component */}
-          <FolderGrid
-            folders={folders}
-            loading={foldersLoading}
-            error={foldersError}
-            viewType={currentView}
-            onViewTypeChange={setCurrentView}
-            onFolderClick={handleFolderClick}
-            onFolderCreate={handleCreateFolder}
-            onFolderEdit={handleEditFolder}
-            onFolderDelete={handleDeleteFolder}
-            onFolderDuplicate={handleDuplicateFolder}
-            onFolderMove={handleMoveFolder}
-            onFolderShare={handleShareFolder}
-            onFileUpload={handleFileUpload}
-            currentPath={currentPath}
-            onNavigate={handleNavigate}
-            searchTerm={searchTerm}
-            onSearchChange={handleSearchChange}
-            currentUser={user}
-            formatDate={formatDate}
-            canCreateFolders={true}
-          />
+          <div className="space-y-8">
+            {/* Sección de Carpetas */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                  <Folder className="w-5 h-5 text-blue-500 mr-2" />
+                  <h2 className="text-lg font-medium text-gray-900">
+                    Carpetas ({folders.length})
+                  </h2>
+                </div>
+              </div>
+
+              <FolderGrid
+                folders={folders}
+                loading={foldersLoading}
+                error={foldersError}
+                viewType={currentView}
+                onViewTypeChange={setCurrentView}
+                onFolderClick={handleFolderClick}
+                onFolderCreate={handleCreateFolder}
+                onFolderEdit={handleEditFolder}
+                onFolderDelete={handleDeleteFolder}
+                onFolderDuplicate={handleDuplicateFolder}
+                onFolderMove={handleMoveFolder}
+                onFolderShare={handleShareFolder}
+                onFileUpload={handleFileUpload}
+                currentPath={currentPath}
+                onNavigate={handleNavigate}
+                searchTerm={searchTerm}
+                onSearchChange={handleSearchChange}
+                currentUser={user}
+                formatDate={formatDate}
+                canCreateFolders={true}
+              />
+            </div>
+
+            {/* Sección de Archivos */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                  <File className="w-5 h-5 text-green-500 mr-2" />
+                  <h2 className="text-lg font-medium text-gray-900">
+                    Archivos ({files.length})
+                  </h2>
+                </div>
+              </div>
+
+              <FileGrid
+                files={files}
+                loading={filesLoading}
+                error={filesError}
+                viewType={currentView}
+                onViewTypeChange={setCurrentView}
+                onFileEdit={handleFileEdit}
+                onFileDelete={handleFileDelete}
+                onFileDownload={handleFileDownload}
+                onFileShare={handleFileShare}
+                onFilePreview={handleFilePreview}
+                onFileUpload={handleFileUpload}
+                filters={fileFilters}
+                onFilterChange={handleFileFilterChange}
+                currentUser={user}
+                formatDate={formatDate}
+                canUploadFiles={true}
+              />
+            </div>
+          </div>
         </main>
       </div>
 
@@ -670,6 +831,16 @@ const Dashboard = () => {
         folder={deleteFolderModal.folder}
         isLoading={deleteFolderModal.isLoading}
         currentPath={currentPath}
+      />
+
+      {/* Modal de Subida de Archivos */}
+      <FileUploadZone
+        isOpen={uploadModal.isOpen}
+        onClose={() => setUploadModal({ isOpen: false, isLoading: false })}
+        onSave={handleFileUploadSave}
+        isLoading={uploadModal.isLoading}
+        currentPath={currentPath}
+        folderId={currentFolderId}
       />
     </div>
   );
