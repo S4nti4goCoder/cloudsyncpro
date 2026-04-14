@@ -1,5 +1,7 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import { useAuthStore } from "@/store/auth.store";
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { useAuthStore } from '@/store/auth.store'
+import LoginPage from '@/pages/auth/login.page'
+import RegisterPage from '@/pages/auth/register.page'
 
 function LoadingScreen() {
   return (
@@ -9,7 +11,7 @@ function LoadingScreen() {
         <p className="text-sm text-muted-foreground">Loading...</p>
       </div>
     </div>
-  );
+  )
 }
 
 function PlaceholderPage({ title }: { title: string }) {
@@ -22,27 +24,27 @@ function PlaceholderPage({ title }: { title: string }) {
         </p>
       </div>
     </div>
-  );
+  )
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useAuthStore((s) => s.user !== null);
-  const isInitialized = useAuthStore((s) => s.isInitialized);
+  const isAuthenticated = useAuthStore((s) => s.user !== null)
+  const isInitialized = useAuthStore((s) => s.isInitialized)
 
-  if (!isInitialized) return <LoadingScreen />;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isInitialized) return <LoadingScreen />
+  if (!isAuthenticated) return <Navigate to="/login" replace />
 
-  return <>{children}</>;
+  return <>{children}</>
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useAuthStore((s) => s.user !== null);
-  const isInitialized = useAuthStore((s) => s.isInitialized);
+  const isAuthenticated = useAuthStore((s) => s.user !== null)
+  const isInitialized = useAuthStore((s) => s.isInitialized)
 
-  if (!isInitialized) return <LoadingScreen />;
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  if (!isInitialized) return <LoadingScreen />
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />
 
-  return <>{children}</>;
+  return <>{children}</>
 }
 
 export function AppRoutes() {
@@ -52,11 +54,18 @@ export function AppRoutes() {
         path="/login"
         element={
           <PublicRoute>
-            <PlaceholderPage title="Login Page" />
+            <LoginPage />
           </PublicRoute>
         }
       />
-
+      <Route
+        path="/register"
+        element={
+          <PublicRoute>
+            <RegisterPage />
+          </PublicRoute>
+        }
+      />
       <Route
         path="/dashboard"
         element={
@@ -65,9 +74,8 @@ export function AppRoutes() {
           </ProtectedRoute>
         }
       />
-
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
-  );
+  )
 }
