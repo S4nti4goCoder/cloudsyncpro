@@ -6,7 +6,6 @@
 
 ## ✅ PASO 1 — Scaffolding e infraestructura base
 
-**Fecha:** [completar al ejecutar]
 **Commit sugerido:** `chore: initial project scaffold with Vite, React, TypeScript and Tailwind v4`
 
 ### Acciones realizadas
@@ -100,10 +99,109 @@ src/
 
 ---
 
+## ✅ PASO 2 — Supabase client + Auth Store + React Query + App base
+
+**Commit sugerido:** `feat: add Supabase client, auth store, React Query setup and base routing`
+
+### Acciones realizadas
+
+- `src/lib/supabase.ts` — cliente Supabase tipado con `Database` type
+- `src/lib/query-client.ts` — configuración global de React Query con defaults optimizados
+- `src/types/auth.types.ts` — tipos `UserProfile`, `AuthState`, `AuthActions`, `AuthStore`
+- `src/store/auth.store.ts` — Zustand store para autenticación con devtools
+- `src/hooks/use-auth.ts` — `useAuthInitializer()` y `useAuth()` hook
+- `src/main.tsx` — entry point con `QueryClientProvider`, `Toaster` (sonner) y `ReactQueryDevtools`
+- `src/App.tsx` — app base con `BrowserRouter` y `AuthProvider`
+- `src/routes/app.routes.tsx` — rutas base con `ProtectedRoute` y `PublicRoute`
+
+### Decisiones técnicas clave
+
+- `useAuthStore.getState()` dentro del `useEffect` para evitar infinite loops por recreación de funciones
+- Suscripción a valores primitivos individuales en Zustand (`useAuthStore((s) => s.valor)`) en lugar de objetos para evitar re-renders infinitos
+- `onAuthStateChange` maneja todos los eventos de sesión de Supabase en tiempo real
+- `refetchOnWindowFocus` deshabilitado en desarrollo, habilitado en producción
+- Queries: `staleTime` 1 min, `gcTime` 5 min, `retry` 1
+- Mutations: `retry` 0
+
+### Correcciones durante Paso 2
+
+**Problema:** Infinite loop — "Maximum update depth exceeded" en `ProtectedRoute` y `PublicRoute`
+**Causa 1:** `useAuth()` retornaba un objeto nuevo en cada render como dependencia del useEffect
+**Solución 1:** Usar `useAuthStore.getState()` dentro del `useEffect` con array de dependencias vacío
+**Causa 2:** `useAuth()` retornaba objeto completo causando re-renders en rutas
+**Solución 2:** Suscribirse a valores primitivos individuales en cada componente de ruta
+
+---
+
+## ✅ PASO 3 — Esquema de base de datos en Supabase
+
+**Commit sugerido:** `feat: add complete database schema and TypeScript types`
+
+### Acciones realizadas
+
+- Esquema completo ejecutado en Supabase SQL Editor en 6 scripts
+- Tipos TypeScript actualizados en `src/types/database.types.ts`
+
+### Tablas creadas
+
+| Tabla | Descripción |
+|-------|-------------|
+| `profiles` | Perfil de usuario, linked 1:1 con `auth.users` |
+| `workspaces` | Espacios de trabajo por equipo/proyecto |
+| `workspace_members` | Miembros de cada workspace con su rol |
+| `folders` | Carpetas jerárquicas con soporte a subcarpetas |
+| `files` | Archivos con referencia a Cloudflare R2 |
+| `file_versions` | Historial de versiones por archivo |
+| `file_shares` | Compartir archivos/carpetas por usuario, rol o link público |
+| `activity_logs` | Auditoría completa de acciones |
+| `notifications` | Notificaciones por usuario |
+
+### Extensiones habilitadas
+
+- `uuid-ossp` — generación de UUIDs
+- `pgcrypto` — tokens seguros para shares
+- `pg_trgm` — búsqueda full-text por similitud
+- `vector` — búsqueda semántica con pgvector
+
+### ENUMs creados
+
+- `user_role`: superadmin, admin, editor, viewer
+- `file_status`: active, archived, deleted
+- `permission_type`: view, edit, delete, share
+- `activity_action`: upload, download, view, move, rename, delete, archive, restore, share, unshare, create_folder, update_metadata, create_version
+- `share_type`: user, role, public
+
+### Funciones SQL creadas
+
+- `handle_updated_at()` — trigger para auto-actualizar `updated_at`
+- `handle_new_user()` — trigger para auto-crear perfil al registrarse
+- `search_files()` — búsqueda full-text con filtros avanzados
+- `get_workspace_stats()` — estadísticas de uso por workspace
+
+### RLS habilitado en todas las tablas
+
+- Viewers solo pueden leer
+- Editors pueden crear y modificar
+- Admins pueden eliminar y gestionar miembros
+- Superadmins tienen acceso total
+
+### Decisiones técnicas
+
+- `files.r2_key` es único — identifica el objeto en Cloudflare R2
+- `files.embedding vector(1536)` — listo para búsqueda semántica con OpenAI embeddings
+- `file_shares.token` — generado con `gen_random_bytes(32)` para links públicos seguros
+- `shared_role` en `file_shares` es un enum sin FK — permite compartir por rol sin referenciar un usuario específico
+
+### Correcciones durante Paso 3
+
+**Problema:** Error al crear `file_shares` — "foreign key constraint cannot be implemented, incompatible types: user_role and uuid"
+**Causa:** `shared_role` tenía una FK a `profiles(id)` siendo de tipo `user_role` (enum), no `uuid`
+**Solución:** Eliminar la FK de `shared_role`, dejarlo como enum simple sin referencia
+
+---
+
 ## 🔜 PRÓXIMOS PASOS
 
-- **Paso 2:** Supabase client + tipos de base de datos + Auth store (Zustand) + React Query setup
-- **Paso 3:** Esquema de base de datos en Supabase (tablas, RLS, políticas)
 - **Paso 4:** Páginas de autenticación (Login + Google OAuth)
 - **Paso 5:** Layout principal (AppShell, Sidebar, Header)
 - **Paso 6:** Sistema de workspaces
