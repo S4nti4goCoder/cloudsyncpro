@@ -1,4 +1,4 @@
-import { Bell, Search, Moon, Sun, LogOut, User, ChevronDown, Settings } from 'lucide-react'
+import { Bell, Moon, Sun, LogOut, User, ChevronDown, Settings } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -6,6 +6,7 @@ import { useTheme } from '@/hooks/useTheme'
 import { authService } from '@/services/authService'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
+import { SearchBar } from '@/components/shared/SearchBar'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -52,19 +53,7 @@ export function Header() {
     >
       {/* Search */}
       <div className="flex flex-1 items-center">
-        <div className="relative w-full max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="search"
-            placeholder="Buscar archivos, carpetas..."
-            className={cn(
-              'flex h-9 w-full rounded-lg border border-input bg-muted/50 pl-9 pr-4 text-sm',
-              'placeholder:text-muted-foreground',
-              'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent',
-              'transition-colors'
-            )}
-          />
-        </div>
+        <SearchBar />
       </div>
 
       {/* Actions */}
@@ -98,7 +87,7 @@ export function Header() {
             <button className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted transition-colors">
               <Avatar className="h-7 w-7">
                 <AvatarImage src={avatarUrl} alt={displayName} />
-                <AvatarFallback className="bg-[#0A2540] text-white text-xs">
+                <AvatarFallback className="bg-[#0f172a] text-white text-xs">
                   {initials}
                 </AvatarFallback>
               </Avatar>
