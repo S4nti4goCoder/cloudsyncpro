@@ -423,10 +423,104 @@ cloudsyncpro-files/
 
 ---
 
+## ✅ PASO 11 — Compartir archivos y links públicos
+
+**Commit:** `feat: add file sharing with public and private links, password protection and expiry`
+
+### Acciones realizadas
+
+- `src/services/shareService.ts` — CRUD de shares, verificación de contraseña, URL pública
+- `src/hooks/useShares.ts` — hooks React Query (useShares, useCreateShare, useDeactivateShare)
+- `src/components/shared/ShareFileModal.tsx` — modal con toggles nativos para opciones
+- `src/pages/shared/SharedFilePage.tsx` — página pública de acceso a archivos compartidos
+- RLS para `file_shares` — política pública para shares activos por token
+- Función SQL `get_shared_file(p_token)` — acceso público sin autenticación
+- Ruta `/shared/:token` agregada en `AppRouter.tsx` sin requerir auth
+
+### Tipos de sharing
+
+| Tipo | Acceso |
+|------|--------|
+| Público | Cualquier persona con el link |
+| Privado | Solo usuarios registrados en CloudSyncPro |
+
+### Opciones por enlace
+
+- ✅ Permitir/denegar descarga
+- ✅ Fecha de expiración opcional
+- ✅ Contraseña opcional
+- ✅ Desactivar enlace manualmente
+
+### Decisiones técnicas
+
+- Toggles nativos en lugar de `Switch` de shadcn — evita conflictos con Radix Dialog
+- `get_shared_file()` con `security definer` — permite acceso público sin RLS
+- Links privados redirigen al login si el usuario no está autenticado
+- Token generado con `gen_random_bytes(32)` — 64 caracteres hex
+
+---
+
+## ✅ PASO 12 — Dashboard con Recharts
+
+**Commit:** `feat: add dashboard with global stats, charts and recent files using Recharts`
+
+### Acciones realizadas
+
+- `src/hooks/useDashboard.ts` — hooks: useGlobalStats, useWorkspaceStats, useRecentFiles, useUploadActivity
+- `src/pages/dashboard/DashboardPage.tsx` — dashboard completo con stats, charts y archivos recientes
+
+### Secciones del dashboard
+
+| Sección | Descripción |
+|---------|-------------|
+| Resumen global | Total archivos, almacenamiento, workspaces, carpetas del usuario |
+| Workspace activo | Stats del workspace seleccionado |
+| Actividad de subidas | BarChart de archivos subidos por día |
+| Archivos por tipo | PieChart de distribución por tipo MIME |
+| Archivos recientes | Lista de últimos 5 archivos subidos |
+
+### Decisiones técnicas
+
+- `formatter={(value) => [value ?? 0, ...]}` en Recharts — evita error de tipo `ValueType | undefined`
+- Stats globales via `Promise.all` — consultas paralelas para mejor rendimiento
+- Agrupación de actividad por día en el frontend — evita función SQL adicional
+
+---
+
+## ✅ PASO 13 — Notificaciones en tiempo real
+
+**Commit:** `feat: add realtime notifications with unread badge and mark as read`
+
+### Acciones realizadas
+
+- `src/hooks/useNotifications.ts` — hook con Supabase Realtime + React Query
+- `src/components/shared/NotificationsDropdown.tsx` — dropdown en Header con badge
+- `alter publication supabase_realtime add table public.notifications` — habilitado en SQL Editor
+
+### Funcionalidades
+
+- Badge con contador de no leídas en la campana del Header
+- Dropdown con lista de notificaciones (máximo 20)
+- Marcar como leída individualmente
+- Marcar todas como leídas
+- Íconos y colores según tipo: `success`, `warning`, `error`, `info`
+- Suscripción realtime a eventos `INSERT` y `UPDATE`
+
+### Decisiones técnicas
+
+- Canal singleton via `Map` fuera del ciclo de React — evita error de StrictMode de React 19
+- `if (activeChannels.has(userId)) return` — previene doble suscripción en desarrollo
+- Cleanup correcto en desmontaje: `removeChannel` + `activeChannels.delete`
+
+### Correcciones durante Paso 13
+
+**Problema:** `cannot add postgres_changes callbacks after subscribe()`
+**Causa:** React 19 StrictMode monta efectos dos veces — el canal ya estaba suscrito al segundo montaje
+**Solución:** Singleton `Map` fuera de React — variables de módulo no se resetean con StrictMode
+
+---
+
 ## 🔜 PRÓXIMOS PASOS
 
-- **Paso 11:** Compartir archivos y links públicos
-- **Paso 12:** Dashboard con Recharts
-- **Paso 13:** Notificaciones en tiempo real
 - **Paso 14:** Panel de administración
 - **Paso 15:** Auditoría de actividad
