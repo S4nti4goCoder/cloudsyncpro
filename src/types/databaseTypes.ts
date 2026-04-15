@@ -4,355 +4,681 @@ export type Json =
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[];
+  | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
-      profiles: {
-        Row: {
-          id: string;
-          email: string;
-          full_name: string | null;
-          avatar_url: string | null;
-          role: UserRole;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          email: string;
-          full_name?: string | null;
-          avatar_url?: string | null;
-          role?: UserRole;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          full_name?: string | null;
-          avatar_url?: string | null;
-          role?: UserRole;
-          updated_at?: string;
-        };
-      };
-      workspaces: {
-        Row: {
-          id: string;
-          name: string;
-          description: string | null;
-          slug: string;
-          owner_id: string;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          description?: string | null;
-          slug: string;
-          owner_id: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          name?: string;
-          description?: string | null;
-          slug?: string;
-          updated_at?: string;
-        };
-      };
-      workspace_members: {
-        Row: {
-          id: string;
-          workspace_id: string;
-          user_id: string;
-          role: UserRole;
-          invited_by: string | null;
-          joined_at: string;
-        };
-        Insert: {
-          id?: string;
-          workspace_id: string;
-          user_id: string;
-          role?: UserRole;
-          invited_by?: string | null;
-          joined_at?: string;
-        };
-        Update: {
-          role?: UserRole;
-        };
-      };
-      folders: {
-        Row: {
-          id: string;
-          name: string;
-          workspace_id: string;
-          parent_id: string | null;
-          created_by: string;
-          metadata: Json;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          workspace_id: string;
-          parent_id?: string | null;
-          created_by: string;
-          metadata?: Json;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          name?: string;
-          parent_id?: string | null;
-          metadata?: Json;
-          updated_at?: string;
-        };
-      };
-      files: {
-        Row: {
-          id: string;
-          name: string;
-          original_name: string;
-          size: number;
-          mime_type: string;
-          extension: string;
-          r2_key: string;
-          workspace_id: string;
-          folder_id: string | null;
-          uploaded_by: string;
-          status: FileStatus;
-          metadata: Json;
-          version: number;
-          embedding: number[] | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          original_name: string;
-          size: number;
-          mime_type: string;
-          extension: string;
-          r2_key: string;
-          workspace_id: string;
-          folder_id?: string | null;
-          uploaded_by: string;
-          status?: FileStatus;
-          metadata?: Json;
-          version?: number;
-          embedding?: number[] | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          name?: string;
-          folder_id?: string | null;
-          status?: FileStatus;
-          metadata?: Json;
-          version?: number;
-          embedding?: number[] | null;
-          updated_at?: string;
-        };
-      };
-      file_versions: {
-        Row: {
-          id: string;
-          file_id: string;
-          version: number;
-          r2_key: string;
-          size: number;
-          uploaded_by: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          file_id: string;
-          version: number;
-          r2_key: string;
-          size: number;
-          uploaded_by: string;
-          created_at?: string;
-        };
-        Update: Record<string, never>;
-      };
-      file_shares: {
-        Row: {
-          id: string;
-          resource_id: string;
-          resource_type: "file" | "folder";
-          share_type: ShareType;
-          shared_with: string | null;
-          shared_role: UserRole | null;
-          permissions: PermissionType[];
-          shared_by: string;
-          token: string | null;
-          password: string | null;
-          expires_at: string | null;
-          is_active: boolean;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          resource_id: string;
-          resource_type: "file" | "folder";
-          share_type: ShareType;
-          shared_with?: string | null;
-          shared_role?: UserRole | null;
-          permissions?: PermissionType[];
-          shared_by: string;
-          token?: string | null;
-          password?: string | null;
-          expires_at?: string | null;
-          is_active?: boolean;
-          created_at?: string;
-        };
-        Update: {
-          permissions?: PermissionType[];
-          password?: string | null;
-          expires_at?: string | null;
-          is_active?: boolean;
-        };
-      };
       activity_logs: {
         Row: {
-          id: string;
-          workspace_id: string;
-          user_id: string | null;
-          action: ActivityAction;
-          resource_id: string | null;
-          resource_type: "file" | "folder" | "workspace" | "share" | null;
-          resource_name: string | null;
-          metadata: Json;
-          ip_address: string | null;
-          created_at: string;
-        };
+          action: Database["public"]["Enums"]["activity_action"]
+          created_at: string
+          id: string
+          ip_address: string | null
+          metadata: Json
+          resource_id: string | null
+          resource_name: string | null
+          resource_type: string | null
+          user_id: string | null
+          workspace_id: string
+        }
         Insert: {
-          id?: string;
-          workspace_id: string;
-          user_id?: string | null;
-          action: ActivityAction;
-          resource_id?: string | null;
-          resource_type?: "file" | "folder" | "workspace" | "share" | null;
-          resource_name?: string | null;
-          metadata?: Json;
-          ip_address?: string | null;
-          created_at?: string;
-        };
-        Update: Record<string, never>;
-      };
+          action: Database["public"]["Enums"]["activity_action"]
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json
+          resource_id?: string | null
+          resource_name?: string | null
+          resource_type?: string | null
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["activity_action"]
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json
+          resource_id?: string | null
+          resource_name?: string | null
+          resource_type?: string | null
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      file_shares: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          password: string | null
+          permissions: Database["public"]["Enums"]["permission_type"][]
+          resource_id: string
+          resource_type: string
+          share_type: Database["public"]["Enums"]["share_type"]
+          shared_by: string
+          shared_role: Database["public"]["Enums"]["user_role"] | null
+          shared_with: string | null
+          token: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          password?: string | null
+          permissions?: Database["public"]["Enums"]["permission_type"][]
+          resource_id: string
+          resource_type: string
+          share_type: Database["public"]["Enums"]["share_type"]
+          shared_by: string
+          shared_role?: Database["public"]["Enums"]["user_role"] | null
+          shared_with?: string | null
+          token?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          password?: string | null
+          permissions?: Database["public"]["Enums"]["permission_type"][]
+          resource_id?: string
+          resource_type?: string
+          share_type?: Database["public"]["Enums"]["share_type"]
+          shared_by?: string
+          shared_role?: Database["public"]["Enums"]["user_role"] | null
+          shared_with?: string | null
+          token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_shares_shared_by_fkey"
+            columns: ["shared_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_shares_shared_with_fkey"
+            columns: ["shared_with"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      file_versions: {
+        Row: {
+          created_at: string
+          file_id: string
+          id: string
+          r2_key: string
+          size: number
+          uploaded_by: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          file_id: string
+          id?: string
+          r2_key: string
+          size?: number
+          uploaded_by: string
+          version: number
+        }
+        Update: {
+          created_at?: string
+          file_id?: string
+          id?: string
+          r2_key?: string
+          size?: number
+          uploaded_by?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_versions_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_versions_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      files: {
+        Row: {
+          created_at: string
+          embedding: string | null
+          extension: string
+          folder_id: string | null
+          id: string
+          metadata: Json
+          mime_type: string
+          name: string
+          original_name: string
+          r2_key: string
+          size: number
+          status: Database["public"]["Enums"]["file_status"]
+          updated_at: string
+          uploaded_by: string
+          version: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          embedding?: string | null
+          extension: string
+          folder_id?: string | null
+          id?: string
+          metadata?: Json
+          mime_type: string
+          name: string
+          original_name: string
+          r2_key: string
+          size?: number
+          status?: Database["public"]["Enums"]["file_status"]
+          updated_at?: string
+          uploaded_by: string
+          version?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          embedding?: string | null
+          extension?: string
+          folder_id?: string | null
+          id?: string
+          metadata?: Json
+          mime_type?: string
+          name?: string
+          original_name?: string
+          r2_key?: string
+          size?: number
+          status?: Database["public"]["Enums"]["file_status"]
+          updated_at?: string
+          uploaded_by?: string
+          version?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "files_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "files_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "files_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folders: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          metadata: Json
+          name: string
+          parent_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          metadata?: Json
+          name: string
+          parent_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          metadata?: Json
+          name?: string
+          parent_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folders_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
-          id: string;
-          user_id: string;
-          title: string;
-          message: string;
-          type: "info" | "success" | "warning" | "error";
-          resource_id: string | null;
-          resource_type: "file" | "folder" | "workspace" | "share" | null;
-          is_read: boolean;
-          created_at: string;
-        };
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          resource_id: string | null
+          resource_type: string | null
+          title: string
+          type: string
+          user_id: string
+        }
         Insert: {
-          id?: string;
-          user_id: string;
-          title: string;
-          message: string;
-          type: "info" | "success" | "warning" | "error";
-          resource_id?: string | null;
-          resource_type?: "file" | "folder" | "workspace" | "share" | null;
-          is_read?: boolean;
-          created_at?: string;
-        };
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          resource_id?: string | null
+          resource_type?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
         Update: {
-          is_read?: boolean;
-        };
-      };
-    };
-    Views: Record<string, never>;
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          resource_id?: string | null
+          resource_type?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      workspace_members: {
+        Row: {
+          id: string
+          invited_by: string | null
+          joined_at: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_members_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspaces: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          owner_id: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspaces_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
     Functions: {
+      get_workspace_stats: {
+        Args: { p_workspace_id: string }
+        Returns: {
+          files_by_type: Json
+          total_files: number
+          total_folders: number
+          total_size: number
+        }[]
+      }
       search_files: {
         Args: {
-          p_workspace_id: string;
-          p_query: string;
-          p_mime_types?: string[] | null;
-          p_uploaded_by?: string | null;
-          p_date_from?: string | null;
-          p_date_to?: string | null;
-          p_limit?: number;
-          p_offset?: number;
-        };
+          p_date_from?: string
+          p_date_to?: string
+          p_limit?: number
+          p_mime_types?: string[]
+          p_offset?: number
+          p_query: string
+          p_uploaded_by?: string
+          p_workspace_id: string
+        }
         Returns: {
-          id: string;
-          name: string;
-          mime_type: string;
-          size: number;
-          extension: string;
-          folder_id: string | null;
-          uploaded_by: string;
-          status: FileStatus;
-          metadata: Json;
-          created_at: string;
-          updated_at: string;
-          relevance: number;
-        }[];
-      };
-      get_workspace_stats: {
-        Args: { p_workspace_id: string };
-        Returns: {
-          total_files: number;
-          total_size: number;
-          total_folders: number;
-          files_by_type: Json;
-        }[];
-      };
-    };
+          created_at: string
+          extension: string
+          folder_id: string
+          id: string
+          metadata: Json
+          mime_type: string
+          name: string
+          relevance: number
+          size: number
+          status: Database["public"]["Enums"]["file_status"]
+          updated_at: string
+          uploaded_by: string
+        }[]
+      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+    }
     Enums: {
-      user_role: UserRole;
-      file_status: FileStatus;
-      permission_type: PermissionType;
-      activity_action: ActivityAction;
-      share_type: ShareType;
-    };
-  };
-};
+      activity_action:
+        | "upload"
+        | "download"
+        | "view"
+        | "move"
+        | "rename"
+        | "delete"
+        | "archive"
+        | "restore"
+        | "share"
+        | "unshare"
+        | "create_folder"
+        | "update_metadata"
+        | "create_version"
+      file_status: "active" | "archived" | "deleted"
+      permission_type: "view" | "edit" | "delete" | "share"
+      share_type: "user" | "role" | "public"
+      user_role: "superadmin" | "admin" | "editor" | "viewer"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
 
-// ============================================
-// Enum types
-// ============================================
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-export type UserRole = "superadmin" | "admin" | "editor" | "viewer";
-export type FileStatus = "active" | "archived" | "deleted";
-export type PermissionType = "view" | "edit" | "delete" | "share";
-export type ActivityAction =
-  | "upload"
-  | "download"
-  | "view"
-  | "move"
-  | "rename"
-  | "delete"
-  | "archive"
-  | "restore"
-  | "share"
-  | "unshare"
-  | "create_folder"
-  | "update_metadata"
-  | "create_version";
-export type ShareType = "user" | "role" | "public";
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
-// ============================================
-// Row type aliases for convenience
-// ============================================
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
-export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-export type Workspace = Database["public"]["Tables"]["workspaces"]["Row"];
-export type WorkspaceMember =
-  Database["public"]["Tables"]["workspace_members"]["Row"];
-export type Folder = Database["public"]["Tables"]["folders"]["Row"];
-export type File = Database["public"]["Tables"]["files"]["Row"];
-export type FileVersion = Database["public"]["Tables"]["file_versions"]["Row"];
-export type FileShare = Database["public"]["Tables"]["file_shares"]["Row"];
-export type ActivityLog = Database["public"]["Tables"]["activity_logs"]["Row"];
-export type Notification = Database["public"]["Tables"]["notifications"]["Row"];
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      activity_action: [
+        "upload",
+        "download",
+        "view",
+        "move",
+        "rename",
+        "delete",
+        "archive",
+        "restore",
+        "share",
+        "unshare",
+        "create_folder",
+        "update_metadata",
+        "create_version",
+      ],
+      file_status: ["active", "archived", "deleted"],
+      permission_type: ["view", "edit", "delete", "share"],
+      share_type: ["user", "role", "public"],
+      user_role: ["superadmin", "admin", "editor", "viewer"],
+    },
+  },
+} as const

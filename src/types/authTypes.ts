@@ -1,23 +1,25 @@
 import type { User, Session } from '@supabase/supabase-js'
-import type { UserRole } from '@/types/databaseTypes'
+import type { Database } from '@/types/databaseTypes'
 
-/**
- * Extended user profile stored in the `profiles` table.
- * Linked 1:1 with Supabase Auth users.
- */
-export interface UserProfile {
-  id: string
-  email: string
-  full_name: string | null
-  avatar_url: string | null
-  role: UserRole
-  created_at: string
-  updated_at: string
-}
+export type UserRole = Database['public']['Enums']['user_role']
+export type FileStatus = Database['public']['Enums']['file_status']
+export type PermissionType = Database['public']['Enums']['permission_type']
+export type ActivityAction = Database['public']['Enums']['activity_action']
+export type ShareType = Database['public']['Enums']['share_type']
 
-/**
- * Auth state managed by Zustand.
- */
+// Row types
+export type Profile = Database['public']['Tables']['profiles']['Row']
+export type Workspace = Database['public']['Tables']['workspaces']['Row']
+export type WorkspaceMember = Database['public']['Tables']['workspace_members']['Row']
+export type Folder = Database['public']['Tables']['folders']['Row']
+export type FileRecord = Database['public']['Tables']['files']['Row']
+export type FileVersion = Database['public']['Tables']['file_versions']['Row']
+export type FileShare = Database['public']['Tables']['file_shares']['Row']
+export type ActivityLog = Database['public']['Tables']['activity_logs']['Row']
+export type Notification = Database['public']['Tables']['notifications']['Row']
+
+export type UserProfile = Profile
+
 export interface AuthState {
   user: User | null
   profile: UserProfile | null
@@ -26,9 +28,6 @@ export interface AuthState {
   isInitialized: boolean
 }
 
-/**
- * Auth actions managed by Zustand.
- */
 export interface AuthActions {
   setUser: (user: User | null) => void
   setProfile: (profile: UserProfile | null) => void
