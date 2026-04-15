@@ -1,6 +1,6 @@
 import { BrowserRouter } from 'react-router-dom'
-import { useAuthInitializer } from '@/hooks/use-auth'
-import { AppRoutes } from '@/routes/app.routes'
+import { useAuthInitializer } from '@/hooks/useAuth'
+import { AppRoutes } from '@/routes/AppRouter'
 
 /**
  * Auth initializer wrapper — keeps App clean.

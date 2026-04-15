@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Eye, EyeOff, Cloud, Loader2, CheckCircle2 } from "lucide-react";
-import { authService } from "@/services/auth.service";
+import { authService } from "@/services/authService";
 import { cn } from "@/lib/utils";
 
 export default function RegisterPage() {

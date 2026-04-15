@@ -1,5 +1,5 @@
 import type { User, Session } from '@supabase/supabase-js'
-import type { UserRole } from '@/types/database.types'
+import type { UserRole } from '@/types/databaseTypes'
 
 /**
  * Extended user profile stored in the `profiles` table.

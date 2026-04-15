@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useAuthStore } from '@/store/auth.store'
-import type { UserProfile } from '@/types/auth.types'
+import { useAuthStore } from '@/store/authStore'
+import type { UserProfile } from '@/types/authTypes'
 
 async function fetchProfile(userId: string): Promise<UserProfile | null> {
   const { data, error } = await supabase

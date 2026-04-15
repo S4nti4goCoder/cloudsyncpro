@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useAuthStore } from '@/store/auth.store'
-import LoginPage from '@/pages/auth/login.page'
-import RegisterPage from '@/pages/auth/register.page'
+import { useAuthStore } from '@/store/authStore'
+import LoginPage from '@/pages/auth/LoginPage'
+import RegisterPage from '@/pages/auth/RegisterPage'
 
 function LoadingScreen() {
   return (
