@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -11,15 +12,26 @@ import {
   Trash2,
   Share2,
   Shield,
+  ChevronsUpDown,
+  Check,
+  Plus,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/uiStore'
 import { useAuthStore } from '@/store/authStore'
+import { useWorkspaceStore, getActiveWorkspace } from '@/store/workspaceStore'
+import { useWorkspaces } from '@/hooks/useWorkspaces'
+import { CreateWorkspaceModal } from '@/components/shared/CreateWorkspaceModal'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 
 interface NavItem {
   label: string
@@ -50,6 +62,11 @@ export function Sidebar() {
   const isAdmin = useAuthStore(
     (s) => s.profile?.role === 'admin' || s.profile?.role === 'superadmin'
   )
+  const { activeWorkspaceId, setActiveWorkspaceId } = useWorkspaceStore()
+  const { data: workspaces } = useWorkspaces()
+  const activeWorkspace = getActiveWorkspace(workspaces ?? [], activeWorkspaceId)
+  const [workspaceOpen, setWorkspaceOpen] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   function isActive(href: string) {
     return location.pathname.startsWith(href)
@@ -58,75 +75,178 @@ export function Sidebar() {
   const allItems = [...navItems, ...(isAdmin ? adminItems : [])]
 
   return (
-    <aside
-      className={cn(
-        'fixed left-0 top-0 z-30 flex h-full flex-col transition-all duration-300',
-        'hidden lg:flex',
-        sidebarCollapsed ? 'w-16' : 'w-64'
-      )}
-      style={{ backgroundColor: '#0f172a' }}
-    >
-      {/* Logo */}
-      <div
+    <>
+      <aside
         className={cn(
-          'flex h-16 items-center border-b border-white/10',
-          sidebarCollapsed ? 'justify-center px-4' : 'px-5'
+          'fixed left-0 top-0 z-30 flex h-full flex-col transition-all duration-300',
+          'hidden lg:flex',
+          sidebarCollapsed ? 'w-16' : 'w-64'
         )}
+        style={{ backgroundColor: '#0f172a' }}
       >
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500">
-            <Cloud className="h-4 w-4 text-white" />
-          </div>
-          {!sidebarCollapsed && (
-            <span className="text-base font-semibold text-white">
-              CloudSyncPro
-            </span>
+        {/* Logo */}
+        <div
+          className={cn(
+            'flex h-16 items-center border-b border-white/10',
+            sidebarCollapsed ? 'justify-center px-4' : 'px-5'
           )}
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500">
+              <Cloud className="h-4 w-4 text-white" />
+            </div>
+            {!sidebarCollapsed && (
+              <span className="text-base font-semibold text-white">
+                CloudSyncPro
+              </span>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Nav items */}
-      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-4">
-        {allItems.map((item) => (
-          <NavLink
-            key={item.href}
-            item={item}
-            collapsed={sidebarCollapsed}
-            active={isActive(item.href)}
-          />
-        ))}
-      </nav>
+        {/* Workspace selector */}
+        {!sidebarCollapsed && (
+          <div className="px-3 py-3 border-b border-white/10">
+            <Popover open={workspaceOpen} onOpenChange={setWorkspaceOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  className={cn(
+                    'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2',
+                    'text-left transition-colors hover:bg-white/10',
+                    'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20'
+                  )}
+                >
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-500/20">
+                    <Users className="h-3.5 w-3.5 text-blue-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-white truncate">
+                      {activeWorkspace?.name ?? 'Seleccionar workspace'}
+                    </p>
+                    <p className="text-[10px] text-white/40">Espacio activo</p>
+                  </div>
+                  <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-white/40" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-64 p-1.5"
+                align="start"
+                side="right"
+                sideOffset={8}
+              >
+                <div className="px-2 py-1.5 mb-1">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Espacios de trabajo
+                  </p>
+                </div>
 
-      {/* Bottom items */}
-      <div className="border-t border-white/10 px-3 py-3 space-y-0.5">
-        {bottomItems.map((item) => (
-          <NavLink
-            key={item.href}
-            item={item}
-            collapsed={sidebarCollapsed}
-            active={isActive(item.href)}
-          />
-        ))}
-      </div>
+                <div className="space-y-0.5 max-h-48 overflow-y-auto">
+                  {workspaces?.map((workspace) => (
+                    <button
+                      key={workspace.id}
+                      onClick={() => {
+                        setActiveWorkspaceId(workspace.id)
+                        setWorkspaceOpen(false)
+                      }}
+                      className={cn(
+                        'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5',
+                        'text-sm transition-colors hover:bg-muted',
+                        activeWorkspace?.id === workspace.id && 'bg-muted'
+                      )}
+                    >
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                        <Users className="h-3.5 w-3.5 text-primary" />
+                      </div>
+                      <span className="flex-1 text-left truncate text-foreground">
+                        {workspace.name}
+                      </span>
+                      {activeWorkspace?.id === workspace.id && (
+                        <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                      )}
+                    </button>
+                  ))}
+                </div>
 
-      {/* Collapse button — floating on edge */}
-      <button
-        onClick={toggleSidebar}
-        className={cn(
-          'absolute -right-3 top-20 z-40',
-          'flex h-6 w-6 items-center justify-center',
-          'rounded-full border border-border bg-background shadow-md',
-          'text-muted-foreground hover:text-foreground transition-colors'
+                <div className="border-t border-border mt-1.5 pt-1.5">
+                  <button
+                    onClick={() => {
+                      setWorkspaceOpen(false)
+                      setShowCreateModal(true)
+                    }}
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Nuevo espacio de trabajo
+                  </button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         )}
-        aria-label={sidebarCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
-      >
-        {sidebarCollapsed ? (
-          <ChevronRight className="h-3 w-3" />
-        ) : (
-          <ChevronLeft className="h-3 w-3" />
+
+        {/* Collapsed workspace indicator */}
+        {sidebarCollapsed && (
+          <div className="flex justify-center py-3 border-b border-white/10">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500/20 cursor-pointer">
+                  <Users className="h-3.5 w-3.5 text-blue-400" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {activeWorkspace?.name ?? 'Sin workspace'}
+              </TooltipContent>
+            </Tooltip>
+          </div>
         )}
-      </button>
-    </aside>
+
+        {/* Nav items */}
+        <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-4">
+          {allItems.map((item) => (
+            <NavLink
+              key={item.href}
+              item={item}
+              collapsed={sidebarCollapsed}
+              active={isActive(item.href)}
+            />
+          ))}
+        </nav>
+
+        {/* Bottom items */}
+        <div className="border-t border-white/10 px-3 py-3 space-y-0.5">
+          {bottomItems.map((item) => (
+            <NavLink
+              key={item.href}
+              item={item}
+              collapsed={sidebarCollapsed}
+              active={isActive(item.href)}
+            />
+          ))}
+        </div>
+
+        {/* Collapse button */}
+        <button
+          onClick={toggleSidebar}
+          className={cn(
+            'absolute -right-3 top-20 z-40',
+            'flex h-6 w-6 items-center justify-center',
+            'rounded-full border border-border bg-background shadow-md',
+            'text-muted-foreground hover:text-foreground transition-colors'
+          )}
+          aria-label={sidebarCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
+        >
+          {sidebarCollapsed ? (
+            <ChevronRight className="h-3 w-3" />
+          ) : (
+            <ChevronLeft className="h-3 w-3" />
+          )}
+        </button>
+      </aside>
+
+      <CreateWorkspaceModal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+      />
+    </>
   )
 }
 
