@@ -1,13 +1,21 @@
-import { Bell, Moon, Sun, LogOut, User, ChevronDown, Settings } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
-import { useTheme } from '@/hooks/useTheme'
-import { authService } from '@/services/authService'
-import { useAuthStore } from '@/store/authStore'
-import { useUIStore } from '@/store/uiStore'
-import { SearchBar } from '@/components/shared/SearchBar'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  Moon,
+  Sun,
+  LogOut,
+  User,
+  ChevronDown,
+  Settings,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { useTheme } from "@/hooks/useTheme";
+import { authService } from "@/services/authService";
+import { useAuthStore } from "@/store/authStore";
+import { useUIStore } from "@/store/uiStore";
+import { SearchBar } from "@/components/shared/SearchBar";
+import { NotificationsDropdown } from "@/components/shared/NotificationsDropdown";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,40 +23,40 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+} from "@/components/ui/dropdown-menu";
 
 export function Header() {
-  const navigate = useNavigate()
-  const { theme, toggleTheme } = useTheme()
-  const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed)
-  const profile = useAuthStore((s) => s.profile)
-  const user = useAuthStore((s) => s.user)
+  const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
+  const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
+  const profile = useAuthStore((s) => s.profile);
+  const user = useAuthStore((s) => s.user);
 
-  const displayName = profile?.full_name ?? user?.email ?? 'Usuario'
-  const avatarUrl = profile?.avatar_url ?? ''
+  const displayName = profile?.full_name ?? user?.email ?? "Usuario";
+  const avatarUrl = profile?.avatar_url ?? "";
   const initials = displayName
-    .split(' ')
+    .split(" ")
     .map((n) => n[0])
     .slice(0, 2)
-    .join('')
-    .toUpperCase()
+    .join("")
+    .toUpperCase();
 
   async function handleSignOut() {
     try {
-      await authService.signOut()
-      navigate('/login')
-      toast.success('Sesión cerrada correctamente')
+      await authService.signOut();
+      navigate("/login");
+      toast.success("Sesión cerrada correctamente");
     } catch {
-      toast.error('Error al cerrar sesión')
+      toast.error("Error al cerrar sesión");
     }
   }
 
   return (
     <header
       className={cn(
-        'fixed right-0 top-0 z-20 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur px-6 transition-all duration-300',
-        sidebarCollapsed ? 'left-16' : 'left-64',
-        'hidden lg:flex'
+        "fixed right-0 top-0 z-20 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur px-6 transition-all duration-300",
+        sidebarCollapsed ? "left-16" : "left-64",
+        "hidden lg:flex",
       )}
     >
       {/* Search */}
@@ -62,9 +70,11 @@ export function Header() {
         <button
           onClick={toggleTheme}
           className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          aria-label={theme === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+          aria-label={
+            theme === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro"
+          }
         >
-          {theme === 'dark' ? (
+          {theme === "dark" ? (
             <Sun className="h-4 w-4" />
           ) : (
             <Moon className="h-4 w-4" />
@@ -72,14 +82,7 @@ export function Header() {
         </button>
 
         {/* Notifications */}
-        <button
-          onClick={() => navigate('/notifications')}
-          className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          aria-label="Notificaciones"
-        >
-          <Bell className="h-4 w-4" />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-blue-500" />
-        </button>
+        <NotificationsDropdown />
 
         {/* User menu */}
         <DropdownMenu>
@@ -93,7 +96,7 @@ export function Header() {
               </Avatar>
               <div className="hidden md:flex flex-col items-start">
                 <span className="text-xs font-medium text-foreground leading-none">
-                  {displayName.split(' ')[0]}
+                  {displayName.split(" ")[0]}
                 </span>
               </div>
               <ChevronDown className="h-3 w-3 text-muted-foreground" />
@@ -107,11 +110,11 @@ export function Header() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate('/settings/profile')}>
+            <DropdownMenuItem onClick={() => navigate("/settings/profile")}>
               <User className="mr-2 h-4 w-4" />
               Mi perfil
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/settings')}>
+            <DropdownMenuItem onClick={() => navigate("/settings")}>
               <Settings className="mr-2 h-4 w-4" />
               Configuración
             </DropdownMenuItem>
@@ -127,5 +130,5 @@ export function Header() {
         </DropdownMenu>
       </div>
     </header>
-  )
+  );
 }
