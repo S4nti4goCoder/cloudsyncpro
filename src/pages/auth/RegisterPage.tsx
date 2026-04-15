@@ -196,7 +196,7 @@ export default function RegisterPage() {
 
       {/* Panel derecho */}
       <div className="flex flex-1 flex-col items-center justify-center px-8 py-12">
-        <div className="w-full max-w-[400px] animate-fade-in">
+        <div className="w-full max-w-100 animate-fade-in">
           {/* Mobile logo */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#082563]">
