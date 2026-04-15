@@ -6,7 +6,7 @@
 
 ## ✅ PASO 1 — Scaffolding e infraestructura base
 
-**Commit sugerido:** `chore: initial project scaffold with Vite, React, TypeScript and Tailwind v4`
+**Commit:** `chore: initial project scaffold with Vite, React, TypeScript and Tailwind v4`
 
 ### Acciones realizadas
 
@@ -29,7 +29,6 @@
 - Path alias `@/` configurado en `tsconfig.app.json`, `tsconfig.json` raíz y `vite.config.ts`
 - `vite.config.ts` configurado con plugin de Tailwind y alias de paths
 - Design tokens definidos en `src/index.css` con variables CSS para light y dark mode
-- Paleta de colores implementada: azul corporativo `#0A2540`, negro `#111111`, grises, blanco
 - Animaciones utilitarias globales: `fade-in`, `slide-in-right`, `scale-in`
 - Scrollbar personalizado
 - Estructura de carpetas creada: `components/`, `pages/`, `hooks/`, `store/`, `services/`, `lib/`, `types/`, `utils/`, `routes/`
@@ -39,6 +38,7 @@
 - `Historial-Tecnico.md` creado (este archivo)
 
 ### Estructura de carpetas
+
 src/
 ├── components/
 │   ├── ui/          # shadcn/ui auto-generados
@@ -79,68 +79,76 @@ src/
 - **Dark mode**: Se maneja vía clase `.dark` en el `<html>` element (estrategia de shadcn/ui)
 - **`exactOptionalPropertyTypes`**: Omitido intencionalmente para evitar fricciones con librerías externas
 
-### Correcciones adicionales durante Paso 1
+### Correcciones durante Paso 1
 
 **Problema:** `npx shadcn@latest init` fallaba con "No import alias found in your tsconfig.json file"
 **Causa:** shadcn busca `paths` en el `tsconfig.json` raíz, que solo tenía `references`
-**Solución:** Agregar `compilerOptions.paths` al `tsconfig.json` raíz (además de mantenerlo en `tsconfig.app.json`)
+**Solución:** Agregar `compilerOptions.paths` al `tsconfig.json` raíz
 
 **Problema:** `tsconfig.app.json` tenía `"baseUrl": "."` que TypeScript marcaba como deprecado
-**Causa:** Con `moduleResolution: "bundler"`, `baseUrl` ya no es necesario para usar `paths`
+**Causa:** Con `moduleResolution: "bundler"`, `baseUrl` ya no es necesario
 **Solución:** Eliminar `baseUrl`, dejar solo `paths`
 
 **shadcn/ui instalado correctamente:**
-- `components.json` generado en la raíz
-- Preset: Nova / Radix
-- Base color: Slate
-- CSS variables: Yes
-- Alias configurado: `@/components`, `@/lib/utils`, `@/hooks`
-- Primer componente verificado: `button.tsx` ✅
+- Preset: Nova / Radix, Base color: Slate, CSS variables: Yes
+- Alias: `@/components`, `@/lib/utils`, `@/hooks` ✅
 
 ---
 
 ## ✅ PASO 2 — Supabase client + Auth Store + React Query + App base
 
-**Commit sugerido:** `feat: add Supabase client, auth store, React Query setup and base routing`
+**Commit:** `feat: add Supabase client, auth store, React Query setup and base routing`
 
 ### Acciones realizadas
 
 - `src/lib/supabase.ts` — cliente Supabase tipado con `Database` type
-- `src/lib/query-client.ts` — configuración global de React Query con defaults optimizados
-- `src/types/auth.types.ts` — tipos `UserProfile`, `AuthState`, `AuthActions`, `AuthStore`
-- `src/store/auth.store.ts` — Zustand store para autenticación con devtools
-- `src/hooks/use-auth.ts` — `useAuthInitializer()` y `useAuth()` hook
+- `src/lib/queryClient.ts` — configuración global de React Query con defaults optimizados
+- `src/types/authTypes.ts` — tipos `UserProfile`, `AuthState`, `AuthActions`, `AuthStore`
+- `src/store/authStore.ts` — Zustand store para autenticación con devtools
+- `src/hooks/useAuth.ts` — `useAuthInitializer()` y `useAuth()` hook
 - `src/main.tsx` — entry point con `QueryClientProvider`, `Toaster` (sonner) y `ReactQueryDevtools`
-- `src/App.tsx` — app base con `BrowserRouter` y `AuthProvider`
-- `src/routes/app.routes.tsx` — rutas base con `ProtectedRoute` y `PublicRoute`
+- `src/App.tsx` — app base con `BrowserRouter`, `TooltipProvider` y `AuthProvider`
+- `src/routes/AppRouter.tsx` — rutas base con `ProtectedRoute` y `PublicRoute`
 
 ### Decisiones técnicas clave
 
-- `useAuthStore.getState()` dentro del `useEffect` para evitar infinite loops por recreación de funciones
-- Suscripción a valores primitivos individuales en Zustand (`useAuthStore((s) => s.valor)`) en lugar de objetos para evitar re-renders infinitos
+- `useAuthStore.getState()` dentro del `useEffect` para evitar infinite loops
+- Suscripción a valores primitivos individuales en Zustand para evitar re-renders infinitos
 - `onAuthStateChange` maneja todos los eventos de sesión de Supabase en tiempo real
-- `refetchOnWindowFocus` deshabilitado en desarrollo, habilitado en producción
-- Queries: `staleTime` 1 min, `gcTime` 5 min, `retry` 1
-- Mutations: `retry` 0
+- El perfil se carga en background sin bloquear la inicialización (`setIsInitialized(true)` inmediato)
+- Queries: `staleTime` 1 min, `gcTime` 5 min, `retry` 1 — Mutations: `retry` 0
 
 ### Correcciones durante Paso 2
 
-**Problema:** Infinite loop — "Maximum update depth exceeded" en `ProtectedRoute` y `PublicRoute`
-**Causa 1:** `useAuth()` retornaba un objeto nuevo en cada render como dependencia del useEffect
-**Solución 1:** Usar `useAuthStore.getState()` dentro del `useEffect` con array de dependencias vacío
-**Causa 2:** `useAuth()` retornaba objeto completo causando re-renders en rutas
-**Solución 2:** Suscribirse a valores primitivos individuales en cada componente de ruta
+**Problema:** Infinite loop — "Maximum update depth exceeded"
+**Causa:** `useAuth()` retornaba objeto completo causando re-renders en rutas
+**Solución:** Suscribirse a valores primitivos individuales con `useAuthStore((s) => s.valor)`
+
+**Problema:** Loading infinito en dashboard después de login
+**Causa:** Race condition entre `SIGNED_IN` e `INITIAL_SESSION` — `fetchProfile` se colgaba
+**Solución:** Llamar `setIsInitialized(true)` inmediatamente sin esperar `fetchProfile`, cargar perfil en background
 
 ---
 
 ## ✅ PASO 3 — Esquema de base de datos en Supabase
 
-**Commit sugerido:** `feat: add complete database schema and TypeScript types`
+**Commit:** `feat: add complete database schema and TypeScript types`
+
+### Comando para regenerar tipos de Supabase
+
+Ejecutar cada vez que se agreguen o modifiquen tablas/columnas en Supabase:
+
+```bash
+npx supabase gen types typescript --project-id fynllwjgkioyciqxvxet --schema public > src/types/databaseTypes.ts
+```
+
+> ⚠️ No es necesario correrlo cuando solo se modifican políticas RLS.
 
 ### Acciones realizadas
 
 - Esquema completo ejecutado en Supabase SQL Editor en 6 scripts
-- Tipos TypeScript actualizados en `src/types/database.types.ts`
+- Tipos TypeScript auto-generados con Supabase CLI en `src/types/databaseTypes.ts`
+- `src/types/authTypes.ts` actualizado para derivar tipos directamente de `databaseTypes.ts`
 
 ### Tablas creadas
 
@@ -183,27 +191,104 @@ src/
 - Viewers solo pueden leer
 - Editors pueden crear y modificar
 - Admins pueden eliminar y gestionar miembros
-- Superadmins tienen acceso total
 
 ### Decisiones técnicas
 
 - `files.r2_key` es único — identifica el objeto en Cloudflare R2
 - `files.embedding vector(1536)` — listo para búsqueda semántica con OpenAI embeddings
 - `file_shares.token` — generado con `gen_random_bytes(32)` para links públicos seguros
-- `shared_role` en `file_shares` es un enum sin FK — permite compartir por rol sin referenciar un usuario específico
+- `shared_role` en `file_shares` es un enum sin FK
 
 ### Correcciones durante Paso 3
 
-**Problema:** Error al crear `file_shares` — "foreign key constraint cannot be implemented, incompatible types: user_role and uuid"
+**Problema:** Error al crear `file_shares` — "foreign key constraint cannot be implemented"
 **Causa:** `shared_role` tenía una FK a `profiles(id)` siendo de tipo `user_role` (enum), no `uuid`
-**Solución:** Eliminar la FK de `shared_role`, dejarlo como enum simple sin referencia
+**Solución:** Eliminar la FK de `shared_role`, dejarlo como enum simple
+
+**Problema:** RLS infinite recursion en `profiles`
+**Causa:** La política "Admins can view all profiles" hacía subconsulta recursiva a `profiles`
+**Solución:** Reemplazar con política simple `auth.uid() = id` para todos los casos
+
+---
+
+## ✅ PASO 4 — Autenticación (Email + Google OAuth)
+
+**Commit:** `feat: add authentication pages with email and Google OAuth`
+
+### Acciones realizadas
+
+- `src/services/authService.ts` — servicio de autenticación con Supabase
+- `src/pages/auth/LoginPage.tsx` — página de inicio de sesión
+- `src/pages/auth/RegisterPage.tsx` — página de registro con indicador de fortaleza de contraseña
+- Google OAuth configurado en Google Cloud Console y Supabase
+- shadcn components instalados: `input`, `label`, `card`, `separator`, `checkbox`
+
+### Google OAuth configurado
+
+- Proyecto creado en Google Cloud Console: `cloudsyncpro` (ID: `cloudsyncpro-493305`)
+- Pantalla de consentimiento OAuth: usuarios externos
+- Callback URL: `https://fynllwjgkioyciqxvxet.supabase.co/auth/v1/callback`
+- Origen autorizado: `http://localhost:5173`
+- Client ID y Client Secret configurados en Supabase → Authentication → Providers → Google ✅
+
+### Convención de nombres adoptada
+
+En este paso se renombró toda la estructura de archivos a la convención del desarrollador:
+- Páginas: `PascalCase` → `LoginPage.tsx`, `RegisterPage.tsx`
+- Hooks: `camelCase` → `useAuth.ts`
+- Stores: `camelCase` → `authStore.ts`
+- Services: `camelCase` → `authService.ts`
+- Routes: `PascalCase` → `AppRouter.tsx`
+- Lib: `camelCase` → `queryClient.ts`
+- Types: `camelCase` → `authTypes.ts`, `databaseTypes.ts`
+
+---
+
+## ✅ PASO 5 — Layout principal (Sidebar, Header, AppShell)
+
+**Commit:** `feat: add app layout with sidebar, header, theme system and improved auth pages design`
+
+### Acciones realizadas
+
+- `src/store/uiStore.ts` — store para tema y estado del sidebar (persistido en localStorage)
+- `src/hooks/useTheme.ts` — hook para gestión del tema claro/oscuro
+- `src/components/layout/Sidebar.tsx` — sidebar colapsable con tooltips
+- `src/components/layout/Header.tsx` — header con búsqueda, tema, notificaciones y menú de usuario
+- `src/components/layout/AppShell.tsx` — contenedor principal del layout
+- `src/routes/AppRouter.tsx` — actualizado para usar `AppShell` en rutas protegidas
+- `src/index.css` — tokens de diseño actualizados para light y dark mode
+- `src/App.tsx` — `TooltipProvider` agregado
+- shadcn components instalados: `tooltip`, `sheet`, `avatar`, `dropdown-menu`, `scroll-area`, `skeleton`
+- Páginas de login y register rediseñadas completamente
+
+### Sistema de colores
+
+| Elemento | Light mode | Dark mode |
+|----------|-----------|-----------|
+| Sidebar | `#0f172a` | `#0f172a` (siempre igual) |
+| Fondo app | `#ffffff` | `#0f172a` |
+| Cards | `#f8fafc` | `#1e293b` |
+| Acento | `#2563EB` | `#3b82f6` |
+
+### Decisiones técnicas
+
+- Sidebar siempre `#0f172a` en ambos modos — no cambia con el tema
+- `useUIStore` con `persist` de Zustand — recuerda preferencias de sidebar y tema
+- Botón flotante en el borde del sidebar para colapsar/expandir
+- Notificaciones solo en el Header (campana) — eliminadas del sidebar para evitar duplicación
+- Infinite loop resuelto: usar `useAuthStore((s) => s.valor)` en lugar de `useAuth()` en componentes de layout
+- Login/Register: fondo blanco con panel izquierdo con gradiente `#0f172a → #082563 → #1e40af`
+
+### Correcciones durante Paso 5
+
+**Problema:** Infinite loop en `Sidebar` y `Header`
+**Causa:** `useAuth()` retornaba objeto nuevo en cada render
+**Solución:** Usar `useAuthStore((s) => s.propiedad)` directamente en cada componente
 
 ---
 
 ## 🔜 PRÓXIMOS PASOS
 
-- **Paso 4:** Páginas de autenticación (Login + Google OAuth)
-- **Paso 5:** Layout principal (AppShell, Sidebar, Header)
 - **Paso 6:** Sistema de workspaces
 - **Paso 7:** Explorador de archivos y carpetas
 - **Paso 8:** Upload a Cloudflare R2 (Edge Function + presigned URLs)
