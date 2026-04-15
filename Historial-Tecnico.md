@@ -520,7 +520,47 @@ cloudsyncpro-files/
 
 ---
 
+## ✅ PASO 14 — Panel de administración
+
+**Commit:** `feat: add admin panel with user management, role control and system stats`
+
+### Acciones realizadas
+
+- `src/hooks/useAdmin.ts` — hooks: useAdminUsers, useSystemStats, useUpdateUserRole
+- `src/pages/admin/AdminPage.tsx` — panel completo con stats, tabla de usuarios y gestión de roles
+- SQL: `update profiles set role = 'superadmin'` — asignación de rol inicial al usuario principal
+
+### Secciones del panel
+
+| Sección | Descripción |
+|---------|-------------|
+| Stats del sistema | Total usuarios, archivos, almacenamiento, workspaces |
+| Tabla de usuarios | Lista paginada con avatar, nombre, email, rol, archivos, almacenamiento y fecha |
+| Cambio de rol | Dropdown para cambiar rol de cualquier usuario (excepto el propio) |
+| Buscador | Filtro en tiempo real por nombre o email |
+
+### Roles disponibles
+
+| Rol | Color | Permisos |
+|-----|-------|----------|
+| `superadmin` | Rojo | Acceso total al panel |
+| `admin` | Naranja | Acceso al panel, gestión de usuarios |
+| `editor` | Azul | Crear y modificar archivos y carpetas |
+| `viewer` | Gris | Solo lectura |
+
+### Decisiones técnicas
+
+- Guard en el componente — redirige a dashboard si el rol no es `superadmin` o `admin`
+- `Promise.all` para cargar stats de archivos por usuario en paralelo
+- Tipo `UserRole` estricto para evitar errores de TypeScript con el enum de Supabase
+- Usuario actual no puede cambiar su propio rol — previene bloqueo accidental
+
+---
+
 ## 🔜 PRÓXIMOS PASOS
 
-- **Paso 14:** Panel de administración
 - **Paso 15:** Auditoría de actividad
+- Perfil de usuario (editar nombre, avatar, contraseña)
+- Página de configuración
+- Breadcrumb dinámico con nombre real de carpeta
+- Página de archivos compartidos
