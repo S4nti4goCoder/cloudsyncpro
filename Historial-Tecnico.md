@@ -69,14 +69,15 @@ src/
 | `R2_ACCESS_KEY_ID` | Access Key de R2 (solo Edge Functions) |
 | `R2_SECRET_ACCESS_KEY` | Secret Key de R2 (solo Edge Functions) |
 | `R2_BUCKET_NAME` | Nombre del bucket R2 |
-| `R2_PUBLIC_URL` | URL pública del bucket R2 |
+| `R2_PUBLIC_URL` | URL pública del bucket R2 (Edge Functions) |
+| `VITE_R2_PUBLIC_URL` | URL pública del bucket R2 (Frontend) |
 
 ### Decisiones técnicas clave
 
 - **Tailwind v4**: No usa `tailwind.config.js`. Toda la configuración de colores y tokens se hace con variables CSS en `index.css` usando `@layer base`
 - **shadcn/ui**: Inicializado con preset Nova / Radix, base color Slate, CSS variables activadas
 - **TypeScript strict**: `strict: true`, `noUnusedLocals`, `noUnusedParameters`, `noImplicitReturns`, `noFallthroughCasesInSwitch`, `erasableSyntaxOnly` habilitados
-- **Dark mode**: Se maneja vía clase `.dark` en el `<html>` element (estrategia de shadcn/ui)
+- **Dark mode**: Se maneja vía `@custom-variant dark` en Tailwind v4 con clase `.dark` en el `<html>`
 - **`exactOptionalPropertyTypes`**: Omitido intencionalmente para evitar fricciones con librerías externas
 
 ### Correcciones durante Paso 1
@@ -142,7 +143,7 @@ Ejecutar cada vez que se agreguen o modifiquen tablas/columnas en Supabase:
 npx supabase gen types typescript --project-id fynllwjgkioyciqxvxet --schema public > src/types/databaseTypes.ts
 ```
 
-> ⚠️ No es necesario correrlo cuando solo se modifican políticas RLS.
+> ⚠️ No es necesario correrlo cuando solo se modifican políticas RLS o funciones SQL.
 
 ### Acciones realizadas
 
@@ -182,8 +183,9 @@ npx supabase gen types typescript --project-id fynllwjgkioyciqxvxet --schema pub
 ### Funciones SQL creadas
 
 - `handle_updated_at()` — trigger para auto-actualizar `updated_at`
-- `handle_new_user()` — trigger para auto-crear perfil al registrarse
-- `search_files()` — búsqueda full-text con filtros avanzados
+- `handle_new_user()` — trigger para auto-crear perfil y workspace al registrarse
+- `get_user_workspace_ids()` — helper `security definer` para evitar recursión en RLS
+- `search_files()` — búsqueda full-text con filtros avanzados y nombre de carpeta
 - `get_workspace_stats()` — estadísticas de uso por workspace
 
 ### RLS habilitado en todas las tablas
@@ -191,6 +193,7 @@ npx supabase gen types typescript --project-id fynllwjgkioyciqxvxet --schema pub
 - Viewers solo pueden leer
 - Editors pueden crear y modificar
 - Admins pueden eliminar y gestionar miembros
+- Políticas usan `get_user_workspace_ids()` para evitar recursión infinita
 
 ### Decisiones técnicas
 
@@ -205,9 +208,9 @@ npx supabase gen types typescript --project-id fynllwjgkioyciqxvxet --schema pub
 **Causa:** `shared_role` tenía una FK a `profiles(id)` siendo de tipo `user_role` (enum), no `uuid`
 **Solución:** Eliminar la FK de `shared_role`, dejarlo como enum simple
 
-**Problema:** RLS infinite recursion en `profiles`
-**Causa:** La política "Admins can view all profiles" hacía subconsulta recursiva a `profiles`
-**Solución:** Reemplazar con política simple `auth.uid() = id` para todos los casos
+**Problema:** RLS infinite recursion en `profiles`, `workspaces` y `workspace_members`
+**Causa:** Políticas hacían subconsultas recursivas entre tablas relacionadas
+**Solución:** Crear función `get_user_workspace_ids()` con `security definer` que bypasea RLS
 
 ---
 
@@ -252,13 +255,13 @@ En este paso se renombró toda la estructura de archivos a la convención del de
 
 - `src/store/uiStore.ts` — store para tema y estado del sidebar (persistido en localStorage)
 - `src/hooks/useTheme.ts` — hook para gestión del tema claro/oscuro
-- `src/components/layout/Sidebar.tsx` — sidebar colapsable con tooltips
+- `src/components/layout/Sidebar.tsx` — sidebar colapsable con tooltips y selector de workspace
 - `src/components/layout/Header.tsx` — header con búsqueda, tema, notificaciones y menú de usuario
 - `src/components/layout/AppShell.tsx` — contenedor principal del layout
 - `src/routes/AppRouter.tsx` — actualizado para usar `AppShell` en rutas protegidas
-- `src/index.css` — tokens de diseño actualizados para light y dark mode
+- `src/index.css` — tokens de diseño con `@custom-variant dark` para Tailwind v4
 - `src/App.tsx` — `TooltipProvider` agregado
-- shadcn components instalados: `tooltip`, `sheet`, `avatar`, `dropdown-menu`, `scroll-area`, `skeleton`
+- shadcn components instalados: `tooltip`, `sheet`, `avatar`, `dropdown-menu`, `scroll-area`, `skeleton`, `dialog`, `badge`, `command`, `popover`
 - Páginas de login y register rediseñadas completamente
 
 ### Sistema de colores
@@ -276,10 +279,14 @@ En este paso se renombró toda la estructura de archivos a la convención del de
 - `useUIStore` con `persist` de Zustand — recuerda preferencias de sidebar y tema
 - Botón flotante en el borde del sidebar para colapsar/expandir
 - Notificaciones solo en el Header (campana) — eliminadas del sidebar para evitar duplicación
-- Infinite loop resuelto: usar `useAuthStore((s) => s.valor)` en lugar de `useAuth()` en componentes de layout
+- `@custom-variant dark (&:where(.dark, .dark *))` — forma correcta de dark mode en Tailwind v4
 - Login/Register: fondo blanco con panel izquierdo con gradiente `#0f172a → #082563 → #1e40af`
 
 ### Correcciones durante Paso 5
+
+**Problema:** `@apply border-border` y `@apply bg-background` fallaban en `@layer base`
+**Causa:** Tailwind v4 no permite `@apply` con clases basadas en variables CSS en `@layer base`
+**Solución:** Usar CSS nativo con `hsl(var(--border))` y `@custom-variant dark`
 
 **Problema:** Infinite loop en `Sidebar` y `Header`
 **Causa:** `useAuth()` retornaba objeto nuevo en cada render
@@ -287,13 +294,137 @@ En este paso se renombró toda la estructura de archivos a la convención del de
 
 ---
 
+## ✅ PASO 6 — Sistema de workspaces
+
+**Commit:** `feat: add workspaces system with CRUD, RLS policies and auto-create on signup`
+
+### Acciones realizadas
+
+- `src/services/workspaceService.ts` — CRUD completo de workspaces
+- `src/hooks/useWorkspaces.ts` — hooks con React Query (useWorkspaces, useCreateWorkspace, useUpdateWorkspace, useDeleteWorkspace)
+- `src/store/workspaceStore.ts` — store Zustand para workspace activo (persistido)
+- `src/components/shared/CreateWorkspaceModal.tsx` — modal para crear workspace
+- `src/pages/workspaces/WorkspacesPage.tsx` — página con grid de workspaces
+- Trigger `handle_new_user()` actualizado para crear "My Workspace" automáticamente al registrarse
+- Selector de workspace en el Sidebar con Popover
+
+### Decisiones técnicas
+
+- Workspace activo persistido en `localStorage` vía Zustand `persist`
+- Al cambiar de workspace todo el contenido de la app cambia (archivos, carpetas, búsqueda)
+- Slug generado automáticamente con sufijo aleatorio para evitar colisiones
+- "My Workspace" creado automáticamente en el trigger `handle_new_user`
+
+---
+
+## ✅ PASO 7 — Explorador de archivos y carpetas
+
+**Commit:** `feat: add file explorer with folders, files, grid/list view and workspace selector in sidebar`
+
+### Acciones realizadas
+
+- `src/services/folderService.ts` — CRUD de carpetas con breadcrumb path
+- `src/services/fileService.ts` — CRUD de archivos (archive, trash, restore, move)
+- `src/hooks/useFolders.ts` — hooks React Query para carpetas
+- `src/hooks/useFiles.ts` — hooks React Query para archivos
+- `src/utils/fileUtils.ts` — utilidades: `formatFileSize`, `getFileIcon`, `getFileColor`
+- `src/pages/files/FilesPage.tsx` — explorador con vista grid/list, breadcrumb, nueva carpeta
+- RLS simplificada para `folders` y `files` usando `get_user_workspace_ids()`
+
+### Decisiones técnicas
+
+- Navegación por carpetas via `?folder=id` en URL — permite deep linking
+- Vista grid/list persistida en estado local del componente
+- Crear carpeta inline sin modal — input directo en la página
+- Cards de carpetas con franja de color azul en la parte superior
+
+---
+
+## ✅ PASO 8 — Upload a Cloudflare R2
+
+**Commit:** `feat: add file upload to Cloudflare R2 with Edge Function and presigned URLs`
+
+### Acciones realizadas
+
+- Cloudflare R2 configurado: bucket `cloudsyncpro-files`, CORS, Public Development URL
+- `supabase/functions/upload-file/index.ts` — Edge Function con AWS SDK S3 para presigned URLs
+- `src/services/uploadService.ts` — servicio de upload (presigned URL → R2 → registro en DB)
+- `src/components/shared/UploadFileModal.tsx` — modal con drag & drop, progreso por archivo
+- Edge Function desplegada con `--no-verify-jwt`
+
+### Variables de entorno R2
+
+| Variable | Uso |
+|----------|-----|
+| `R2_ENDPOINT` | Edge Function — endpoint S3 de Cloudflare |
+| `R2_ACCOUNT_ID` | Edge Function — ID de cuenta Cloudflare |
+| `R2_ACCESS_KEY_ID` | Edge Function — credencial R2 |
+| `R2_SECRET_ACCESS_KEY` | Edge Function — credencial R2 |
+| `R2_BUCKET_NAME` | Edge Function — nombre del bucket |
+| `R2_PUBLIC_URL` | Edge Function — URL pública del bucket |
+| `VITE_R2_PUBLIC_URL` | Frontend — URL pública para preview/descarga |
+
+### Estructura de archivos en R2
+
+cloudsyncpro-files/
+└── {workspaceId}/
+└── {folderId|root}/
+└── {timestamp}-{sanitizedFilename}
+
+### Decisiones técnicas
+
+- Presigned URL con expiración de 1 hora — el archivo sube directo al bucket sin pasar por el servidor
+- `--no-verify-jwt` en la Edge Function — autenticación manual via header `Authorization`
+- XHR en lugar de fetch para poder trackear el progreso de subida
+- Archivo registrado en DB solo después de subida exitosa a R2
+
+---
+
+## ✅ PASO 9 — Previsualización de archivos
+
+**Commit:** `feat: add file preview modal for PDF, images, video and audio`
+
+### Acciones realizadas
+
+- `src/components/shared/FilePreviewModal.tsx` — modal de previsualización fullscreen
+- Soporte para: imágenes (con zoom y rotación), PDF (iframe), video, audio, otros (descarga)
+- Integrado en `FilesPage.tsx` — clic en archivo abre el preview
+
+### Tipos soportados
+
+| Tipo | Visualización |
+|------|--------------|
+| Imágenes | Preview directo con zoom (25%-300%) y rotación |
+| PDF | iframe con toolbar del navegador |
+| Video | Player HTML5 nativo |
+| Audio | Player HTML5 con portada |
+| Otros | Pantalla de descarga directa |
+
+---
+
+## ✅ PASO 10 — Búsqueda avanzada
+
+**Commit:** `feat: add real-time search with folder location and keyboard shortcut`
+
+### Acciones realizadas
+
+- `src/hooks/useSearch.ts` — hook con React Query + debounce de 300ms
+- `src/components/shared/SearchBar.tsx` — buscador inline con dropdown de resultados
+- Función `search_files()` actualizada en Supabase para incluir `folder_name` via LEFT JOIN
+- Integrado en `Header.tsx` — reemplaza el input estático
+
+### Funcionalidades
+
+- Búsqueda en tiempo real con debounce 300ms
+- Muestra ubicación del archivo: nombre de carpeta o "Raíz"
+- Navega a la carpeta correcta al hacer clic en resultado
+- Shortcut `Ctrl+K` para enfocar el buscador
+- `staleTime: 0` para evitar caché entre búsquedas consecutivas
+
+---
+
 ## 🔜 PRÓXIMOS PASOS
 
-- **Paso 6:** Sistema de workspaces
-- **Paso 7:** Explorador de archivos y carpetas
-- **Paso 8:** Upload a Cloudflare R2 (Edge Function + presigned URLs)
-- **Paso 9:** Preview de archivos
-- **Paso 10:** Búsqueda avanzada
 - **Paso 11:** Compartir archivos y links públicos
 - **Paso 12:** Dashboard con Recharts
 - **Paso 13:** Notificaciones en tiempo real
