@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   FolderPlus,
   Upload,
@@ -19,69 +19,89 @@ import {
   FileVideoIcon,
   FileAudioIcon,
   FileArchiveIcon,
-} from 'lucide-react'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
-import { useWorkspaceStore, getActiveWorkspace } from '@/store/workspaceStore'
-import { useWorkspaces } from '@/hooks/useWorkspaces'
-import { useFolders, useCreateFolder, useDeleteFolder, useRenameFolder } from '@/hooks/useFolders'
-import { useFiles, useArchiveFile, useTrashFile } from '@/hooks/useFiles'
-import { UploadFileModal } from '@/components/shared/UploadFileModal'
-import { FilePreviewModal } from '@/components/shared/FilePreviewModal'
-import { cn } from '@/lib/utils'
-import { formatFileSize, getFileColor } from '@/utils/fileUtils'
-import { Skeleton } from '@/components/ui/skeleton'
+  Share2,
+} from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { useWorkspaceStore, getActiveWorkspace } from "@/store/workspaceStore";
+import { useWorkspaces } from "@/hooks/useWorkspaces";
+import {
+  useFolders,
+  useCreateFolder,
+  useDeleteFolder,
+  useRenameFolder,
+} from "@/hooks/useFolders";
+import { useFiles, useArchiveFile, useTrashFile } from "@/hooks/useFiles";
+import { UploadFileModal } from "@/components/shared/UploadFileModal";
+import { FilePreviewModal } from "@/components/shared/FilePreviewModal";
+import { ShareFileModal } from "@/components/shared/ShareFileModal";
+import { cn } from "@/lib/utils";
+import { formatFileSize, getFileColor } from "@/utils/fileUtils";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import type { Folder as FolderType, FileRecord } from '@/types/authTypes'
+} from "@/components/ui/dropdown-menu";
+import type { Folder as FolderType, FileRecord } from "@/types/authTypes";
 
-type ViewMode = 'grid' | 'list'
+type ViewMode = "grid" | "list";
 
 export default function FilesPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const [viewMode, setViewMode] = useState<ViewMode>('grid')
-  const [showNewFolder, setShowNewFolder] = useState(false)
-  const [showUploadModal, setShowUploadModal] = useState(false)
-  const [newFolderName, setNewFolderName] = useState('')
-  const [previewFile, setPreviewFile] = useState<FileRecord | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [showNewFolder, setShowNewFolder] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [previewFile, setPreviewFile] = useState<FileRecord | null>(null);
+  const [shareFile, setShareFile] = useState<FileRecord | null>(null);
 
-  const folderId = searchParams.get('folder')
-  const { activeWorkspaceId } = useWorkspaceStore()
-  const { data: workspaces } = useWorkspaces()
-  const activeWorkspace = getActiveWorkspace(workspaces ?? [], activeWorkspaceId)
-  const workspaceId = activeWorkspace?.id ?? ''
+  const folderId = searchParams.get("folder");
+  const { activeWorkspaceId } = useWorkspaceStore();
+  const { data: workspaces } = useWorkspaces();
+  const activeWorkspace = getActiveWorkspace(
+    workspaces ?? [],
+    activeWorkspaceId,
+  );
+  const workspaceId = activeWorkspace?.id ?? "";
 
-  const { data: folders, isLoading: foldersLoading } = useFolders(workspaceId, folderId)
-  const { data: files, isLoading: filesLoading } = useFiles(workspaceId, folderId)
-  const { mutate: createFolder, isPending: creatingFolder } = useCreateFolder(workspaceId, folderId)
-  const { mutate: deleteFolder } = useDeleteFolder(workspaceId)
-  const { mutate: archiveFile } = useArchiveFile(workspaceId, folderId)
-  const { mutate: trashFile } = useTrashFile(workspaceId, folderId)
+  const { data: folders, isLoading: foldersLoading } = useFolders(
+    workspaceId,
+    folderId,
+  );
+  const { data: files, isLoading: filesLoading } = useFiles(
+    workspaceId,
+    folderId,
+  );
+  const { mutate: createFolder, isPending: creatingFolder } = useCreateFolder(
+    workspaceId,
+    folderId,
+  );
+  const { mutate: deleteFolder } = useDeleteFolder(workspaceId);
+  const { mutate: archiveFile } = useArchiveFile(workspaceId, folderId);
+  const { mutate: trashFile } = useTrashFile(workspaceId, folderId);
 
-  const isLoading = foldersLoading || filesLoading
-  const isEmpty = !isLoading && !folders?.length && !files?.length
+  const isLoading = foldersLoading || filesLoading;
+  const isEmpty = !isLoading && !folders?.length && !files?.length;
 
   function handleCreateFolder() {
-    if (!newFolderName.trim()) return
+    if (!newFolderName.trim()) return;
     createFolder(newFolderName.trim(), {
       onSuccess: () => {
-        setNewFolderName('')
-        setShowNewFolder(false)
+        setNewFolderName("");
+        setShowNewFolder(false);
       },
-    })
+    });
   }
 
   function handleFolderClick(folder: FolderType) {
-    setSearchParams({ folder: folder.id })
+    setSearchParams({ folder: folder.id });
   }
 
   function handleGoBack() {
-    setSearchParams({})
+    setSearchParams({});
   }
 
   return (
@@ -93,16 +113,16 @@ export default function FilesPage() {
             Mis archivos
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {activeWorkspace?.name ?? 'Sin workspace'}
+            {activeWorkspace?.name ?? "Sin workspace"}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowNewFolder(true)}
             className={cn(
-              'flex items-center gap-2 rounded-lg border border-border px-3 h-9',
-              'text-sm font-medium text-foreground',
-              'hover:bg-muted transition-colors'
+              "flex items-center gap-2 rounded-lg border border-border px-3 h-9",
+              "text-sm font-medium text-foreground",
+              "hover:bg-muted transition-colors",
             )}
           >
             <FolderPlus className="h-4 w-4" />
@@ -111,9 +131,9 @@ export default function FilesPage() {
           <button
             onClick={() => setShowUploadModal(true)}
             className={cn(
-              'flex items-center gap-2 rounded-lg bg-primary px-3 h-9',
-              'text-sm font-medium text-primary-foreground',
-              'hover:bg-primary/90 transition-colors'
+              "flex items-center gap-2 rounded-lg bg-primary px-3 h-9",
+              "text-sm font-medium text-primary-foreground",
+              "hover:bg-primary/90 transition-colors",
             )}
           >
             <Upload className="h-4 w-4" />
@@ -148,24 +168,24 @@ export default function FilesPage() {
         </p>
         <div className="flex items-center gap-1 rounded-lg border border-border p-0.5">
           <button
-            onClick={() => setViewMode('grid')}
+            onClick={() => setViewMode("grid")}
             className={cn(
-              'flex h-7 w-7 items-center justify-center rounded-md transition-colors',
-              viewMode === 'grid'
-                ? 'bg-background shadow-sm text-foreground'
-                : 'text-muted-foreground hover:text-foreground'
+              "flex h-7 w-7 items-center justify-center rounded-md transition-colors",
+              viewMode === "grid"
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
             aria-label="Vista en cuadrícula"
           >
             <Grid3x3 className="h-3.5 w-3.5" />
           </button>
           <button
-            onClick={() => setViewMode('list')}
+            onClick={() => setViewMode("list")}
             className={cn(
-              'flex h-7 w-7 items-center justify-center rounded-md transition-colors',
-              viewMode === 'list'
-                ? 'bg-background shadow-sm text-foreground'
-                : 'text-muted-foreground hover:text-foreground'
+              "flex h-7 w-7 items-center justify-center rounded-md transition-colors",
+              viewMode === "list"
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
             aria-label="Vista en lista"
           >
@@ -184,10 +204,10 @@ export default function FilesPage() {
             value={newFolderName}
             onChange={(e) => setNewFolderName(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') handleCreateFolder()
-              if (e.key === 'Escape') {
-                setShowNewFolder(false)
-                setNewFolderName('')
+              if (e.key === "Enter") handleCreateFolder();
+              if (e.key === "Escape") {
+                setShowNewFolder(false);
+                setNewFolderName("");
               }
             }}
             autoFocus
@@ -195,7 +215,10 @@ export default function FilesPage() {
           />
           <div className="flex items-center gap-1.5">
             <button
-              onClick={() => { setShowNewFolder(false); setNewFolderName('') }}
+              onClick={() => {
+                setShowNewFolder(false);
+                setNewFolderName("");
+              }}
               className="rounded-md px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted transition-colors"
             >
               Cancelar
@@ -227,11 +250,13 @@ export default function FilesPage() {
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Carpetas
               </p>
-              <div className={cn(
-                viewMode === 'grid'
-                  ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3'
-                  : 'space-y-1'
-              )}>
+              <div
+                className={cn(
+                  viewMode === "grid"
+                    ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
+                    : "space-y-1",
+                )}
+              >
                 {folders.map((folder) => (
                   <FolderCard
                     key={folder.id}
@@ -251,17 +276,20 @@ export default function FilesPage() {
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Archivos
               </p>
-              <div className={cn(
-                viewMode === 'grid'
-                  ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3'
-                  : 'space-y-1'
-              )}>
+              <div
+                className={cn(
+                  viewMode === "grid"
+                    ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
+                    : "space-y-1",
+                )}
+              >
                 {files.map((file) => (
                   <FileCard
                     key={file.id}
                     file={file}
                     viewMode={viewMode}
                     onClick={() => setPreviewFile(file)}
+                    onShare={() => setShareFile(file)}
                     onArchive={() => archiveFile(file.id)}
                     onTrash={() => trashFile(file.id)}
                   />
@@ -285,8 +313,14 @@ export default function FilesPage() {
         open={previewFile !== null}
         onClose={() => setPreviewFile(null)}
       />
+
+      <ShareFileModal
+        file={shareFile}
+        open={shareFile !== null}
+        onClose={() => setShareFile(null)}
+      />
     </div>
-  )
+  );
 }
 
 // ============================================
@@ -294,16 +328,16 @@ export default function FilesPage() {
 // ============================================
 
 interface FolderCardProps {
-  folder: FolderType
-  viewMode: ViewMode
-  onClick: () => void
-  onDelete: () => void
+  folder: FolderType;
+  viewMode: ViewMode;
+  onClick: () => void;
+  onDelete: () => void;
 }
 
 function FolderCard({ folder, viewMode, onClick, onDelete }: FolderCardProps) {
-  const { mutate: renameFolder } = useRenameFolder(folder.workspace_id)
+  const { mutate: renameFolder } = useRenameFolder(folder.workspace_id);
 
-  if (viewMode === 'list') {
+  if (viewMode === "list") {
     return (
       <div
         className="group flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-border"
@@ -316,19 +350,20 @@ function FolderCard({ folder, viewMode, onClick, onDelete }: FolderCardProps) {
           {folder.name}
         </span>
         <span className="text-xs text-muted-foreground shrink-0">
-          {format(new Date(folder.created_at), 'd MMM yyyy', { locale: es })}
+          {format(new Date(folder.created_at), "d MMM yyyy", { locale: es })}
         </span>
         <div onClick={(e) => e.stopPropagation()}>
           <FolderMenu
             onRename={() => {
-              const name = prompt('Nuevo nombre:', folder.name)
-              if (name && name !== folder.name) renameFolder({ id: folder.id, name })
+              const name = prompt("Nuevo nombre:", folder.name);
+              if (name && name !== folder.name)
+                renameFolder({ id: folder.id, name });
             }}
             onDelete={onDelete}
           />
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -348,8 +383,9 @@ function FolderCard({ folder, viewMode, onClick, onDelete }: FolderCardProps) {
           >
             <FolderMenu
               onRename={() => {
-                const name = prompt('Nuevo nombre:', folder.name)
-                if (name && name !== folder.name) renameFolder({ id: folder.id, name })
+                const name = prompt("Nuevo nombre:", folder.name);
+                if (name && name !== folder.name)
+                  renameFolder({ id: folder.id, name });
               }}
               onDelete={onDelete}
             />
@@ -360,15 +396,21 @@ function FolderCard({ folder, viewMode, onClick, onDelete }: FolderCardProps) {
             {folder.name}
           </p>
           <p className="text-[11px] text-muted-foreground">
-            {format(new Date(folder.created_at), 'd MMM yyyy', { locale: es })}
+            {format(new Date(folder.created_at), "d MMM yyyy", { locale: es })}
           </p>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-function FolderMenu({ onRename, onDelete }: { onRename: () => void; onDelete: () => void }) {
+function FolderMenu({
+  onRename,
+  onDelete,
+}: {
+  onRename: () => void;
+  onDelete: () => void;
+}) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -391,7 +433,7 @@ function FolderMenu({ onRename, onDelete }: { onRename: () => void; onDelete: ()
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }
 
 // ============================================
@@ -399,36 +441,53 @@ function FolderMenu({ onRename, onDelete }: { onRename: () => void; onDelete: ()
 // ============================================
 
 interface FileCardProps {
-  file: FileRecord
-  viewMode: ViewMode
-  onClick: () => void
-  onArchive: () => void
-  onTrash: () => void
+  file: FileRecord;
+  viewMode: ViewMode;
+  onClick: () => void;
+  onShare: () => void;
+  onArchive: () => void;
+  onTrash: () => void;
 }
 
-function FileCard({ file, viewMode, onClick, onArchive, onTrash }: FileCardProps) {
-  const colorClass = getFileColor(file.mime_type)
-  const FileTypeIcon = getFileTypeIcon(file.mime_type)
+function FileCard({
+  file,
+  viewMode,
+  onClick,
+  onShare,
+  onArchive,
+  onTrash,
+}: FileCardProps) {
+  const colorClass = getFileColor(file.mime_type);
+  const FileTypeIcon = getFileTypeIcon(file.mime_type);
 
-  if (viewMode === 'list') {
+  if (viewMode === "list") {
     return (
       <div
         className="group flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/50 transition-colors border border-transparent hover:border-border cursor-pointer"
         onClick={onClick}
       >
-        <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', colorClass)}>
+        <div
+          className={cn(
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+            colorClass,
+          )}
+        >
           <FileTypeIcon className="h-4 w-4" />
         </div>
-        <span className="flex-1 text-sm font-medium text-foreground truncate">{file.name}</span>
-        <span className="text-xs text-muted-foreground shrink-0">{formatFileSize(file.size)}</span>
+        <span className="flex-1 text-sm font-medium text-foreground truncate">
+          {file.name}
+        </span>
         <span className="text-xs text-muted-foreground shrink-0">
-          {format(new Date(file.created_at), 'd MMM yyyy', { locale: es })}
+          {formatFileSize(file.size)}
+        </span>
+        <span className="text-xs text-muted-foreground shrink-0">
+          {format(new Date(file.created_at), "d MMM yyyy", { locale: es })}
         </span>
         <div onClick={(e) => e.stopPropagation()}>
-          <FileMenu onArchive={onArchive} onTrash={onTrash} />
+          <FileMenu onShare={onShare} onArchive={onArchive} onTrash={onTrash} />
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -436,11 +495,13 @@ function FileCard({ file, viewMode, onClick, onArchive, onTrash }: FileCardProps
       className="group relative flex flex-col rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-sm transition-all duration-150 cursor-pointer overflow-hidden"
       onClick={onClick}
     >
-      <div className={cn(
-        'flex h-24 w-full items-center justify-center',
-        colorClass.split(' ')[1]
-      )}>
-        <FileTypeIcon className={cn('h-10 w-10', colorClass.split(' ')[0])} />
+      <div
+        className={cn(
+          "flex h-24 w-full items-center justify-center",
+          colorClass.split(" ")[1],
+        )}
+      >
+        <FileTypeIcon className={cn("h-10 w-10", colorClass.split(" ")[0])} />
       </div>
       <div className="p-3 flex flex-col gap-1">
         <div className="flex items-start justify-between gap-1">
@@ -451,18 +512,31 @@ function FileCard({ file, viewMode, onClick, onArchive, onTrash }: FileCardProps
             className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
-            <FileMenu onArchive={onArchive} onTrash={onTrash} />
+            <FileMenu
+              onShare={onShare}
+              onArchive={onArchive}
+              onTrash={onTrash}
+            />
           </div>
         </div>
         <p className="text-[11px] text-muted-foreground">
-          {formatFileSize(file.size)} · {format(new Date(file.created_at), 'd MMM yyyy', { locale: es })}
+          {formatFileSize(file.size)} ·{" "}
+          {format(new Date(file.created_at), "d MMM yyyy", { locale: es })}
         </p>
       </div>
     </div>
-  )
+  );
 }
 
-function FileMenu({ onArchive, onTrash }: { onArchive: () => void; onTrash: () => void }) {
+function FileMenu({
+  onShare,
+  onArchive,
+  onTrash,
+}: {
+  onShare: () => void;
+  onArchive: () => void;
+  onTrash: () => void;
+}) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -471,6 +545,11 @@ function FileMenu({ onArchive, onTrash }: { onArchive: () => void; onTrash: () =
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuItem onClick={onShare}>
+          <Share2 className="mr-2 h-3.5 w-3.5" />
+          Compartir
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onArchive}>
           <Archive className="mr-2 h-3.5 w-3.5" />
           Archivar
@@ -485,7 +564,7 @@ function FileMenu({ onArchive, onTrash }: { onArchive: () => void; onTrash: () =
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }
 
 // ============================================
@@ -493,38 +572,44 @@ function FileMenu({ onArchive, onTrash }: { onArchive: () => void; onTrash: () =
 // ============================================
 
 function getFileTypeIcon(mimeType: string) {
-  if (mimeType.startsWith('image/')) return ImageIcon
-  if (mimeType.startsWith('video/')) return FileVideoIcon
-  if (mimeType.startsWith('audio/')) return FileAudioIcon
-  if (mimeType === 'application/pdf') return FileTextIcon
-  if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return FileSpreadsheetIcon
-  if (mimeType.includes('zip') || mimeType.includes('rar')) return FileArchiveIcon
-  return FileIcon
+  if (mimeType.startsWith("image/")) return ImageIcon;
+  if (mimeType.startsWith("video/")) return FileVideoIcon;
+  if (mimeType.startsWith("audio/")) return FileAudioIcon;
+  if (mimeType === "application/pdf") return FileTextIcon;
+  if (mimeType.includes("spreadsheet") || mimeType.includes("excel"))
+    return FileSpreadsheetIcon;
+  if (mimeType.includes("zip") || mimeType.includes("rar"))
+    return FileArchiveIcon;
+  return FileIcon;
 }
 
 function LoadingSkeleton({ viewMode }: { viewMode: ViewMode }) {
   return (
-    <div className={cn(
-      viewMode === 'grid'
-        ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3'
-        : 'space-y-2'
-    )}>
+    <div
+      className={cn(
+        viewMode === "grid"
+          ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
+          : "space-y-2",
+      )}
+    >
       {Array.from({ length: 10 }).map((_, i) => (
         <Skeleton
           key={i}
-          className={viewMode === 'grid' ? 'h-32 rounded-xl' : 'h-10 rounded-lg'}
+          className={
+            viewMode === "grid" ? "h-32 rounded-xl" : "h-10 rounded-lg"
+          }
         />
       ))}
     </div>
-  )
+  );
 }
 
 function EmptyState({
   onNewFolder,
   onUpload,
 }: {
-  onNewFolder: () => void
-  onUpload: () => void
+  onNewFolder: () => void;
+  onUpload: () => void;
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
@@ -554,5 +639,5 @@ function EmptyState({
         </button>
       </div>
     </div>
-  )
+  );
 }

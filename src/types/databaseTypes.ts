@@ -476,6 +476,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_shared_file: {
+        Args: { p_token: string }
+        Returns: {
+          expires_at: string
+          file_extension: string
+          file_mime_type: string
+          file_name: string
+          file_r2_key: string
+          file_size: number
+          has_password: boolean
+          permissions: Database["public"]["Enums"]["permission_type"][]
+          resource_id: string
+          resource_type: string
+          share_id: string
+          share_type: Database["public"]["Enums"]["share_type"]
+        }[]
+      }
+      get_user_workspace_ids: { Args: { p_user_id: string }; Returns: string[] }
       get_workspace_stats: {
         Args: { p_workspace_id: string }
         Returns: {
@@ -500,6 +518,7 @@ export type Database = {
           created_at: string
           extension: string
           folder_id: string
+          folder_name: string
           id: string
           metadata: Json
           mime_type: string

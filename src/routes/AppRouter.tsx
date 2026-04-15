@@ -1,10 +1,11 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { useAuthStore } from '@/store/authStore'
-import { AppShell } from '@/components/layout/AppShell'
-import LoginPage from '@/pages/auth/LoginPage'
-import RegisterPage from '@/pages/auth/RegisterPage'
-import WorkspacesPage from '@/pages/workspaces/WorkspacesPage'
-import FilesPage from '@/pages/files/FilesPage'
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuthStore } from "@/store/authStore";
+import { AppShell } from "@/components/layout/AppShell";
+import LoginPage from "@/pages/auth/LoginPage";
+import RegisterPage from "@/pages/auth/RegisterPage";
+import WorkspacesPage from "@/pages/workspaces/WorkspacesPage";
+import FilesPage from "@/pages/files/FilesPage";
+import SharedFilePage from "@/pages/shared/SharedFilePage";
 
 function LoadingScreen() {
   return (
@@ -14,7 +15,7 @@ function LoadingScreen() {
         <p className="text-sm text-muted-foreground">Cargando...</p>
       </div>
     </div>
-  )
+  );
 }
 
 function PlaceholderPage({ title }: { title: string }) {
@@ -27,27 +28,27 @@ function PlaceholderPage({ title }: { title: string }) {
         </p>
       </div>
     </div>
-  )
+  );
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useAuthStore((s) => s.user !== null)
-  const isInitialized = useAuthStore((s) => s.isInitialized)
+  const isAuthenticated = useAuthStore((s) => s.user !== null);
+  const isInitialized = useAuthStore((s) => s.isInitialized);
 
-  if (!isInitialized) return <LoadingScreen />
-  if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (!isInitialized) return <LoadingScreen />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
-  return <AppShell>{children}</AppShell>
+  return <AppShell>{children}</AppShell>;
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useAuthStore((s) => s.user !== null)
-  const isInitialized = useAuthStore((s) => s.isInitialized)
+  const isAuthenticated = useAuthStore((s) => s.user !== null);
+  const isInitialized = useAuthStore((s) => s.isInitialized);
 
-  if (!isInitialized) return <LoadingScreen />
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />
+  if (!isInitialized) return <LoadingScreen />;
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
 
-  return <>{children}</>
+  return <>{children}</>;
 }
 
 export function AppRoutes() {
@@ -70,6 +71,9 @@ export function AppRoutes() {
           </PublicRoute>
         }
       />
+
+      {/* Shared file — no auth required */}
+      <Route path="/shared/:token" element={<SharedFilePage />} />
 
       {/* Protected routes */}
       <Route
@@ -149,5 +153,5 @@ export function AppRoutes() {
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
-  )
+  );
 }
