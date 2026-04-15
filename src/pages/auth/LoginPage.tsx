@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Eye, EyeOff, Cloud, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2, ArrowRight, Lock, Mail } from 'lucide-react'
 import { authService } from '@/services/authService'
 import { cn } from '@/lib/utils'
 
@@ -40,23 +40,52 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex">
-      {/* Panel izquierdo — branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-[#0A2540] flex-col justify-between p-12">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500">
-            <Cloud className="h-5 w-5 text-white" />
-          </div>
-          <span className="text-xl font-semibold text-white">CloudSyncPro</span>
+    <div className="min-h-screen w-full flex bg-white">
+      {/* Panel izquierdo */}
+      <div
+        className="hidden lg:flex lg:w-[45%] flex-col justify-between p-12 relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #0f172a 0%, #082563 50%, #1e40af 100%)' }}
+      >
+        {/* Geometric decoration */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div
+            className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-10"
+            style={{ background: 'radial-gradient(circle, #60a5fa, transparent)' }}
+          />
+          <div
+            className="absolute bottom-0 -left-20 w-72 h-72 rounded-full opacity-10"
+            style={{ background: 'radial-gradient(circle, #3b82f6, transparent)' }}
+          />
+          {/* Grid pattern */}
+          <svg className="absolute inset-0 w-full h-full opacity-5" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="0.5"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
+          </svg>
         </div>
 
-        <div className="space-y-6">
-          <div className="space-y-3">
-            <h1 className="text-4xl font-bold text-white leading-tight">
-              Tus archivos,<br />en todas partes.
+        {/* Logo */}
+        <div className="relative flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500 shadow-lg shadow-blue-500/30">
+            <svg className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+            </svg>
+          </div>
+          <span className="text-lg font-semibold text-white tracking-tight">CloudSyncPro</span>
+        </div>
+
+        {/* Content */}
+        <div className="relative space-y-8">
+          <div className="space-y-4">
+            <h1 className="text-5xl font-bold text-white leading-[1.1] tracking-tight">
+              Tus archivos,<br />
+              <span className="text-blue-400">en todas partes.</span>
             </h1>
-            <p className="text-lg text-blue-200/80 leading-relaxed max-w-md">
-              Gestiona, comparte y colabora en archivos de forma segura con tu equipo — desde cualquier lugar del mundo.
+            <p className="text-base text-blue-100/70 leading-relaxed max-w-sm">
+              Gestiona, comparte y colabora en archivos de forma segura con tu equipo — desde cualquier lugar.
             </p>
           </div>
 
@@ -64,52 +93,58 @@ export default function LoginPage() {
             {[
               'Almacenamiento cifrado de extremo a extremo',
               'Colaboración en tiempo real',
-              'Permisos y roles avanzados',
-              'Registro completo de actividad',
+              'Permisos y roles granulares',
+              'Auditoría completa de actividad',
             ].map((feature) => (
               <div key={feature} className="flex items-center gap-3">
-                <div className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-                <span className="text-sm text-blue-100/70">{feature}</span>
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-500/20">
+                  <div className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                </div>
+                <span className="text-sm text-blue-100/60">{feature}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <p className="text-xs text-blue-200/40">
+        <p className="relative text-xs text-blue-200/30">
           © {new Date().getFullYear()} CloudSyncPro. Todos los derechos reservados.
         </p>
       </div>
 
-      {/* Panel derecho — formulario */}
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 bg-background">
-        <div className="w-full max-w-sm space-y-8">
-          {/* Logo mobile */}
-          <div className="flex items-center gap-3 lg:hidden">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0A2540]">
-              <Cloud className="h-5 w-5 text-white" />
+      {/* Panel derecho */}
+      <div className="flex flex-1 flex-col items-center justify-center px-8 py-12">
+        <div className="w-full max-w-100 animate-fade-in">
+          {/* Mobile logo */}
+          <div className="flex items-center gap-2.5 mb-10 lg:hidden">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#082563]">
+              <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+              </svg>
             </div>
-            <span className="text-xl font-semibold text-foreground">CloudSyncPro</span>
+            <span className="text-base font-semibold text-gray-900">CloudSyncPro</span>
           </div>
 
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-foreground">Iniciar sesión</h2>
-            <p className="text-sm text-muted-foreground">
+          <div className="mb-8 space-y-1.5">
+            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Iniciar sesión</h2>
+            <p className="text-sm text-gray-500">
               Bienvenido de nuevo. Ingresa tus credenciales para continuar.
             </p>
           </div>
 
-          {/* Google OAuth */}
+          {/* Google */}
           <button
             onClick={handleGoogleLogin}
             disabled={isGoogleLoading || isLoading}
             className={cn(
-              'flex w-full items-center justify-center gap-3 rounded-lg border border-border',
-              'bg-background px-4 py-2.5 text-sm font-medium text-foreground',
-              'transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50'
+              'flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200',
+              'bg-white px-4 h-11 text-sm font-medium text-gray-700',
+              'hover:bg-gray-50 hover:border-gray-300 transition-all duration-150',
+              'shadow-sm disabled:cursor-not-allowed disabled:opacity-50',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500'
             )}
           >
             {isGoogleLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
             ) : (
               <svg className="h-4 w-4" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -121,49 +156,53 @@ export default function LoginPage() {
             Continuar con Google
           </button>
 
-          {/* Divisor */}
-          <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-xs text-muted-foreground">o</span>
-            <div className="h-px flex-1 bg-border" />
+          {/* Divider */}
+          <div className="flex items-center gap-3 my-6">
+            <div className="h-px flex-1 bg-gray-100" />
+            <span className="text-xs text-gray-400 font-medium">O continúa con email</span>
+            <div className="h-px flex-1 bg-gray-100" />
           </div>
 
-          {/* Formulario email */}
+          {/* Form */}
           <form onSubmit={handleEmailLogin} className="space-y-4">
             <div className="space-y-1.5">
-              <label htmlFor="email" className="text-sm font-medium text-foreground">
+              <label htmlFor="email" className="text-sm font-medium text-gray-700">
                 Correo electrónico
               </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                placeholder="tu@ejemplo.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading || isGoogleLoading}
-                className={cn(
-                  'flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2',
-                  'text-sm text-foreground placeholder:text-muted-foreground',
-                  'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent',
-                  'disabled:cursor-not-allowed disabled:opacity-50 transition-colors'
-                )}
-              />
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="tu@ejemplo.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading || isGoogleLoading}
+                  className={cn(
+                    'flex h-11 w-full rounded-xl border border-gray-200 bg-gray-50/50 pl-10 pr-4',
+                    'text-sm text-gray-900 placeholder:text-gray-400',
+                    'focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white',
+                    'disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150'
+                  )}
+                />
+              </div>
             </div>
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label htmlFor="password" className="text-sm font-medium text-foreground">
+                <label htmlFor="password" className="text-sm font-medium text-gray-700">
                   Contraseña
                 </label>
                 <Link
                   to="/forgot-password"
-                  className="text-xs text-blue-500 hover:text-blue-600 transition-colors"
+                  className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
                 >
                   ¿Olvidaste tu contraseña?
                 </Link>
               </div>
               <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
@@ -173,23 +212,19 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading || isGoogleLoading}
                   className={cn(
-                    'flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 pr-10',
-                    'text-sm text-foreground placeholder:text-muted-foreground',
-                    'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent',
-                    'disabled:cursor-not-allowed disabled:opacity-50 transition-colors'
+                    'flex h-11 w-full rounded-xl border border-gray-200 bg-gray-50/50 pl-10 pr-10',
+                    'text-sm text-gray-900 placeholder:text-gray-400',
+                    'focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white',
+                    'disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150'
                   )}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                   aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
@@ -198,25 +233,32 @@ export default function LoginPage() {
               type="submit"
               disabled={isLoading || isGoogleLoading}
               className={cn(
-                'flex w-full items-center justify-center gap-2 rounded-lg',
-                'bg-[#0A2540] px-4 py-2.5 text-sm font-medium text-white',
-                'hover:bg-[#0d2f4e] transition-colors',
+                'flex w-full items-center justify-center gap-2 rounded-xl h-11',
+                'bg-[#082563] text-sm font-medium text-white',
+                'hover:bg-[#0a2d75] active:scale-[0.99] transition-all duration-150',
                 'disabled:cursor-not-allowed disabled:opacity-50',
-                'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2'
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
+                'shadow-sm shadow-blue-900/20'
               )}
             >
-              {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-              Iniciar sesión
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  Iniciar sesión
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
             </button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="mt-6 text-center text-sm text-gray-500">
             ¿No tienes cuenta?{' '}
             <Link
               to="/register"
-              className="font-medium text-blue-500 hover:text-blue-600 transition-colors"
+              className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
             >
-              Regístrate
+              Regístrate gratis
             </Link>
           </p>
         </div>

@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
+import { AppShell } from '@/components/layout/AppShell'
 import LoginPage from '@/pages/auth/LoginPage'
 import RegisterPage from '@/pages/auth/RegisterPage'
 
@@ -8,7 +9,7 @@ function LoadingScreen() {
     <div className="flex h-screen w-full items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-3">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        <p className="text-sm text-muted-foreground">Loading...</p>
+        <p className="text-sm text-muted-foreground">Cargando...</p>
       </div>
     </div>
   )
@@ -16,11 +17,11 @@ function LoadingScreen() {
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-background">
+    <div className="flex h-full items-center justify-center">
       <div className="text-center">
         <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          This page will be implemented in the next steps.
+          Esta página se implementará en los próximos pasos.
         </p>
       </div>
     </div>
@@ -34,7 +35,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!isInitialized) return <LoadingScreen />
   if (!isAuthenticated) return <Navigate to="/login" replace />
 
-  return <>{children}</>
+  return <AppShell>{children}</AppShell>
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -71,6 +72,70 @@ export function AppRoutes() {
         element={
           <ProtectedRoute>
             <PlaceholderPage title="Dashboard" />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/files"
+        element={
+          <ProtectedRoute>
+            <PlaceholderPage title="Mis archivos" />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/workspaces"
+        element={
+          <ProtectedRoute>
+            <PlaceholderPage title="Espacios de trabajo" />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/shared"
+        element={
+          <ProtectedRoute>
+            <PlaceholderPage title="Compartidos" />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <PlaceholderPage title="Notificaciones" />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/archived"
+        element={
+          <ProtectedRoute>
+            <PlaceholderPage title="Archivados" />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/trash"
+        element={
+          <ProtectedRoute>
+            <PlaceholderPage title="Papelera" />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <PlaceholderPage title="Configuración" />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <PlaceholderPage title="Administración" />
           </ProtectedRoute>
         }
       />

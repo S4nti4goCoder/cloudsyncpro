@@ -1,0 +1,31 @@
+import { useUIStore } from '@/store/uiStore'
+import { useTheme } from '@/hooks/useTheme'
+import { Sidebar } from './Sidebar'
+import { Header } from './Header'
+import { cn } from '@/lib/utils'
+
+interface AppShellProps {
+  children: React.ReactNode
+}
+
+export function AppShell({ children }: AppShellProps) {
+  useTheme() // Initialize theme
+  const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed)
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Sidebar />
+      <Header />
+      <main
+        className={cn(
+          'transition-all duration-300 pt-16',
+          sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-64'
+        )}
+      >
+        <div className="p-6">
+          {children}
+        </div>
+      </main>
+    </div>
+  )
+}
