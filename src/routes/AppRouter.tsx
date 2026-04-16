@@ -1,13 +1,15 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { AppShell } from "@/components/layout/AppShell";
-import LoginPage from "@/pages/auth/LoginPage";
-import RegisterPage from "@/pages/auth/RegisterPage";
-import WorkspacesPage from "@/pages/workspaces/WorkspacesPage";
-import FilesPage from "@/pages/files/FilesPage";
-import SharedFilePage from "@/pages/shared/SharedFilePage";
-import DashboardPage from "@/pages/dashboard/DashboardPage";
-import AdminPage from "@/pages/admin/AdminPage";
+
+const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
+const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage"));
+const WorkspacesPage = lazy(() => import("@/pages/workspaces/WorkspacesPage"));
+const FilesPage = lazy(() => import("@/pages/files/FilesPage"));
+const SharedFilePage = lazy(() => import("@/pages/shared/SharedFilePage"));
+const DashboardPage = lazy(() => import("@/pages/dashboard/DashboardPage"));
+const AdminPage = lazy(() => import("@/pages/admin/AdminPage"));
 
 function LoadingScreen() {
   return (
@@ -55,105 +57,107 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 export function AppRoutes() {
   return (
-    <Routes>
-      {/* Public routes */}
-      <Route
-        path="/login"
-        element={
-          <PublicRoute>
-            <LoginPage />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/register"
-        element={
-          <PublicRoute>
-            <RegisterPage />
-          </PublicRoute>
-        }
-      />
+    <Suspense fallback={<LoadingScreen />}>
+      <Routes>
+        {/* Public routes */}
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <RegisterPage />
+            </PublicRoute>
+          }
+        />
 
-      {/* Shared file — no auth required */}
-      <Route path="/shared/:token" element={<SharedFilePage />} />
+        {/* Shared file — no auth required */}
+        <Route path="/shared/:token" element={<SharedFilePage />} />
 
-      {/* Protected routes */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <DashboardPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/files"
-        element={
-          <ProtectedRoute>
-            <FilesPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/workspaces"
-        element={
-          <ProtectedRoute>
-            <WorkspacesPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/shared"
-        element={
-          <ProtectedRoute>
-            <PlaceholderPage title="Compartidos" />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/notifications"
-        element={
-          <ProtectedRoute>
-            <PlaceholderPage title="Notificaciones" />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/archived"
-        element={
-          <ProtectedRoute>
-            <PlaceholderPage title="Archivados" />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/trash"
-        element={
-          <ProtectedRoute>
-            <PlaceholderPage title="Papelera" />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings"
-        element={
-          <ProtectedRoute>
-            <PlaceholderPage title="Configuración" />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute>
-            <AdminPage />
-          </ProtectedRoute>
-        }
-      />
+        {/* Protected routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/files"
+          element={
+            <ProtectedRoute>
+              <FilesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/workspaces"
+          element={
+            <ProtectedRoute>
+              <WorkspacesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/shared"
+          element={
+            <ProtectedRoute>
+              <PlaceholderPage title="Compartidos" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <PlaceholderPage title="Notificaciones" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/archived"
+          element={
+            <ProtectedRoute>
+              <PlaceholderPage title="Archivados" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/trash"
+          element={
+            <ProtectedRoute>
+              <PlaceholderPage title="Papelera" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <PlaceholderPage title="Configuración" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminPage />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Redirects */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+        {/* Redirects */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
