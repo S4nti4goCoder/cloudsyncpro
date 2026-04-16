@@ -1,10 +1,12 @@
 import {
   Moon,
   Sun,
+  Monitor,
   LogOut,
   User,
   ChevronDown,
   Settings,
+  Check,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -25,10 +27,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+type ThemeOption = "light" | "dark" | "system";
+
+const THEME_OPTIONS: {
+  value: ThemeOption;
+  label: string;
+  icon: React.ElementType;
+}[] = [
+  { value: "light", label: "Claro", icon: Sun },
+  { value: "dark", label: "Oscuro", icon: Moon },
+  { value: "system", label: "Sistema", icon: Monitor },
+];
+
 export function Header() {
   const navigate = useNavigate();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
+  const notificationsInApp = useUIStore((s) => s.notificationsInApp);
   const profile = useAuthStore((s) => s.profile);
   const user = useAuthStore((s) => s.user);
 
@@ -66,23 +81,45 @@ export function Header() {
 
       {/* Actions */}
       <div className="flex items-center gap-2">
-        {/* Theme toggle */}
-        <button
-          onClick={toggleTheme}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          aria-label={
-            theme === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro"
-          }
-        >
-          {theme === "dark" ? (
-            <Sun className="h-4 w-4" />
-          ) : (
-            <Moon className="h-4 w-4" />
-          )}
-        </button>
+        {/* Theme selector */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              aria-label="Cambiar tema"
+            >
+              {theme === "dark" ? (
+                <Moon className="h-4 w-4" />
+              ) : theme === "light" ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Monitor className="h-4 w-4" />
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+              Tema
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+              <DropdownMenuItem
+                key={value}
+                onClick={() => setTheme(value)}
+                className="justify-between"
+              >
+                <span className="flex items-center gap-2">
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </span>
+                {theme === value && <Check className="h-3.5 w-3.5" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Notifications */}
-        <NotificationsDropdown />
+        {notificationsInApp && <NotificationsDropdown />}
 
         {/* User menu */}
         <DropdownMenu>

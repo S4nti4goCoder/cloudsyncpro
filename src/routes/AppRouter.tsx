@@ -14,6 +14,7 @@ const ActivityPage = lazy(() => import("@/pages/activity/ActivityPage"));
 const ArchivedPage = lazy(() => import("@/pages/archived/ArchivedPage"));
 const TrashPage = lazy(() => import("@/pages/trash/TrashPage"));
 const ProfilePage = lazy(() => import("@/pages/settings/ProfilePage"));
+const SettingsPage = lazy(() => import("@/pages/settings/SettingsPage"));
 
 function LoadingScreen() {
   return (
@@ -145,7 +146,7 @@ export function AppRoutes() {
           path="/settings"
           element={
             <ProtectedRoute>
-              <PlaceholderPage title="Configuración" />
+              <SettingsPage />
             </ProtectedRoute>
           }
         />

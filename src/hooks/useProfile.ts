@@ -58,3 +58,12 @@ export function useUpdatePassword() {
       toast.error(e.message ?? 'Error al actualizar contraseña'),
   })
 }
+
+export function useDeleteAccount() {
+  return useMutation({
+    mutationFn: (confirmEmail: string) =>
+      profileService.deleteAccount(confirmEmail),
+    onError: (e: Error) =>
+      toast.error(e.message ?? 'Error al eliminar cuenta'),
+  })
+}

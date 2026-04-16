@@ -92,4 +92,38 @@ export const profileService = {
     const { error } = await supabase.auth.updateUser({ password: newPassword })
     if (error) throw error
   },
+
+  /**
+   * Permanently delete the current account via Edge Function.
+   * Requires the user to confirm by providing their own email.
+   */
+  async deleteAccount(confirmEmail: string): Promise<void> {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    if (!session) throw new Error('No hay sesión activa')
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-account`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ confirmEmail }),
+      }
+    )
+
+    if (!response.ok) {
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string
+      }
+      throw new Error(data.error ?? 'Error al eliminar cuenta')
+    }
+
+    await supabase.auth.signOut()
+  },
 }
