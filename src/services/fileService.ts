@@ -179,12 +179,29 @@ export const fileService = {
    * Permanently delete a file
    */
   async deleteFile(id: string): Promise<void> {
+    const { data: prev } = await supabase
+      .from('files')
+      .select('name, workspace_id')
+      .eq('id', id)
+      .single()
+
     const { error } = await supabase
       .from('files')
       .delete()
       .eq('id', id)
 
     if (error) throw error
+
+    if (prev) {
+      await activityService.logActivity({
+        workspaceId: prev.workspace_id,
+        action: 'delete',
+        resourceType: 'file',
+        resourceId: id,
+        resourceName: prev.name,
+        metadata: { permanent: true },
+      })
+    }
   },
 
   /**

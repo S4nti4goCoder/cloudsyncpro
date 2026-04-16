@@ -606,10 +606,43 @@ cloudsyncpro-files/
 
 ---
 
+## ✅ PASO 16 — Archivados y Papelera
+
+**Commit:** `feat: add archived and trash pages with restore and permanent delete`
+
+### Acciones realizadas
+
+- `src/pages/archived/ArchivedPage.tsx` — listado de archivos con `status = 'archived'` y botón de restaurar
+- `src/pages/trash/TrashPage.tsx` — listado de archivos con `status = 'deleted'` con restaurar y eliminar permanente
+- `src/routes/AppRouter.tsx` — reemplazados los `PlaceholderPage` por las páginas reales con lazy loading
+
+### Funcionalidades
+
+| Página | Acciones disponibles |
+|--------|----------------------|
+| `/archived` | Restaurar (vuelve a `status = 'active'`) |
+| `/trash` | Restaurar (vuelve a `status = 'active'`) o eliminar permanentemente |
+
+- Lista vertical con icono del tipo de archivo, nombre, tamaño y fecha de la acción
+- Papelera: nombre con `line-through` para indicar eliminación
+- Confirmación con `window.confirm` antes de eliminar permanentemente
+- Empty states específicos para cada página
+- Ambas páginas logean actividad vía los hooks existentes (`restore`, `delete`)
+
+### Decisiones técnicas
+
+- Reutilización de hooks existentes (`useArchivedFiles`, `useDeletedFiles`, `useRestoreFile`, `useDeleteFile`) — no fue necesario crear nada en la capa de servicios
+- Los botones de acción aparecen solo en `hover` (`opacity-0 group-hover:opacity-100`) para UI limpia
+- Icono `ArchiveRestore` de lucide-react para ambos restaurar — consistencia visual
+- El helper `renderFileTypeIcon` se duplica en ambas páginas por simplicidad — si se repite en más lugares, se extraerá a `fileUtils`
+
+---
+
 ## 🔜 PRÓXIMOS PASOS
 
 - Perfil de usuario (editar nombre, avatar, contraseña)
 - Página de configuración
+- UI para renombrar y mover archivos (botones en FilesPage)
 - Vista detallada de actividad por archivo/carpeta
 - Breadcrumb dinámico con nombre real de carpeta
 - Página de archivos compartidos

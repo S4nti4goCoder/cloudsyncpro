@@ -15,6 +15,7 @@ import { useWorkspaces, useDeleteWorkspace } from '@/hooks/useWorkspaces'
 import { useAuthStore } from '@/store/authStore'
 import { useWorkspaceStore, getActiveWorkspace } from '@/store/workspaceStore'
 import { CreateWorkspaceModal } from '@/components/shared/CreateWorkspaceModal'
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { cn } from '@/lib/utils'
 import {
   DropdownMenu,
@@ -30,8 +31,9 @@ import type { Workspace } from '@/types/authTypes'
 export default function WorkspacesPage() {
   const navigate = useNavigate()
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [workspaceToDelete, setWorkspaceToDelete] = useState<Workspace | null>(null)
   const { data: workspaces, isLoading } = useWorkspaces()
-  const { mutate: deleteWorkspace } = useDeleteWorkspace()
+  const { mutate: deleteWorkspace, isPending: deleting } = useDeleteWorkspace()
   const userId = useAuthStore((s) => s.user?.id)
   const { activeWorkspaceId, setActiveWorkspaceId } = useWorkspaceStore()
   const activeWorkspace = getActiveWorkspace(workspaces ?? [], activeWorkspaceId)
@@ -41,9 +43,11 @@ export default function WorkspacesPage() {
     navigate('/dashboard')
   }
 
-  function handleDelete(workspace: Workspace) {
-    if (!confirm(`¿Eliminar "${workspace.name}"? Esta acción no se puede deshacer.`)) return
-    deleteWorkspace(workspace.id)
+  function confirmDelete() {
+    if (!workspaceToDelete) return
+    deleteWorkspace(workspaceToDelete.id, {
+      onSuccess: () => setWorkspaceToDelete(null),
+    })
   }
 
   return (
@@ -104,7 +108,7 @@ export default function WorkspacesPage() {
               isActive={workspace.id === activeWorkspace?.id}
               isOwner={workspace.owner_id === userId}
               onSelect={() => handleSelectWorkspace(workspace)}
-              onDelete={() => handleDelete(workspace)}
+              onDelete={() => setWorkspaceToDelete(workspace)}
             />
           ))}
         </div>
@@ -113,6 +117,27 @@ export default function WorkspacesPage() {
       <CreateWorkspaceModal
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
+      />
+
+      <ConfirmDialog
+        open={!!workspaceToDelete}
+        onClose={() => setWorkspaceToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Eliminar espacio de trabajo"
+        description={
+          <>
+            ¿Seguro que quieres eliminar{' '}
+            <span className="font-medium text-foreground">
+              {workspaceToDelete?.name}
+            </span>
+            ? Esta acción no se puede deshacer y se perderán todos los archivos
+            y carpetas asociados.
+          </>
+        }
+        confirmLabel="Eliminar espacio"
+        variant="destructive"
+        isPending={deleting}
+        icon={<Trash2 className="h-5 w-5 text-destructive" />}
       />
     </div>
   )
