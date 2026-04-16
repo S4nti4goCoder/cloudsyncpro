@@ -615,6 +615,8 @@ cloudsyncpro-files/
 - `src/pages/archived/ArchivedPage.tsx` — listado de archivos con `status = 'archived'` y botón de restaurar
 - `src/pages/trash/TrashPage.tsx` — listado de archivos con `status = 'deleted'` con restaurar y eliminar permanente
 - `src/routes/AppRouter.tsx` — reemplazados los `PlaceholderPage` por las páginas reales con lazy loading
+- `src/components/shared/ConfirmDialog.tsx` — modal reutilizable para confirmaciones destructivas (reemplaza `window.confirm`)
+- `src/services/fileService.ts` — `deleteFile` (permanente) instrumenta actividad con `metadata: { permanent: true }`
 
 ### Funcionalidades
 
@@ -625,24 +627,153 @@ cloudsyncpro-files/
 
 - Lista vertical con icono del tipo de archivo, nombre, tamaño y fecha de la acción
 - Papelera: nombre con `line-through` para indicar eliminación
-- Confirmación con `window.confirm` antes de eliminar permanentemente
+- Confirmación con `ConfirmDialog` (modal estilizado) antes de eliminar permanentemente
 - Empty states específicos para cada página
 - Ambas páginas logean actividad vía los hooks existentes (`restore`, `delete`)
+- Eliminación permanente registra evento `delete` con flag `permanent: true` en metadata — distinguible del soft delete (papelera)
 
 ### Decisiones técnicas
 
 - Reutilización de hooks existentes (`useArchivedFiles`, `useDeletedFiles`, `useRestoreFile`, `useDeleteFile`) — no fue necesario crear nada en la capa de servicios
 - Los botones de acción aparecen solo en `hover` (`opacity-0 group-hover:opacity-100`) para UI limpia
 - Icono `ArchiveRestore` de lucide-react para ambos restaurar — consistencia visual
+- `ConfirmDialog` construido sobre el primitivo `Dialog` existente con variante `destructive` — evita agregar dependencia `alert-dialog` de Radix
+- `WorkspacesPage` también migrada a `ConfirmDialog` para la eliminación de workspaces
 - El helper `renderFileTypeIcon` se duplica en ambas páginas por simplicidad — si se repite en más lugares, se extraerá a `fileUtils`
+
+---
+
+## ✅ PASO 17 — Perfil de usuario
+
+**Commit:** `feat: add user profile page with avatar upload, name and password editing`
+
+### Acciones realizadas
+
+- `src/services/profileService.ts` — `updateProfile`, `uploadAvatar`, `removeAvatar`, `updatePassword`
+- `src/hooks/useProfile.ts` — mutations con `useMutation` + toast feedback + update directo al `authStore`
+- `src/pages/settings/ProfilePage.tsx` — 3 secciones: avatar, datos personales, contraseña
+- `src/routes/AppRouter.tsx` — ruta `/settings/profile` con lazy loading
+- Supabase Storage: bucket `avatars` creado (público, 2 MB máx, MIME types permitidos)
+- RLS del bucket configuradas — cada usuario solo puede escribir/borrar dentro de su carpeta (`auth.uid()`)
+
+### Funcionalidades
+
+| Sección | Funcionalidad |
+|---------|---------------|
+| Avatar | Subir imagen (JPG/PNG/WebP/GIF, ≤2 MB) o eliminar (con `ConfirmDialog`) |
+| Datos personales | Editar `full_name` — email bloqueado (gestionado por Supabase Auth) |
+| Contraseña | Cambiar con nueva contraseña + confirmación (mínimo 6 caracteres) |
+
+### Decisiones técnicas
+
+- Path de avatar: `{userId}/avatar.{ext}` con `upsert: true` — siempre sobrescribe el anterior
+- Cache-busting en `avatar_url`: `?t=${Date.now()}` — fuerza recarga de la imagen al actualizarla
+- Validación de tamaño y MIME en frontend (`profileService`) antes de subir — feedback inmediato
+- `removeAvatar` borra TODO lo que haya en la carpeta del usuario vía `storage.list` + `remove` — evita orphans si cambia la extensión
+- Mutations actualizan `authStore.setProfile` directamente en `onSuccess` — sin re-fetch adicional
+- Cambio de contraseña vía `supabase.auth.updateUser({ password })` — no requiere contraseña actual (Supabase lo valida con la sesión)
+
+### SQL — RLS del bucket `avatars`
+
+```sql
+-- Políticas: cada usuario solo puede insertar/actualizar/borrar en su carpeta
+create policy "Users can upload own avatar"
+  on storage.objects for insert
+  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+create policy "Users can update own avatar"
+  on storage.objects for update
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+create policy "Users can delete own avatar"
+  on storage.objects for delete
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+create policy "Avatars are publicly readable"
+  on storage.objects for select
+  using (bucket_id = 'avatars');
+```
+
+---
+
+## ✅ PASO 18 — Página de configuración
+
+**Commit:** `feat: add settings page with notification preferences and account deletion`
+
+### Acciones realizadas
+
+- `src/pages/settings/SettingsPage.tsx` — página con 2 secciones: notificaciones y zona de peligro
+- `src/store/uiStore.ts` — `notificationsInApp` / `notificationsEmail` persistidos en `ui-store`
+- `src/components/layout/Header.tsx` — theme toggle convertido a dropdown con 3 opciones (Claro / Oscuro / Sistema) + renderizado condicional de `NotificationsDropdown` según `notificationsInApp`
+- `src/components/ui/switch.tsx` — nuevo tamaño `lg` estilo toggle switch clásico (24×44px, thumb blanco con sombra)
+- `src/services/profileService.ts` — `deleteAccount(confirmEmail)` llama a Edge Function + `signOut`
+- `src/hooks/useProfile.ts` — `useDeleteAccount` mutation
+- `supabase/functions/delete-account/index.ts` — Edge Function que valida JWT y elimina el usuario vía service role
+- `src/routes/AppRouter.tsx` — ruta `/settings` con `SettingsPage` real (reemplaza `PlaceholderPage`)
+- SQL — 5 FKs migradas de `RESTRICT` → `CASCADE`/`SET NULL` para permitir eliminación de cuenta
+
+### Funcionalidades
+
+| Sección | Funcionalidad |
+|---------|---------------|
+| Notificaciones | Toggle in-app (activo) y por email (próximamente, disabled) — si el in-app está off, la campana del Header desaparece |
+| Zona de peligro | Eliminar cuenta con confirmación escrita del email exacto — modal bloquea el botón hasta que coincida |
+| Header — Tema | Dropdown con Claro / Oscuro / Sistema (`useTheme` sincroniza con preferencia del SO si es `system`) |
+
+### Decisiones técnicas
+
+- Tema NO va en Settings — ya está en el Header y se expandió a 3 opciones (no duplicar UI)
+- Permisos granulares quedan fuera de Settings — pertenecen al panel de administración (pendiente, se definirán más adelante)
+- Switch `lg`: rama separada en el componente para evitar conflicto con las variantes `data-checked`/`data-unchecked` de shadcn — usa `data-[state=checked]` directo de Radix
+- Eliminación de cuenta requiere 3 capas de seguridad:
+  1. Frontend: input de email que desbloquea el botón solo si coincide exactamente (case insensitive)
+  2. Edge Function: valida JWT del caller y vuelve a comparar con `user.email` del token
+  3. Service role: usa `auth.admin.deleteUser(user.id)` que cascadea por FKs
+- Redirect post-delete: `window.location.href = '/login'` en lugar de `navigate` — fuerza reload completo para limpiar todos los stores
+
+### Edge Function `delete-account`
+
+- Deploy: `supabase functions deploy delete-account` (selecciona proyecto `cloudsyncpro` — ref `fynllwjgkioyciqxvxet`)
+- Respuestas: `401` (sin auth), `400` (email no coincide), `500` (fallo de delete), `200` (éxito)
+- Usa `SUPABASE_SERVICE_ROLE_KEY` — nunca expuesta al frontend
+
+### SQL — FKs para cascada de eliminación
+
+```sql
+-- Workspaces del usuario → se eliminan (cascada a files/folders/shares vía workspace_id)
+alter table workspaces
+  drop constraint workspaces_owner_id_fkey,
+  add constraint workspaces_owner_id_fkey
+    foreign key (owner_id) references profiles(id) on delete cascade;
+
+-- Autoría → se conserva el recurso, solo se desvincula autor (para colaboraciones en workspaces ajenos)
+alter table files
+  drop constraint files_uploaded_by_fkey,
+  add constraint files_uploaded_by_fkey
+    foreign key (uploaded_by) references profiles(id) on delete set null;
+
+alter table folders
+  drop constraint folders_created_by_fkey,
+  add constraint folders_created_by_fkey
+    foreign key (created_by) references profiles(id) on delete set null;
+
+alter table file_versions
+  drop constraint file_versions_uploaded_by_fkey,
+  add constraint file_versions_uploaded_by_fkey
+    foreign key (uploaded_by) references profiles(id) on delete set null;
+
+alter table file_shares
+  drop constraint file_shares_shared_by_fkey,
+  add constraint file_shares_shared_by_fkey
+    foreign key (shared_by) references profiles(id) on delete set null;
+```
 
 ---
 
 ## 🔜 PRÓXIMOS PASOS
 
-- Perfil de usuario (editar nombre, avatar, contraseña)
-- Página de configuración
 - UI para renombrar y mover archivos (botones en FilesPage)
 - Vista detallada de actividad por archivo/carpeta
 - Breadcrumb dinámico con nombre real de carpeta
 - Página de archivos compartidos
+- Permisos granulares en el panel de administración
