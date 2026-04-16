@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { activityService } from '@/services/activityService'
 
 interface PresignedUrlResponse {
   presignedUrl: string
@@ -145,7 +146,7 @@ export const uploadService = {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('No authenticated user')
 
-    return await this.registerFile({
+    const record = await this.registerFile({
       name: file.name,
       originalName: file.name,
       size: file.size,
@@ -156,5 +157,17 @@ export const uploadService = {
       folderId,
       uploadedBy: user.id,
     })
+
+    // 4. Log activity
+    await activityService.logActivity({
+      workspaceId,
+      action: 'upload',
+      resourceType: 'file',
+      resourceId: record.id,
+      resourceName: record.name,
+      metadata: { size: record.size, mime_type: record.mime_type },
+    })
+
+    return record
   },
 }

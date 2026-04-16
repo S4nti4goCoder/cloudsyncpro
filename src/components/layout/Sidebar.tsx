@@ -15,6 +15,7 @@ import {
   ChevronsUpDown,
   Check,
   Plus,
+  Activity,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/uiStore'
@@ -44,6 +45,7 @@ const navItems: NavItem[] = [
   { label: 'Mis archivos', icon: FolderOpen, href: '/files' },
   { label: 'Compartidos', icon: Share2, href: '/shared' },
   { label: 'Espacios de trabajo', icon: Users, href: '/workspaces' },
+  { label: 'Actividad', icon: Activity, href: '/activity' },
   { label: 'Archivados', icon: Archive, href: '/archived' },
   { label: 'Papelera', icon: Trash2, href: '/trash' },
 ]

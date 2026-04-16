@@ -557,10 +557,59 @@ cloudsyncpro-files/
 
 ---
 
+## ✅ PASO 15 — Auditoría de actividad
+
+**Commit:** `feat: add activity audit page with timeline and filters`
+
+### Acciones realizadas
+
+- `src/services/activityService.ts` — `logActivity()` + `getActivities()` con filtros y paginación
+- `src/hooks/useActivity.ts` — hook con React Query (`staleTime: 30s`)
+- `src/pages/activity/ActivityPage.tsx` — timeline agrupado por día con filtros
+- `src/routes/AppRouter.tsx` — ruta `/activity` con lazy loading
+- `src/components/layout/Sidebar.tsx` — link "Actividad" con icono `Activity`
+- Instrumentación en `uploadService`, `fileService`, `folderService`, `shareService`
+
+### Funcionalidades
+
+- Timeline cronológico de eventos agrupados por día (Hoy / Ayer / fecha)
+- Filtro multi-select por tipo de acción (13 acciones del enum `activity_action`)
+- Filtro por rango de fechas (`from` / `to`)
+- Paginación con botón "Cargar más" (`PAGE_SIZE = 50`)
+- Avatar y nombre del usuario que ejecutó cada acción
+- Iconos y colores por acción (upload, download, view, move, rename, delete, archive, restore, share, unshare, create_folder, update_metadata, create_version)
+
+### Acciones registradas por servicio
+
+| Servicio | Acciones |
+|----------|----------|
+| `uploadService.uploadFile` | `upload` con `{ size, mime_type }` |
+| `fileService.renameFile` | `rename` con `{ previous_name }` |
+| `fileService.archiveFile` | `archive` |
+| `fileService.restoreFile` | `restore` |
+| `fileService.trashFile` | `delete` |
+| `fileService.moveFile` | `move` con `{ from_folder, to_folder }` |
+| `folderService.createFolder` | `create_folder` con `{ parent_id }` |
+| `folderService.renameFolder` | `rename` con `{ previous_name }` |
+| `folderService.deleteFolder` | `delete` |
+| `shareService.createShare` | `share` con `{ share_type, permissions, expires_at }` |
+| `shareService.deactivateShare` | `unshare` |
+
+### Decisiones técnicas
+
+- `logActivity` retorna `void` y solo loggea errores en consola — nunca rompe el flujo principal si falla
+- `metadata` tipado como `{ [key: string]: Json | undefined }` para coincidir con el tipo de Supabase
+- `shareService` consulta `files` o `folders` antes de loggear para obtener `workspace_id` y `name` del recurso
+- `fileService.deleteFile` (delete permanente) NO se instrumenta — el registro ya existe del `trashFile` previo
+- `useMemo` en `items` y `grouped` para evitar recálculos innecesarios del timeline
+- Helper `renderActionIcon(action, className)` retorna JSX vía switch — evita el patrón `const Icon = getX()` que falla con React 19
+
+---
+
 ## 🔜 PRÓXIMOS PASOS
 
-- **Paso 15:** Auditoría de actividad
 - Perfil de usuario (editar nombre, avatar, contraseña)
 - Página de configuración
+- Vista detallada de actividad por archivo/carpeta
 - Breadcrumb dinámico con nombre real de carpeta
 - Página de archivos compartidos

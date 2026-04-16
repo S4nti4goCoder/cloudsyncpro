@@ -10,6 +10,7 @@ const FilesPage = lazy(() => import("@/pages/files/FilesPage"));
 const SharedFilePage = lazy(() => import("@/pages/shared/SharedFilePage"));
 const DashboardPage = lazy(() => import("@/pages/dashboard/DashboardPage"));
 const AdminPage = lazy(() => import("@/pages/admin/AdminPage"));
+const ActivityPage = lazy(() => import("@/pages/activity/ActivityPage"));
 
 function LoadingScreen() {
   return (
@@ -142,6 +143,14 @@ export function AppRoutes() {
           element={
             <ProtectedRoute>
               <PlaceholderPage title="Configuración" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/activity"
+          element={
+            <ProtectedRoute>
+              <ActivityPage />
             </ProtectedRoute>
           }
         />

@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { activityService } from '@/services/activityService'
 import type { FileShare } from '@/types/authTypes'
 
 export const shareService = {
@@ -30,6 +31,29 @@ export const shareService = {
       .single()
 
     if (error) throw error
+
+    const table = input.resourceType === 'folder' ? 'folders' : 'files'
+    const { data: resource } = await supabase
+      .from(table)
+      .select('name, workspace_id')
+      .eq('id', input.resourceId)
+      .single()
+
+    if (resource) {
+      await activityService.logActivity({
+        workspaceId: resource.workspace_id,
+        action: 'share',
+        resourceType: input.resourceType,
+        resourceId: input.resourceId,
+        resourceName: resource.name,
+        metadata: {
+          share_type: input.shareType,
+          permissions: input.permissions,
+          expires_at: input.expiresAt ?? null,
+        },
+      })
+    }
+
     return data as FileShare
   },
 
@@ -52,12 +76,37 @@ export const shareService = {
    * Deactivate a share
    */
   async deactivateShare(id: string): Promise<void> {
+    const { data: prev } = await supabase
+      .from('file_shares')
+      .select('resource_id, resource_type')
+      .eq('id', id)
+      .single()
+
     const { error } = await supabase
       .from('file_shares')
       .update({ is_active: false })
       .eq('id', id)
 
     if (error) throw error
+
+    if (prev) {
+      const table = prev.resource_type === 'folder' ? 'folders' : 'files'
+      const { data: resource } = await supabase
+        .from(table)
+        .select('name, workspace_id')
+        .eq('id', prev.resource_id)
+        .single()
+
+      if (resource) {
+        await activityService.logActivity({
+          workspaceId: resource.workspace_id,
+          action: 'unshare',
+          resourceType: prev.resource_type as 'file' | 'folder',
+          resourceId: prev.resource_id,
+          resourceName: resource.name,
+        })
+      }
+    }
   },
 
   /**
