@@ -127,7 +127,7 @@ export const uploadService = {
     folderId,
     onProgress,
   }: UploadFileInput) {
-    const extension = file.name.split('.').pop() ?? ''
+    const extension = file.name.includes('.') ? (file.name.split('.').pop() ?? '') : ''
 
     // 1. Get presigned URL
     const { presignedUrl, r2Key } = await this.getPresignedUrl(

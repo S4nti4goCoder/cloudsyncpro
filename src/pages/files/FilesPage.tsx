@@ -458,7 +458,6 @@ function FileCard({
   onTrash,
 }: FileCardProps) {
   const colorClass = getFileColor(file.mime_type);
-  const FileTypeIcon = getFileTypeIcon(file.mime_type);
 
   if (viewMode === "list") {
     return (
@@ -472,7 +471,7 @@ function FileCard({
             colorClass,
           )}
         >
-          <FileTypeIcon className="h-4 w-4" />
+          {renderFileTypeIcon(file.mime_type, "h-4 w-4")}
         </div>
         <span className="flex-1 text-sm font-medium text-foreground truncate">
           {file.name}
@@ -501,7 +500,10 @@ function FileCard({
           colorClass.split(" ")[1],
         )}
       >
-        <FileTypeIcon className={cn("h-10 w-10", colorClass.split(" ")[0])} />
+        {renderFileTypeIcon(
+          file.mime_type,
+          cn("h-10 w-10", colorClass.split(" ")[0]),
+        )}
       </div>
       <div className="p-3 flex flex-col gap-1">
         <div className="flex items-start justify-between gap-1">
@@ -571,16 +573,20 @@ function FileMenu({
 // Helpers
 // ============================================
 
-function getFileTypeIcon(mimeType: string) {
-  if (mimeType.startsWith("image/")) return ImageIcon;
-  if (mimeType.startsWith("video/")) return FileVideoIcon;
-  if (mimeType.startsWith("audio/")) return FileAudioIcon;
-  if (mimeType === "application/pdf") return FileTextIcon;
+function renderFileTypeIcon(mimeType: string, className: string) {
+  if (mimeType.startsWith("image/"))
+    return <ImageIcon className={className} />;
+  if (mimeType.startsWith("video/"))
+    return <FileVideoIcon className={className} />;
+  if (mimeType.startsWith("audio/"))
+    return <FileAudioIcon className={className} />;
+  if (mimeType === "application/pdf")
+    return <FileTextIcon className={className} />;
   if (mimeType.includes("spreadsheet") || mimeType.includes("excel"))
-    return FileSpreadsheetIcon;
+    return <FileSpreadsheetIcon className={className} />;
   if (mimeType.includes("zip") || mimeType.includes("rar"))
-    return FileArchiveIcon;
-  return FileIcon;
+    return <FileArchiveIcon className={className} />;
+  return <FileIcon className={className} />;
 }
 
 function LoadingSkeleton({ viewMode }: { viewMode: ViewMode }) {

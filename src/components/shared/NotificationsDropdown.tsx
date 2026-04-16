@@ -120,7 +120,6 @@ interface NotificationItemProps {
 }
 
 function NotificationItem({ notification, onRead }: NotificationItemProps) {
-  const Icon = getNotificationIcon(notification.type);
   const iconClass = getNotificationIconClass(notification.type);
 
   return (
@@ -138,7 +137,7 @@ function NotificationItem({ notification, onRead }: NotificationItemProps) {
           iconClass,
         )}
       >
-        <Icon className="h-3.5 w-3.5" />
+        {renderNotificationIcon(notification.type, "h-3.5 w-3.5")}
       </div>
 
       <div className="flex-1 min-w-0 space-y-0.5">
@@ -179,16 +178,16 @@ function NotificationItem({ notification, onRead }: NotificationItemProps) {
   );
 }
 
-function getNotificationIcon(type: string) {
+function renderNotificationIcon(type: string, className: string) {
   switch (type) {
     case "success":
-      return CheckCircle2;
+      return <CheckCircle2 className={className} />;
     case "warning":
-      return AlertTriangle;
+      return <AlertTriangle className={className} />;
     case "error":
-      return AlertCircle;
+      return <AlertCircle className={className} />;
     default:
-      return Info;
+      return <Info className={className} />;
   }
 }
 

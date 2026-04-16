@@ -27,25 +27,26 @@ export function FilePreviewModal({
   open,
   onClose,
 }: FilePreviewModalProps) {
+  if (!open || !file) return null;
+  return <FilePreviewContent key={file.id} file={file} onClose={onClose} />;
+}
+
+interface FilePreviewContentProps {
+  file: FileRecord;
+  onClose: () => void;
+}
+
+function FilePreviewContent({ file, onClose }: FilePreviewContentProps) {
   const [imageZoom, setImageZoom] = useState(1);
   const [imageRotation, setImageRotation] = useState(0);
-
-  useEffect(() => {
-    if (!open) {
-      setImageZoom(1);
-      setImageRotation(0);
-    }
-  }, [open]);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
-    if (open) window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
-
-  if (!open || !file) return null;
+  }, [onClose]);
 
   const publicUrl = `${import.meta.env.VITE_R2_PUBLIC_URL}/${file.r2_key}`;
   const fileType = getFileType(file.mime_type);
