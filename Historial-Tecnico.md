@@ -1023,7 +1023,81 @@ grant execute on function public.find_profile_by_email(text) to authenticated;
 
 ---
 
+## ✅ PASO 25 — RLS endurecido para defensa en profundidad
+
+**Commit:** `feat: enforce role permissions at RLS layer`
+
+### Acciones realizadas
+
+- Políticas **restrictivas** sobre `files`, `folders` y `file_shares` que se combinan (AND) con las permisivas existentes — no rompen lectura, solo bloquean INSERT/UPDATE/DELETE para roles sin permiso
+- Función helper `has_workspace_edit_permission(uuid)` (`security definer`, `stable`) centraliza la regla: owner del workspace o miembro con rol `admin`/`editor`
+- `file_shares` evaluado por `resource_type` + join a `files` o `folders` (la tabla no tiene `file_id` directo, usa `resource_id` polimórfico)
+
+### SQL aplicado en Supabase
+
+```sql
+-- Helper
+create or replace function public.has_workspace_edit_permission(p_workspace_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.workspaces w
+    where w.id = p_workspace_id and w.owner_id = auth.uid()
+  )
+  or exists (
+    select 1 from public.workspace_members m
+    where m.workspace_id = p_workspace_id
+      and m.user_id = auth.uid()
+      and m.role in ('admin', 'editor')
+  );
+$$;
+
+grant execute on function public.has_workspace_edit_permission(uuid) to authenticated;
+
+-- files / folders
+create policy "files_insert_requires_edit"   on public.files   as restrictive for insert to authenticated with check (public.has_workspace_edit_permission(workspace_id));
+create policy "files_update_requires_edit"   on public.files   as restrictive for update to authenticated using      (public.has_workspace_edit_permission(workspace_id));
+create policy "files_delete_requires_edit"   on public.files   as restrictive for delete to authenticated using      (public.has_workspace_edit_permission(workspace_id));
+create policy "folders_insert_requires_edit" on public.folders as restrictive for insert to authenticated with check (public.has_workspace_edit_permission(workspace_id));
+create policy "folders_update_requires_edit" on public.folders as restrictive for update to authenticated using      (public.has_workspace_edit_permission(workspace_id));
+create policy "folders_delete_requires_edit" on public.folders as restrictive for delete to authenticated using      (public.has_workspace_edit_permission(workspace_id));
+
+-- file_shares (polimórfico)
+create policy "file_shares_insert_requires_edit" on public.file_shares as restrictive for insert to authenticated
+with check (
+  (resource_type = 'file'   and exists (select 1 from public.files   f  where f.id  = file_shares.resource_id and public.has_workspace_edit_permission(f.workspace_id)))
+  or (resource_type = 'folder' and exists (select 1 from public.folders fo where fo.id = file_shares.resource_id and public.has_workspace_edit_permission(fo.workspace_id)))
+);
+-- (update/delete análogas con USING)
+```
+
+### Decisiones técnicas
+
+- **Restrictive** en vez de reemplazar las permisivas existentes: se AND-ean, así no hay riesgo de romper lecturas o flujos de otros roles
+- Helper `security definer` evita que los checks recursen en RLS sobre `workspace_members`/`workspaces` — la función corre con permisos elevados pero solo expone un booleano
+- `stable` permite al planner cachear el resultado dentro de la misma query
+- Owner tratado igual que admin/editor a nivel DB (consistente con la UI)
+
+### Validación end-to-end (Playwright como viewer)
+
+| Intento desde `supabase-js` del navegador | Resultado |
+|-------------------------------------------|-----------|
+| `INSERT` en `folders`                     | ❌ 42501 — política `folders_insert_requires_edit` |
+| `UPDATE` de `files.name`                  | ❌ 0 filas (USING filtra) |
+| `DELETE` de `folders`                     | ❌ 0 filas (USING filtra) |
+| `INSERT` en `file_shares`                 | ❌ 42501 — política `file_shares_insert_requires_edit` |
+
+Verificado post-test: archivo y carpeta originales intactos. La UI seguía en modo solo-lectura durante todo el test.
+
+---
+
 ## 🔜 PRÓXIMOS PASOS
 
-- Reforzar permisos en RLS de `files`, `folders` y `file_shares` (defensa en profundidad — actualmente solo UI)
+- Mostrar nombre real del miembro en `MembersPage` (hoy cae a "Usuario" porque RLS de `profiles` bloquea lecturas cruzadas — resolver con una RPC análoga a `find_profile_by_email` o extendiendo esa misma)
+- Endurecer también `file_versions`, `comments`, `activity_log` con el mismo patrón restrictivo
+- Endurecer bucket de Storage (`files` en R2/Supabase Storage) — hoy la autorización para subir/eliminar el blob vive en la Edge Function, revisar que replique el mismo check de rol
 - Mostrar nombre real del miembro en `MembersPage` (hoy aparece como "Usuario" porque RLS de `profiles` solo deja al owner ver su propio perfil)
