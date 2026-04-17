@@ -1249,7 +1249,53 @@ npx supabase functions deploy upload-file --no-verify-jwt
 
 ---
 
+## ✅ PASO 29 — Cierre de hardening: `notifications` + auditoría de R2
+
+**Commit:** `docs: add step 29 (notifications RLS + R2 audit)`
+
+### Acciones realizadas
+
+- Políticas **restrictivas** en `notifications` para INSERT/UPDATE/DELETE: toda operación queda restringida a filas donde `user_id = auth.uid()`, y el `WITH CHECK` en UPDATE impide transferir una notificación propia a otro usuario
+- Auditoría de endpoints R2: no existen Edge Functions de `download-file` ni `delete-file`. Los downloads se resuelven con la URL pública de R2 (bucket público, aislado por prefijo `workspaceId/...`) y los deletes de archivos son soft-delete en DB — los blobs quedan huérfanos pero no se exponen como vector de escritura
+
+### SQL aplicado en Supabase
+
+```sql
+create policy "notifications_insert_self_only"
+on public.notifications as restrictive for insert to authenticated
+with check (user_id = auth.uid());
+
+create policy "notifications_update_self_only"
+on public.notifications as restrictive for update to authenticated
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+create policy "notifications_delete_self_only"
+on public.notifications as restrictive for delete to authenticated
+using (user_id = auth.uid());
+```
+
+### Decisiones técnicas
+
+- Se mantiene el INSERT permitido (en vez de `false` total) porque triggers futuros pueden crear notificaciones en nombre del usuario que las recibe — restringir a `user_id = auth.uid()` bloquea suplantación sin romper triggers legítimos
+- UPDATE usa `USING` + `WITH CHECK` del mismo predicado — impide tanto tocar filas ajenas como mover la tuya a otro usuario
+- El `r2_key` de los archivos públicos es no-adivinable (`{wsId}/{folderId}/{timestamp}-{sanitizedName}`) y la fila en `files` está protegida por RLS, así que un no-miembro no puede listarlos ni leer los blobs desde la UI, aunque la URL sea teóricamente accesible si alguien la filtra
+
+### Validación end-to-end (Playwright como viewer)
+
+| Intento | Resultado |
+|---------|-----------|
+| `SELECT` notificaciones de Juan | 0 filas (SELECT RLS ya bloqueaba) |
+| `INSERT` notificación suplantando a Juan | ❌ 42501 — `notifications_insert_self_only` |
+| `UPDATE` notificación propia transfiriéndola a Juan | ❌ 42501 (WITH CHECK) |
+| `UPDATE` masivo sin filtro de id | Solo tocó 3 filas, todas del viewer (USING restringe) |
+
+### Nota sobre un falso positivo
+
+Durante la primera tanda de tests, una función de resumen contaba `.length` del string de fallback (`"no juan notif to test".length === 21`), lo que parecía indicar que el viewer había actualizado 21 filas ajenas. Corregido el resumen, el comportamiento real era: RLS de SELECT bloqueaba al viewer, `juanNotifId` era `undefined`, la rama del `update` no se ejecutaba. Las restrictivas funcionan.
+
+---
+
 ## 🔜 PRÓXIMOS PASOS
 
-- Considerar políticas restrictivas también en `notifications`
-- Revisar si hay endpoints que emitan URLs de **download/delete** contra R2 sin el mismo check (scope: futura Edge Function `delete-file` / `download-file` si existen)
+- Volver a trabajo de producto: features pendientes o mejoras UX — el hardening queda cerrado por ahora
