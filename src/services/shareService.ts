@@ -58,6 +58,53 @@ export const shareService = {
   },
 
   /**
+   * Get all active shares created by the current user, enriched with resource name
+   */
+  async getMyShares(): Promise<(FileShare & { resource_name: string })[]> {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('No hay sesión activa')
+
+    const { data: shares, error } = await supabase
+      .from('file_shares')
+      .select('*')
+      .eq('shared_by', user.id)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+
+    const enriched = shares as (FileShare & { resource_name: string })[]
+
+    // Batch-fetch file and folder names
+    const fileIds = enriched.filter((s) => s.resource_type === 'file').map((s) => s.resource_id)
+    const folderIds = enriched.filter((s) => s.resource_type === 'folder').map((s) => s.resource_id)
+
+    const nameMap = new Map<string, string>()
+
+    if (fileIds.length > 0) {
+      const { data: files } = await supabase
+        .from('files')
+        .select('id, name')
+        .in('id', fileIds)
+      files?.forEach((f) => nameMap.set(f.id, f.name))
+    }
+
+    if (folderIds.length > 0) {
+      const { data: folders } = await supabase
+        .from('folders')
+        .select('id, name')
+        .in('id', folderIds)
+      folders?.forEach((f) => nameMap.set(f.id, f.name))
+    }
+
+    for (const share of enriched) {
+      share.resource_name = nameMap.get(share.resource_id) ?? 'Recurso eliminado'
+    }
+
+    return enriched
+  },
+
+  /**
    * Get all shares for a resource
    */
   async getShares(resourceId: string): Promise<FileShare[]> {

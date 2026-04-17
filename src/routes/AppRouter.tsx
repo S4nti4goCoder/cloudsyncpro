@@ -8,6 +8,7 @@ const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage"));
 const WorkspacesPage = lazy(() => import("@/pages/workspaces/WorkspacesPage"));
 const FilesPage = lazy(() => import("@/pages/files/FilesPage"));
 const SharedFilePage = lazy(() => import("@/pages/shared/SharedFilePage"));
+const SharedPage = lazy(() => import("@/pages/shared/SharedPage"));
 const DashboardPage = lazy(() => import("@/pages/dashboard/DashboardPage"));
 const AdminPage = lazy(() => import("@/pages/admin/AdminPage"));
 const ActivityPage = lazy(() => import("@/pages/activity/ActivityPage"));
@@ -114,7 +115,7 @@ export function AppRoutes() {
           path="/shared"
           element={
             <ProtectedRoute>
-              <PlaceholderPage title="Compartidos" />
+              <SharedPage />
             </ProtectedRoute>
           }
         />

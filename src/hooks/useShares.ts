@@ -5,6 +5,13 @@ import { useAuthStore } from '@/store/authStore'
 
 const SHARES_KEY = 'shares'
 
+export function useMyShares() {
+  return useQuery({
+    queryKey: [SHARES_KEY, 'mine'],
+    queryFn: () => shareService.getMyShares(),
+  })
+}
+
 export function useShares(resourceId: string) {
   return useQuery({
     queryKey: [SHARES_KEY, resourceId],
@@ -43,14 +50,13 @@ export function useCreateShare(resourceId: string) {
   })
 }
 
-export function useDeactivateShare(resourceId: string) {
+export function useDeactivateShare(resourceId?: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (id: string) => shareService.deactivateShare(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [SHARES_KEY, resourceId] })
-      toast.success('Enlace desactivado')
+      void queryClient.invalidateQueries({ queryKey: [SHARES_KEY] })
     },
     onError: (error: Error) => {
       toast.error(error.message ?? 'Error al desactivar el enlace')
