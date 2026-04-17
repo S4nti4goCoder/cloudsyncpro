@@ -10,6 +10,7 @@ import {
   Pencil,
   Trash2,
   Archive,
+  FolderInput,
   ChevronRight,
   Home,
   FileIcon,
@@ -27,14 +28,16 @@ import { useWorkspaceStore, getActiveWorkspace } from "@/store/workspaceStore";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
 import {
   useFolders,
+  useFolderPath,
   useCreateFolder,
   useDeleteFolder,
   useRenameFolder,
 } from "@/hooks/useFolders";
-import { useFiles, useArchiveFile, useTrashFile } from "@/hooks/useFiles";
+import { useFiles, useArchiveFile, useTrashFile, useRenameFile, useMoveFile } from "@/hooks/useFiles";
 import { UploadFileModal } from "@/components/shared/UploadFileModal";
 import { FilePreviewModal } from "@/components/shared/FilePreviewModal";
 import { ShareFileModal } from "@/components/shared/ShareFileModal";
+import { MoveFileModal } from "@/components/shared/MoveFileModal";
 import { cn } from "@/lib/utils";
 import { formatFileSize, getFileColor } from "@/utils/fileUtils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -57,6 +60,9 @@ export default function FilesPage() {
   const [newFolderName, setNewFolderName] = useState("");
   const [previewFile, setPreviewFile] = useState<FileRecord | null>(null);
   const [shareFile, setShareFile] = useState<FileRecord | null>(null);
+  const [moveFile, setMoveFile] = useState<FileRecord | null>(null);
+  const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
+  const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
 
   const folderId = searchParams.get("folder");
   const { activeWorkspaceId } = useWorkspaceStore();
@@ -80,8 +86,11 @@ export default function FilesPage() {
     folderId,
   );
   const { mutate: deleteFolder } = useDeleteFolder(workspaceId);
+  const { data: folderPath } = useFolderPath(folderId);
   const { mutate: archiveFile } = useArchiveFile(workspaceId, folderId);
   const { mutate: trashFile } = useTrashFile(workspaceId, folderId);
+  const { mutate: renameFile } = useRenameFile(workspaceId, folderId);
+  const { mutate: doMoveFile, isPending: movePending } = useMoveFile(workspaceId);
 
   const isLoading = foldersLoading || filesLoading;
   const isEmpty = !isLoading && !folders?.length && !files?.length;
@@ -151,12 +160,22 @@ export default function FilesPage() {
           <Home className="h-3.5 w-3.5" />
           <span>Raíz</span>
         </button>
-        {folderId && (
-          <>
+        {folderPath?.map((f) => (
+          <div key={f.id} className="flex items-center gap-1.5">
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-foreground font-medium">Carpeta actual</span>
-          </>
-        )}
+            <button
+              onClick={() => setSearchParams({ folder: f.id })}
+              className={cn(
+                "transition-colors",
+                f.id === folderId
+                  ? "text-foreground font-medium"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {f.name}
+            </button>
+          </div>
+        ))}
       </div>
 
       {/* Toolbar */}
@@ -264,6 +283,9 @@ export default function FilesPage() {
                     viewMode={viewMode}
                     onClick={() => handleFolderClick(folder)}
                     onDelete={() => deleteFolder(folder.id)}
+                    isRenaming={renamingFolderId === folder.id}
+                    onStartRename={() => setRenamingFolderId(folder.id)}
+                    onCancelRename={() => setRenamingFolderId(null)}
                   />
                 ))}
               </div>
@@ -292,6 +314,14 @@ export default function FilesPage() {
                     onShare={() => setShareFile(file)}
                     onArchive={() => archiveFile(file.id)}
                     onTrash={() => trashFile(file.id)}
+                    onMove={() => setMoveFile(file)}
+                    isRenaming={renamingFileId === file.id}
+                    onStartRename={() => setRenamingFileId(file.id)}
+                    onRename={(name) => {
+                      renameFile({ id: file.id, name });
+                      setRenamingFileId(null);
+                    }}
+                    onCancelRename={() => setRenamingFileId(null)}
                   />
                 ))}
               </div>
@@ -319,6 +349,18 @@ export default function FilesPage() {
         open={shareFile !== null}
         onClose={() => setShareFile(null)}
       />
+
+      <MoveFileModal
+        file={moveFile}
+        open={moveFile !== null}
+        onClose={() => setMoveFile(null)}
+        onMove={(fileId, targetFolderId) => {
+          doMoveFile({ id: fileId, targetFolderId }, {
+            onSuccess: () => setMoveFile(null),
+          });
+        }}
+        isPending={movePending}
+      />
     </div>
   );
 }
@@ -332,32 +374,61 @@ interface FolderCardProps {
   viewMode: ViewMode;
   onClick: () => void;
   onDelete: () => void;
+  isRenaming: boolean;
+  onStartRename: () => void;
+  onCancelRename: () => void;
 }
 
-function FolderCard({ folder, viewMode, onClick, onDelete }: FolderCardProps) {
+function FolderCard({ folder, viewMode, onClick, onDelete, isRenaming, onStartRename, onCancelRename }: FolderCardProps) {
   const { mutate: renameFolder } = useRenameFolder(folder.workspace_id);
+  const [editName, setEditName] = useState(folder.name);
+
+  function handleRenameConfirm() {
+    const trimmed = editName.trim();
+    if (trimmed && trimmed !== folder.name) {
+      renameFolder({ id: folder.id, name: trimmed });
+    }
+    onCancelRename();
+  }
+
+  const nameElement = isRenaming ? (
+    <input
+      type="text"
+      value={editName}
+      onChange={(e) => setEditName(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") handleRenameConfirm();
+        if (e.key === "Escape") onCancelRename();
+      }}
+      onBlur={handleRenameConfirm}
+      onClick={(e) => e.stopPropagation()}
+      autoFocus
+      className="w-full bg-transparent text-sm font-medium text-foreground border-b border-primary focus:outline-none"
+    />
+  ) : (
+    <p className="text-sm font-medium text-foreground line-clamp-1 leading-tight">
+      {folder.name}
+    </p>
+  );
 
   if (viewMode === "list") {
     return (
       <div
         className="group flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-border"
-        onClick={onClick}
+        onClick={isRenaming ? undefined : onClick}
       >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
           <Folder className="h-4 w-4 text-blue-400" />
         </div>
-        <span className="flex-1 text-sm font-medium text-foreground truncate">
-          {folder.name}
-        </span>
+        <div className="flex-1 min-w-0">{nameElement}</div>
         <span className="text-xs text-muted-foreground shrink-0">
           {format(new Date(folder.created_at), "d MMM yyyy", { locale: es })}
         </span>
         <div onClick={(e) => e.stopPropagation()}>
           <FolderMenu
             onRename={() => {
-              const name = prompt("Nuevo nombre:", folder.name);
-              if (name && name !== folder.name)
-                renameFolder({ id: folder.id, name });
+              setEditName(folder.name);
+              onStartRename();
             }}
             onDelete={onDelete}
           />
@@ -369,7 +440,7 @@ function FolderCard({ folder, viewMode, onClick, onDelete }: FolderCardProps) {
   return (
     <div
       className="group relative flex flex-col rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-sm transition-all duration-150 cursor-pointer overflow-hidden"
-      onClick={onClick}
+      onClick={isRenaming ? undefined : onClick}
     >
       <div className="h-1.5 w-full bg-linear-to-r from-blue-400 to-blue-500" />
       <div className="p-4 flex flex-col gap-3">
@@ -383,18 +454,15 @@ function FolderCard({ folder, viewMode, onClick, onDelete }: FolderCardProps) {
           >
             <FolderMenu
               onRename={() => {
-                const name = prompt("Nuevo nombre:", folder.name);
-                if (name && name !== folder.name)
-                  renameFolder({ id: folder.id, name });
+                setEditName(folder.name);
+                onStartRename();
               }}
               onDelete={onDelete}
             />
           </div>
         </div>
         <div className="space-y-0.5">
-          <p className="text-sm font-medium text-foreground line-clamp-1 leading-tight">
-            {folder.name}
-          </p>
+          {nameElement}
           <p className="text-[11px] text-muted-foreground">
             {format(new Date(folder.created_at), "d MMM yyyy", { locale: es })}
           </p>
@@ -447,6 +515,11 @@ interface FileCardProps {
   onShare: () => void;
   onArchive: () => void;
   onTrash: () => void;
+  onMove: () => void;
+  isRenaming: boolean;
+  onStartRename: () => void;
+  onRename: (name: string) => void;
+  onCancelRename: () => void;
 }
 
 function FileCard({
@@ -456,14 +529,49 @@ function FileCard({
   onShare,
   onArchive,
   onTrash,
+  onMove,
+  isRenaming,
+  onStartRename,
+  onRename,
+  onCancelRename,
 }: FileCardProps) {
   const colorClass = getFileColor(file.mime_type);
+  const [editName, setEditName] = useState(file.name);
+
+  function handleRenameConfirm() {
+    const trimmed = editName.trim();
+    if (trimmed && trimmed !== file.name) {
+      onRename(trimmed);
+    } else {
+      onCancelRename();
+    }
+  }
+
+  const nameElement = isRenaming ? (
+    <input
+      type="text"
+      value={editName}
+      onChange={(e) => setEditName(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") handleRenameConfirm();
+        if (e.key === "Escape") onCancelRename();
+      }}
+      onBlur={handleRenameConfirm}
+      onClick={(e) => e.stopPropagation()}
+      autoFocus
+      className="w-full bg-transparent text-sm font-medium text-foreground border-b border-primary focus:outline-none"
+    />
+  ) : (
+    <p className="text-sm font-medium text-foreground line-clamp-1 leading-tight flex-1">
+      {file.name}
+    </p>
+  );
 
   if (viewMode === "list") {
     return (
       <div
         className="group flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/50 transition-colors border border-transparent hover:border-border cursor-pointer"
-        onClick={onClick}
+        onClick={isRenaming ? undefined : onClick}
       >
         <div
           className={cn(
@@ -473,9 +581,7 @@ function FileCard({
         >
           {renderFileTypeIcon(file.mime_type, "h-4 w-4")}
         </div>
-        <span className="flex-1 text-sm font-medium text-foreground truncate">
-          {file.name}
-        </span>
+        <div className="flex-1 min-w-0">{nameElement}</div>
         <span className="text-xs text-muted-foreground shrink-0">
           {formatFileSize(file.size)}
         </span>
@@ -483,7 +589,13 @@ function FileCard({
           {format(new Date(file.created_at), "d MMM yyyy", { locale: es })}
         </span>
         <div onClick={(e) => e.stopPropagation()}>
-          <FileMenu onShare={onShare} onArchive={onArchive} onTrash={onTrash} />
+          <FileMenu
+            onRename={() => { setEditName(file.name); onStartRename(); }}
+            onShare={onShare}
+            onMove={onMove}
+            onArchive={onArchive}
+            onTrash={onTrash}
+          />
         </div>
       </div>
     );
@@ -492,7 +604,7 @@ function FileCard({
   return (
     <div
       className="group relative flex flex-col rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-sm transition-all duration-150 cursor-pointer overflow-hidden"
-      onClick={onClick}
+      onClick={isRenaming ? undefined : onClick}
     >
       <div
         className={cn(
@@ -507,15 +619,15 @@ function FileCard({
       </div>
       <div className="p-3 flex flex-col gap-1">
         <div className="flex items-start justify-between gap-1">
-          <p className="text-sm font-medium text-foreground line-clamp-1 leading-tight flex-1">
-            {file.name}
-          </p>
+          {nameElement}
           <div
             className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
             <FileMenu
+              onRename={() => { setEditName(file.name); onStartRename(); }}
               onShare={onShare}
+              onMove={onMove}
               onArchive={onArchive}
               onTrash={onTrash}
             />
@@ -531,11 +643,15 @@ function FileCard({
 }
 
 function FileMenu({
+  onRename,
   onShare,
+  onMove,
   onArchive,
   onTrash,
 }: {
+  onRename: () => void;
   onShare: () => void;
+  onMove: () => void;
   onArchive: () => void;
   onTrash: () => void;
 }) {
@@ -547,16 +663,23 @@ function FileMenu({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuItem onClick={onRename}>
+          <Pencil className="mr-2 h-3.5 w-3.5" />
+          Renombrar
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={onShare}>
           <Share2 className="mr-2 h-3.5 w-3.5" />
           Compartir
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onMove}>
+          <FolderInput className="mr-2 h-3.5 w-3.5" />
+          Mover a…
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onArchive}>
           <Archive className="mr-2 h-3.5 w-3.5" />
           Archivar
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={onTrash}
           className="text-destructive focus:text-destructive"

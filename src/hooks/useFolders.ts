@@ -21,6 +21,14 @@ export function useFolderPath(folderId: string | null) {
   })
 }
 
+export function useAllFolders(workspaceId: string) {
+  return useQuery({
+    queryKey: [FOLDERS_KEY, workspaceId, 'all'],
+    queryFn: () => folderService.getAllFolders(workspaceId),
+    enabled: !!workspaceId,
+  })
+}
+
 export function useCreateFolder(workspaceId: string, parentId: string | null = null) {
   const queryClient = useQueryClient()
   const userId = useAuthStore((s) => s.user?.id)

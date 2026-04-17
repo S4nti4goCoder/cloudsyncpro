@@ -89,6 +89,22 @@ export function useRestoreFile(workspaceId: string) {
   })
 }
 
+export function useMoveFile(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, targetFolderId }: { id: string; targetFolderId: string | null }) =>
+      fileService.moveFile(id, targetFolderId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId] })
+      toast.success('Archivo movido')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Error al mover el archivo')
+    },
+  })
+}
+
 export function useDeleteFile(workspaceId: string) {
   const queryClient = useQueryClient()
 

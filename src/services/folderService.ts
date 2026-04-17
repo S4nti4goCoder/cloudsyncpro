@@ -121,6 +121,20 @@ export const folderService = {
   },
 
   /**
+   * Get all folders in a workspace (flat list for folder picker)
+   */
+  async getAllFolders(workspaceId: string): Promise<Folder[]> {
+    const { data, error } = await supabase
+      .from("folders")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .order("name", { ascending: true });
+
+    if (error) throw error;
+    return data as Folder[];
+  },
+
+  /**
    * Get folder breadcrumb path
    */
   async getFolderPath(folderId: string): Promise<Folder[]> {
