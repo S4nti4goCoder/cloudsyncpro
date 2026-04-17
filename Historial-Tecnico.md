@@ -1095,9 +1095,61 @@ Verificado post-test: archivo y carpeta originales intactos. La UI seguía en mo
 
 ---
 
+## ✅ PASO 26 — Nombres reales de miembros en `MembersPage`
+
+**Commit:** `feat: show real member names via security-definer RPC`
+
+### Acciones realizadas
+
+- `src/services/memberService.ts` — `getMembers` ahora llama a la RPC `get_workspace_members` y mapea al tipo `WorkspaceMemberWithProfile` existente (no rompe consumidores)
+- RPC `get_workspace_members(p_workspace_id uuid)` en Supabase — JOIN `workspace_members` + `profiles` con `security definer`, pero restringido a callers que ya son miembro u owner del workspace
+
+### SQL aplicado en Supabase
+
+```sql
+create or replace function public.get_workspace_members(p_workspace_id uuid)
+returns table (
+  id uuid, user_id uuid, workspace_id uuid,
+  role user_role, joined_at timestamptz,
+  full_name text, email text, avatar_url text
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select m.id, m.user_id, m.workspace_id, m.role, m.joined_at,
+         p.full_name, p.email, p.avatar_url
+  from public.workspace_members m
+  left join public.profiles p on p.id = m.user_id
+  where m.workspace_id = p_workspace_id
+    and (
+      exists (select 1 from public.workspace_members cm
+              where cm.workspace_id = p_workspace_id and cm.user_id = auth.uid())
+      or exists (select 1 from public.workspaces w
+                 where w.id = p_workspace_id and w.owner_id = auth.uid())
+    )
+  order by m.joined_at asc;
+$$;
+
+revoke all on function public.get_workspace_members(uuid) from public, anon;
+grant execute on function public.get_workspace_members(uuid) to authenticated;
+```
+
+### Decisiones técnicas
+
+- El embed original `profiles!workspace_members_user_id_fkey` devolvía `null` para todos los usuarios que no fueran el caller (RLS de `profiles` solo permite leer tu propia fila). La UI caía al fallback "Usuario"
+- Se preserva la signatura del tipo `WorkspaceMemberWithProfile` — ningún consumidor (`MembersPage`, `ConfirmDialog`, filtros) necesitó cambios
+- La RPC valida pertenencia al workspace antes de exponer datos de terceros — no abre un canal lateral para listar perfiles arbitrarios
+
+### Validación end-to-end (Playwright como viewer)
+
+- `/members` ahora muestra: **Juan** (owner, juan@gmail.com) y **Viewer Test** (tú, viewer@test.com) — ambos con nombre real e iniciales correctas
+- Antes del fix: ambas filas mostraban "Usuario" sin email visible
+
+---
+
 ## 🔜 PRÓXIMOS PASOS
 
-- Mostrar nombre real del miembro en `MembersPage` (hoy cae a "Usuario" porque RLS de `profiles` bloquea lecturas cruzadas — resolver con una RPC análoga a `find_profile_by_email` o extendiendo esa misma)
 - Endurecer también `file_versions`, `comments`, `activity_log` con el mismo patrón restrictivo
 - Endurecer bucket de Storage (`files` en R2/Supabase Storage) — hoy la autorización para subir/eliminar el blob vive en la Edge Function, revisar que replique el mismo check de rol
-- Mostrar nombre real del miembro en `MembersPage` (hoy aparece como "Usuario" porque RLS de `profiles` solo deja al owner ver su propio perfil)
