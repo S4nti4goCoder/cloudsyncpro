@@ -57,6 +57,28 @@ export const activityService = {
     }
   },
 
+  async getResourceActivities(
+    resourceId: string,
+    workspaceId?: string,
+  ): Promise<ActivityWithUser[]> {
+    let query = supabase
+      .from("activity_logs")
+      .select(
+        "*, user:profiles!activity_logs_user_id_fkey(id, full_name, email, avatar_url)",
+      )
+      .eq("resource_id", resourceId)
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (workspaceId) {
+      query = query.eq("workspace_id", workspaceId);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []) as ActivityWithUser[];
+  },
+
   async getActivities(
     workspaceId: string,
     filters: ActivityFilters = {},

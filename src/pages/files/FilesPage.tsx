@@ -21,6 +21,7 @@ import {
   FileAudioIcon,
   FileArchiveIcon,
   Share2,
+  Activity,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -38,6 +39,7 @@ import { UploadFileModal } from "@/components/shared/UploadFileModal";
 import { FilePreviewModal } from "@/components/shared/FilePreviewModal";
 import { ShareFileModal } from "@/components/shared/ShareFileModal";
 import { MoveFileModal } from "@/components/shared/MoveFileModal";
+import { ResourceActivityModal } from "@/components/shared/ResourceActivityModal";
 import { cn } from "@/lib/utils";
 import { formatFileSize, getFileColor } from "@/utils/fileUtils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -61,6 +63,11 @@ export default function FilesPage() {
   const [previewFile, setPreviewFile] = useState<FileRecord | null>(null);
   const [shareFile, setShareFile] = useState<FileRecord | null>(null);
   const [moveFile, setMoveFile] = useState<FileRecord | null>(null);
+  const [activityResource, setActivityResource] = useState<{
+    id: string;
+    name: string;
+    type: "file" | "folder";
+  } | null>(null);
   const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
   const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
 
@@ -283,6 +290,7 @@ export default function FilesPage() {
                     viewMode={viewMode}
                     onClick={() => handleFolderClick(folder)}
                     onDelete={() => deleteFolder(folder.id)}
+                    onActivity={() => setActivityResource({ id: folder.id, name: folder.name, type: "folder" })}
                     isRenaming={renamingFolderId === folder.id}
                     onStartRename={() => setRenamingFolderId(folder.id)}
                     onCancelRename={() => setRenamingFolderId(null)}
@@ -315,6 +323,7 @@ export default function FilesPage() {
                     onArchive={() => archiveFile(file.id)}
                     onTrash={() => trashFile(file.id)}
                     onMove={() => setMoveFile(file)}
+                    onActivity={() => setActivityResource({ id: file.id, name: file.name, type: "file" })}
                     isRenaming={renamingFileId === file.id}
                     onStartRename={() => setRenamingFileId(file.id)}
                     onRename={(name) => {
@@ -361,6 +370,15 @@ export default function FilesPage() {
         }}
         isPending={movePending}
       />
+
+      <ResourceActivityModal
+        resourceId={activityResource?.id ?? null}
+        resourceName={activityResource?.name ?? ""}
+        resourceType={activityResource?.type ?? "file"}
+        workspaceId={workspaceId}
+        open={activityResource !== null}
+        onClose={() => setActivityResource(null)}
+      />
     </div>
   );
 }
@@ -374,12 +392,13 @@ interface FolderCardProps {
   viewMode: ViewMode;
   onClick: () => void;
   onDelete: () => void;
+  onActivity: () => void;
   isRenaming: boolean;
   onStartRename: () => void;
   onCancelRename: () => void;
 }
 
-function FolderCard({ folder, viewMode, onClick, onDelete, isRenaming, onStartRename, onCancelRename }: FolderCardProps) {
+function FolderCard({ folder, viewMode, onClick, onDelete, onActivity, isRenaming, onStartRename, onCancelRename }: FolderCardProps) {
   const { mutate: renameFolder } = useRenameFolder(folder.workspace_id);
   const [editName, setEditName] = useState(folder.name);
 
@@ -430,6 +449,7 @@ function FolderCard({ folder, viewMode, onClick, onDelete, isRenaming, onStartRe
               setEditName(folder.name);
               onStartRename();
             }}
+            onActivity={onActivity}
             onDelete={onDelete}
           />
         </div>
@@ -457,6 +477,7 @@ function FolderCard({ folder, viewMode, onClick, onDelete, isRenaming, onStartRe
                 setEditName(folder.name);
                 onStartRename();
               }}
+              onActivity={onActivity}
               onDelete={onDelete}
             />
           </div>
@@ -474,26 +495,32 @@ function FolderCard({ folder, viewMode, onClick, onDelete, isRenaming, onStartRe
 
 function FolderMenu({
   onRename,
+  onActivity,
   onDelete,
 }: {
   onRename: () => void;
+  onActivity: () => void;
   onDelete: () => void;
 }) {
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <button className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
           <MoreHorizontal className="h-4 w-4" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
-        <DropdownMenuItem onClick={onRename}>
+        <DropdownMenuItem onSelect={onRename}>
           <Pencil className="mr-2 h-3.5 w-3.5" />
           Renombrar
         </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onActivity}>
+          <Activity className="mr-2 h-3.5 w-3.5" />
+          Ver actividad
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onClick={onDelete}
+          onSelect={onDelete}
           className="text-destructive focus:text-destructive"
         >
           <Trash2 className="mr-2 h-3.5 w-3.5" />
@@ -516,6 +543,7 @@ interface FileCardProps {
   onArchive: () => void;
   onTrash: () => void;
   onMove: () => void;
+  onActivity: () => void;
   isRenaming: boolean;
   onStartRename: () => void;
   onRename: (name: string) => void;
@@ -530,6 +558,7 @@ function FileCard({
   onArchive,
   onTrash,
   onMove,
+  onActivity,
   isRenaming,
   onStartRename,
   onRename,
@@ -593,6 +622,7 @@ function FileCard({
             onRename={() => { setEditName(file.name); onStartRename(); }}
             onShare={onShare}
             onMove={onMove}
+            onActivity={onActivity}
             onArchive={onArchive}
             onTrash={onTrash}
           />
@@ -628,6 +658,7 @@ function FileCard({
               onRename={() => { setEditName(file.name); onStartRename(); }}
               onShare={onShare}
               onMove={onMove}
+              onActivity={onActivity}
               onArchive={onArchive}
               onTrash={onTrash}
             />
@@ -646,42 +677,48 @@ function FileMenu({
   onRename,
   onShare,
   onMove,
+  onActivity,
   onArchive,
   onTrash,
 }: {
   onRename: () => void;
   onShare: () => void;
   onMove: () => void;
+  onActivity: () => void;
   onArchive: () => void;
   onTrash: () => void;
 }) {
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <button className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
           <MoreHorizontal className="h-3.5 w-3.5" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
-        <DropdownMenuItem onClick={onRename}>
+        <DropdownMenuItem onSelect={onRename}>
           <Pencil className="mr-2 h-3.5 w-3.5" />
           Renombrar
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onShare}>
+        <DropdownMenuItem onSelect={onShare}>
           <Share2 className="mr-2 h-3.5 w-3.5" />
           Compartir
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onMove}>
+        <DropdownMenuItem onSelect={onMove}>
           <FolderInput className="mr-2 h-3.5 w-3.5" />
           Mover a…
         </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onActivity}>
+          <Activity className="mr-2 h-3.5 w-3.5" />
+          Ver actividad
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onArchive}>
+        <DropdownMenuItem onSelect={onArchive}>
           <Archive className="mr-2 h-3.5 w-3.5" />
           Archivar
         </DropdownMenuItem>
         <DropdownMenuItem
-          onClick={onTrash}
+          onSelect={onTrash}
           className="text-destructive focus:text-destructive"
         >
           <Trash2 className="mr-2 h-3.5 w-3.5" />
