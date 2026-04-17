@@ -476,6 +476,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_profile_by_email: {
+        Args: { p_email: string }
+        Returns: {
+          avatar_url: string
+          email: string
+          full_name: string
+          id: string
+        }[]
+      }
       get_shared_file: {
         Args: { p_token: string }
         Returns: {
@@ -494,6 +503,19 @@ export type Database = {
         }[]
       }
       get_user_workspace_ids: { Args: { p_user_id: string }; Returns: string[] }
+      get_workspace_members: {
+        Args: { p_workspace_id: string }
+        Returns: {
+          avatar_url: string
+          email: string
+          full_name: string
+          id: string
+          joined_at: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+          workspace_id: string
+        }[]
+      }
       get_workspace_stats: {
         Args: { p_workspace_id: string }
         Returns: {
@@ -502,6 +524,14 @@ export type Database = {
           total_folders: number
           total_size: number
         }[]
+      }
+      has_workspace_edit_permission: {
+        Args: { p_workspace_id: string }
+        Returns: boolean
+      }
+      is_workspace_member: {
+        Args: { p_workspace_id: string }
+        Returns: boolean
       }
       search_files: {
         Args: {
