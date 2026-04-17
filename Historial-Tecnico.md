@@ -1149,7 +1149,61 @@ grant execute on function public.get_workspace_members(uuid) to authenticated;
 
 ---
 
+## ✅ PASO 27 — RLS endurecido en `file_versions` y `activity_logs`
+
+**Commit:** `docs: add step 27 (RLS for file_versions and activity_logs)`
+
+### Acciones realizadas
+
+- Políticas **restrictivas** sobre `file_versions` (requieren edit en el workspace del file padre) y `activity_logs` (audit immutable con INSERT controlado)
+- Nuevo helper `is_workspace_member(uuid)` (security definer, stable) — complementa al `has_workspace_edit_permission` ya existente, pero acepta también rol `viewer`
+- Descubrimiento en código: no existe tabla `comments` (no hacía falta política); `activity_logs` se escribe desde el cliente vía `activityService.logActivity`, por eso el viewer debe poder hacer `INSERT`, pero solo con `user_id = auth.uid()`
+
+### SQL aplicado en Supabase
+
+```sql
+-- Helper: ¿caller es miembro (cualquier rol) del workspace?
+create or replace function public.is_workspace_member(p_workspace_id uuid)
+returns boolean language sql security definer set search_path = public stable
+as $$
+  select exists (select 1 from public.workspaces w where w.id = p_workspace_id and w.owner_id = auth.uid())
+      or exists (select 1 from public.workspace_members m where m.workspace_id = p_workspace_id and m.user_id = auth.uid());
+$$;
+grant execute on function public.is_workspace_member(uuid) to authenticated;
+
+-- file_versions: INSERT/UPDATE/DELETE requieren edit en el workspace del file padre
+create policy "file_versions_insert_requires_edit" on public.file_versions as restrictive for insert to authenticated
+with check (exists (select 1 from public.files f where f.id = file_versions.file_id and public.has_workspace_edit_permission(f.workspace_id)));
+-- (update/delete análogas con USING)
+
+-- activity_logs: INSERT solo como sí mismo y siendo miembro; UPDATE/DELETE bloqueados
+create policy "activity_logs_insert_members_only" on public.activity_logs as restrictive for insert to authenticated
+with check (user_id = auth.uid() and public.is_workspace_member(workspace_id));
+
+create policy "activity_logs_no_update" on public.activity_logs as restrictive for update to authenticated using (false);
+create policy "activity_logs_no_delete" on public.activity_logs as restrictive for delete to authenticated using (false);
+```
+
+### Decisiones técnicas
+
+- `activity_logs` no usa `has_workspace_edit_permission` porque un viewer también necesita registrar "view" / "download" en el log — se usa `is_workspace_member` (más permisivo) + el check `user_id = auth.uid()` para evitar suplantación
+- Audit inmutable a nivel DB: ni admin ni owner pueden editar o borrar logs desde el cliente (usar un rol de servicio / SQL editor si hace falta limpiar)
+- `file_versions` delega el check al workspace del archivo padre vía JOIN — consistente con cómo se protege `file_shares` en el Paso 25
+
+### Validación end-to-end (Playwright como viewer)
+
+| Intento desde `supabase-js` del navegador | Resultado |
+|-------------------------------------------|-----------|
+| `INSERT` en `file_versions`               | ❌ 42501 |
+| `INSERT` en `activity_logs` con su propio `user_id` | ✅ (audit permitido) |
+| `INSERT` en `activity_logs` suplantando a Juan | ❌ 42501 — `activity_logs_insert_members_only` |
+| `INSERT` en `activity_logs` en workspace ajeno | ❌ 42501 |
+| `UPDATE` en `activity_logs`               | ❌ 0 filas (USING false) |
+| `DELETE` en `activity_logs`               | ❌ 0 filas (USING false) |
+
+---
+
 ## 🔜 PRÓXIMOS PASOS
 
-- Endurecer también `file_versions`, `comments`, `activity_log` con el mismo patrón restrictivo
 - Endurecer bucket de Storage (`files` en R2/Supabase Storage) — hoy la autorización para subir/eliminar el blob vive en la Edge Function, revisar que replique el mismo check de rol
+- Considerar restrictivas también en `notifications` (no estaba en el roadmap original pero sigue el mismo patrón)
