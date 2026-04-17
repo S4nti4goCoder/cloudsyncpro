@@ -1205,5 +1205,51 @@ create policy "activity_logs_no_delete" on public.activity_logs as restrictive f
 
 ## 🔜 PRÓXIMOS PASOS
 
-- Endurecer bucket de Storage (`files` en R2/Supabase Storage) — hoy la autorización para subir/eliminar el blob vive en la Edge Function, revisar que replique el mismo check de rol
 - Considerar restrictivas también en `notifications` (no estaba en el roadmap original pero sigue el mismo patrón)
+
+---
+
+## ✅ PASO 28 — Edge Function `upload-file` con verificación de rol
+
+**Commits:**
+- `feat: verify workspace edit-permission in upload-file edge function`
+- `chore: add gen:types script and regenerate Supabase types`
+- `docs: add step 28 (storage hardening)`
+
+### Problema detectado
+
+La Edge Function `upload-file` emitía URLs presignadas de R2 **sin validar el rol** del caller: un viewer autenticado podía subir bytes a cualquier workspace, bypasseando las RLS de `files` aplicadas en el Paso 25 (la fila se rechazaba, pero el blob quedaba en el bucket igual).
+
+### Acciones realizadas
+
+- `supabase/functions/upload-file/index.ts` — ahora crea un cliente Supabase con el JWT del caller, llama a `getUser()` para validar auth, y ejecuta la RPC `has_workspace_edit_permission(workspaceId)` antes de presignar. Devuelve 401 sin auth, 403 sin rol
+- `supabase/config.toml` — `verify_jwt = false` para `upload-file`: el gateway de Supabase rechazaba tokens ES256 con `UNSUPPORTED_TOKEN_ALGORITHM`. La auth se hace **dentro** de la función (más estricta: también valida rol, no solo presencia de JWT)
+- `package.json` — nuevo script `"gen:types": "supabase gen types typescript --project-id fynllwjgkioyciqxvxet > src/types/databaseTypes.ts"`
+- `src/types/databaseTypes.ts` — regenerados, ahora incluyen las 4 RPCs nuevas (`find_profile_by_email`, `has_workspace_edit_permission`, `get_workspace_members`, `is_workspace_member`) con tipos completos
+
+### Deploy
+
+```bash
+npx supabase functions deploy upload-file --no-verify-jwt
+```
+
+### Decisiones técnicas
+
+- **Auth dentro de la función en vez del gateway**: nuestro check es una superset (requiere también permiso de edición en el workspace); además resuelve el incompat ES256 sin esperar a que Supabase actualice el gateway
+- Se reutiliza la RPC `has_workspace_edit_permission` ya existente → misma regla en DB y en Edge, un solo punto de verdad
+- El `r2Key` sigue prefijando por `workspaceId/folderId` — además de la auth, hay aislamiento por path
+
+### Validación end-to-end (Playwright, llamada directa a la función)
+
+| Escenario | HTTP | Body |
+|-----------|------|------|
+| Viewer autenticado → workspace de Juan | **403** | `Forbidden: insufficient role` |
+| Sin header `Authorization` | **401** | `Missing Authorization` |
+| Owner → su propio workspace | **200** | URL presignada emitida |
+
+---
+
+## 🔜 PRÓXIMOS PASOS
+
+- Considerar políticas restrictivas también en `notifications`
+- Revisar si hay endpoints que emitan URLs de **download/delete** contra R2 sin el mismo check (scope: futura Edge Function `delete-file` / `download-file` si existen)
