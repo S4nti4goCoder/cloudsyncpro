@@ -872,9 +872,47 @@ alter table file_shares
 
 ---
 
+## ✅ PASO 22 — Búsqueda global mejorada y Drag & Drop
+
+**Commit:** `feat: add folder search with keyboard nav and drag-drop file moving`
+
+### Acciones realizadas
+
+- `src/hooks/useSearch.ts` — búsqueda combinada de archivos y carpetas con `Promise.all`
+- `src/components/shared/SearchBar.tsx` — resultados por secciones + navegación con teclado
+- `src/pages/files/FilesPage.tsx` — drag & drop nativo HTML5 para mover archivos a carpetas
+
+### Búsqueda global
+
+| Funcionalidad | Descripción |
+|---------------|-------------|
+| Búsqueda de carpetas | `ilike` sobre `folders.name` — máximo 5 resultados |
+| Búsqueda de archivos | `search_files` RPC existente — máximo 15 resultados |
+| Secciones separadas | Dropdown agrupa resultados en "Carpetas" y "Archivos" |
+| Navegación con teclado | Flecha arriba/abajo para moverse, Enter para seleccionar |
+| Highlight activo | El item seleccionado con teclado o hover se resalta con `bg-muted` |
+
+### Drag & Drop
+
+| Funcionalidad | Descripción |
+|---------------|-------------|
+| Archivos draggable | `draggable` en `FileCard` con `effectAllowed: "move"` |
+| Carpetas como drop target | `onDragOver`, `onDragLeave`, `onDrop` en `FolderCard` |
+| Feedback visual | Carpeta se resalta con borde primario y `scale-[1.02]` al arrastrar encima |
+| Drop a raíz | Arrastrar al breadcrumb "Raíz" mueve el archivo a la carpeta raíz |
+| Ambas vistas | Funciona tanto en vista grid como en vista list |
+
+### Decisiones técnicas
+
+- HTML5 Drag API nativo — no se necesita librería adicional (ya tenemos `react-dropzone` para upload, pero el drag entre elementos es más simple con la API nativa)
+- `draggable={!isRenaming}` — deshabilitado durante rename para evitar conflictos con el input
+- `e.stopPropagation()` en los handlers de drop para evitar que el evento burbujee al padre
+- Estado `draggingFileId` + `dragOverFolderId` en el componente padre — controla qué archivo se arrastra y qué carpeta se resalta
+- Drop en "Raíz" solo se activa cuando estamos dentro de una subcarpeta (`folderId` existe)
+
+---
+
 ## 🔜 PRÓXIMOS PASOS
 
-- Búsqueda global funcional (Ctrl+K con resultados en tiempo real)
-- Drag & drop para mover archivos entre carpetas
 - Permisos granulares en el panel de administración
 - Notificaciones en tiempo real con Supabase Realtime
