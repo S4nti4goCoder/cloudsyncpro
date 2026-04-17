@@ -770,10 +770,111 @@ alter table file_shares
 
 ---
 
+## ✅ PASO 19 — Renombrar, mover archivos y breadcrumb dinámico
+
+**Commit:** `feat: add inline rename, move file modal and dynamic breadcrumb`
+
+### Acciones realizadas
+
+- `src/hooks/useFiles.ts` — `useMoveFile` hook con `useMutation`
+- `src/hooks/useFolders.ts` — `useAllFolders(workspaceId)` hook para el picker de carpetas
+- `src/services/folderService.ts` — `getAllFolders(workspaceId)` que trae todas las carpetas del workspace
+- `src/components/shared/MoveFileModal.tsx` — modal con árbol de carpetas para mover archivos
+- `src/pages/files/FilesPage.tsx` — renombrado inline + mover + breadcrumb dinámico
+
+### Funcionalidades
+
+| Funcionalidad | Descripción |
+|---------------|-------------|
+| Renombrar archivo | Inline input que reemplaza `prompt()` — confirma con Enter/blur, cancela con Escape |
+| Renombrar carpeta | Mismo comportamiento inline |
+| Mover archivo | Modal con árbol de carpetas — marca carpeta actual como "(actual)" y la deshabilita |
+| Breadcrumb dinámico | Usa `useFolderPath` para construir ruta clickeable con nombre real de cada carpeta |
+
+### Decisiones técnicas
+
+- `MoveFileModal` construye el árbol recursivamente desde una lista plana de carpetas
+- Inline rename evita modales para operaciones simples — mejor UX
+- Breadcrumb usa `useFolderPath` que consulta recursivamente `parent_id` hasta llegar a la raíz
+
+---
+
+## ✅ PASO 20 — Página de archivos compartidos
+
+**Commit:** `feat: add shared files page with link management`
+
+### Acciones realizadas
+
+- `src/services/shareService.ts` — `getMyShares()` con enrichment de nombres de recursos
+- `src/hooks/useShares.ts` — `useMyShares()` hook + invalidación global en `useDeactivateShare`
+- `src/pages/shared/SharedPage.tsx` — listado de shares activos con gestión
+- `src/routes/AppRouter.tsx` — ruta `/shared` con la página real
+
+### Funcionalidades
+
+| Funcionalidad | Descripción |
+|---------------|-------------|
+| Listado de shares | Muestra todos los shares activos del usuario actual |
+| Badges | Público/privado, indicador de contraseña, fecha de expiración |
+| Copiar link | Botón para copiar URL pública al portapapeles |
+| Desactivar | `ConfirmDialog` antes de desactivar un enlace compartido |
+| Empty state | Mensaje cuando no hay shares activos |
+
+### Decisiones técnicas
+
+- `getMyShares()` hace batch-fetch de nombres: consulta `files` y `folders` por separado con `.in('id', ids)` y luego enriquece cada share
+- `useDeactivateShare` invalida todos los queries de shares (no solo el del recurso específico) para mantener consistencia
+- `Unlink` de lucide-react en lugar de `LinkOff` (no existe en la versión actual)
+
+---
+
+## ✅ PASO 21 — Vista de actividad por archivo/carpeta
+
+**Commit:** `feat: add per-resource activity modal with timeline view`
+
+### Acciones realizadas
+
+- `src/utils/activityUtils.tsx` — helpers compartidos extraídos de `ActivityPage`
+- `src/services/activityService.ts` — `getResourceActivities(resourceId, workspaceId?)`
+- `src/hooks/useActivity.ts` — `useResourceActivities(resourceId, workspaceId?)` hook
+- `src/components/shared/ResourceActivityModal.tsx` — modal con timeline de actividad por recurso
+- `src/pages/activity/ActivityPage.tsx` — refactorizada para usar `activityUtils`
+- `src/pages/files/FilesPage.tsx` — integración del modal + fix de prop faltante en grid view
+
+### Funcionalidades
+
+| Funcionalidad | Descripción |
+|---------------|-------------|
+| Modal de actividad | Dialog que muestra la actividad de un archivo o carpeta específica |
+| Timeline agrupado | Eventos agrupados por día (Hoy / Ayer / fecha) |
+| Avatar y usuario | Muestra quién ejecutó cada acción |
+| Metadata | Muestra nombre previo (rename), flag permanente (delete), tipo de share |
+| Acceso desde menú | "Ver actividad" en el `DropdownMenu` de archivos y carpetas |
+
+### Código extraído a `activityUtils.tsx`
+
+| Export | Descripción |
+|--------|-------------|
+| `ACTION_CONFIG` | `Record<ActivityAction, {label, verb, color}>` — config visual por acción |
+| `renderActionIcon(action, className)` | JSX del ícono según la acción |
+| `groupByDay(items)` | Agrupa `ActivityWithUser[]` por fecha |
+| `formatDayLabel(date)` | "Hoy" / "Ayer" / fecha formateada |
+
+### Correcciones durante Paso 21
+
+**Problema:** "Ver actividad" no abría el modal para archivos en vista grid
+**Causa:** El `FileMenu` en la vista de cuadrícula no recibía la prop `onActivity` (la vista de lista sí la pasaba)
+**Solución:** Agregar `onActivity={onActivity}` al `FileMenu` del render de grid view
+
+**Problema:** Conflicto Radix DropdownMenu → Dialog (el modal no se abría)
+**Causa:** `DropdownMenu` usa `modal={true}` por defecto, lo que bloquea la apertura de un `Dialog` posterior
+**Solución:** `modal={false}` en ambos `DropdownMenu` (archivos y carpetas) + `onSelect` en lugar de `onClick` en todos los `DropdownMenuItem`
+
+---
+
 ## 🔜 PRÓXIMOS PASOS
 
-- UI para renombrar y mover archivos (botones en FilesPage)
-- Vista detallada de actividad por archivo/carpeta
-- Breadcrumb dinámico con nombre real de carpeta
-- Página de archivos compartidos
+- Búsqueda global funcional (Ctrl+K con resultados en tiempo real)
+- Drag & drop para mover archivos entre carpetas
 - Permisos granulares en el panel de administración
+- Notificaciones en tiempo real con Supabase Realtime
