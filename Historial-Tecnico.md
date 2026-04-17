@@ -1296,6 +1296,43 @@ Durante la primera tanda de tests, una función de resumen contaba `.length` del
 
 ---
 
+## ✅ PASO 30 — Triggers de notificaciones reales
+
+**Commit:** `docs: add step 30 (notification triggers)`
+
+### Contexto
+
+El sistema de notificaciones ya estaba cableado end-to-end desde el Paso 13 (tabla `notifications`, subscripción realtime en el cliente, dropdown con badge de unread). Lo que faltaba era que **se insertaran filas reales** cuando pasaban cosas relevantes en el workspace — hasta ahora solo había notifs manuales/de prueba.
+
+### Acciones realizadas
+
+Tres triggers nuevos en Postgres, todos `SECURITY DEFINER` con `search_path = public`, que insertan en `notifications` cuando ocurre un evento relevante. Todos incluyen un **self-skip**: si `NEW.user_id = auth.uid()` (el actor es el mismo que recibiría la notif), no se inserta — nadie se notifica a sí mismo.
+
+- **Trigger 1 — `notify_workspace_member_added`** (`AFTER INSERT ON workspace_members`): crea notif "Te agregaron a un workspace" con type `success`, mensaje "Ahora sos {role} en \"{workspace_name}\""
+- **Trigger 2 — `notify_workspace_role_changed`** (`AFTER UPDATE OF role ON workspace_members`): crea notif "Cambió tu rol" con type `info`, mensaje "Tu rol en \"{workspace_name}\" ahora es {role}"
+- **Trigger 3 — `notify_file_shared`** (`AFTER INSERT ON file_shares` donde `shared_with IS NOT NULL`): crea notif "Te compartieron {resource_type}" con type `info`, mensaje "{sharer_name} compartió \"{file_name}\" contigo"
+
+### Decisiones técnicas
+
+- **`SECURITY DEFINER`** en los triggers: la RLS restrictiva del Paso 29 (`notifications_insert_self_only`) solo permite insertar filas con `user_id = auth.uid()`. Los triggers necesitan insertar filas para **otro** usuario (el receptor), así que tienen que ejecutar con permisos del owner de la función, bypasseando RLS
+- **Self-skip por `NEW.user_id = auth.uid()`**: evita notifs ruidosas cuando el propio usuario ejecuta la acción que lo afecta (ej. unirse a su propio workspace al crearlo)
+- **Sin duplicar contenido UI en el trigger**: el mensaje se arma con `coalesce` sobre lookups de `workspaces.name` / `profiles.full_name` / `files.name` para que si el recurso se renombra el mensaje siga teniendo sentido al momento del insert
+- **No se agregaron triggers para `activity_logs`**: la actividad ya se registra ahí; una notif por cada acción sería ruido. Solo eventos con impacto directo sobre el usuario receptor
+
+### Validación end-to-end (Playwright)
+
+Sesión del viewer abierta en `/members`. Se ejecutaron tres SQL desde el SQL editor (service_role → `auth.uid()` NULL → self-skip no dispara, notifs se insertan correctamente):
+
+| Acción SQL | Notif esperada | Badge 🔔 | Resultado |
+|-----------|----------------|---------|-----------|
+| `UPDATE workspace_members SET role = 'editor'` | "Cambió tu rol" · type `info` | 3 → **4** | ✅ realtime |
+| `INSERT INTO file_shares (...)` | "Te compartieron file" · type `info` | 4 → **5** | ✅ realtime |
+| `DELETE` + `INSERT INTO workspace_members` | "Te agregaron a un workspace" · type `success` | 5 → **6** | ✅ realtime |
+
+La subscripción realtime del Paso 13 (`supabase.channel('notifications:user_id=eq.{uid}')`) levantó cada `INSERT` y actualizó el badge sin refresh.
+
+---
+
 ## 🔜 PRÓXIMOS PASOS
 
 - Volver a trabajo de producto: features pendientes o mejoras UX — el hardening queda cerrado por ahora
