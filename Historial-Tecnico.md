@@ -957,5 +957,4 @@ alter table file_shares
 
 ## 🔜 PRÓXIMOS PASOS
 
-- Notificaciones en tiempo real con Supabase Realtime
 - Aplicar permisos de rol en RLS y UI de archivos (esconder acciones según rol)
