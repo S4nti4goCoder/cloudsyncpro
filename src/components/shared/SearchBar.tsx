@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -9,16 +9,23 @@ import {
   FileVideoIcon,
   FileAudioIcon,
   FileArchiveIcon,
+  Folder,
   Loader2,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatFileSize, getFileColor } from "@/utils/fileUtils";
 import { useSearch, useDebounce } from "@/hooks/useSearch";
+import type { SearchResult, FolderSearchResult } from "@/hooks/useSearch";
+
+type ResultItem =
+  | { kind: "folder"; data: FolderSearchResult }
+  | { kind: "file"; data: SearchResult };
 
 export function SearchBar() {
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const debouncedQuery = useDebounce(query, 300);
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -26,7 +33,18 @@ export function SearchBar() {
 
   const { data: results, isLoading } = useSearch(debouncedQuery);
 
+  const items = useMemo<ResultItem[]>(() => {
+    if (!results) return [];
+    const list: ResultItem[] = [];
+    for (const f of results.folders) list.push({ kind: "folder", data: f });
+    for (const f of results.files) list.push({ kind: "file", data: f });
+    return list;
+  }, [results]);
+
   const showDropdown = isFocused && query.length > 0;
+
+  // Reset active index when results change
+  useEffect(() => setActiveIndex(-1), [items]);
 
   // Close on click outside
   useEffect(() => {
@@ -60,11 +78,31 @@ export function SearchBar() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  function handleSelectFile(_fileId: string, folderId: string | null) {
+  function selectItem(item: ResultItem) {
     setQuery("");
     setIsFocused(false);
     inputRef.current?.blur();
-    navigate(`/files${folderId ? `?folder=${folderId}` : ""}`);
+    if (item.kind === "folder") {
+      navigate(`/files?folder=${item.data.id}`);
+    } else {
+      const folderId = item.data.folder_id;
+      navigate(`/files${folderId ? `?folder=${folderId}` : ""}`);
+    }
+  }
+
+  function handleInputKeyDown(e: React.KeyboardEvent) {
+    if (!showDropdown || items.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => (i < items.length - 1 ? i + 1 : 0));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => (i > 0 ? i - 1 : items.length - 1));
+    } else if (e.key === "Enter" && activeIndex >= 0) {
+      e.preventDefault();
+      selectItem(items[activeIndex]);
+    }
   }
 
   return (
@@ -90,6 +128,7 @@ export function SearchBar() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsFocused(true)}
+          onKeyDown={handleInputKeyDown}
           className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
         />
         {query ? (
@@ -118,11 +157,11 @@ export function SearchBar() {
             </div>
           )}
 
-          {!isLoading && results?.length === 0 && (
+          {!isLoading && items.length === 0 && (
             <div className="flex flex-col items-center justify-center py-8 text-center px-4">
               <FileIcon className="h-7 w-7 text-muted-foreground/30 mb-2" />
               <p className="text-sm text-muted-foreground">
-                No se encontraron archivos para{" "}
+                No se encontraron resultados para{" "}
                 <span className="font-medium text-foreground">
                   "{debouncedQuery}"
                 </span>
@@ -130,53 +169,94 @@ export function SearchBar() {
             </div>
           )}
 
-          {results && results.length > 0 && (
+          {items.length > 0 && (
             <div className="p-1.5">
-              <p className="px-2 py-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                {results.length} resultado{results.length !== 1 ? "s" : ""}
-              </p>
-              <div className="space-y-0.5 max-h-72 overflow-y-auto">
-                {results.map((result) => {
-                  const colorClass = getFileColor(result.mime_type);
-                  const Icon = getFileTypeIcon(result.mime_type);
-
-                  return (
-                    <button
-                      key={result.id}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() =>
-                        handleSelectFile(result.id, result.folder_id)
-                      }
-                      className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 hover:bg-muted transition-colors text-left"
-                    >
-                      <div
-                        className={cn(
-                          "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg",
-                          colorClass,
-                        )}
-                      >
-                        <Icon className="h-3.5 w-3.5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {result.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatFileSize(result.size)} ·{" "}
-                          {result.extension.toUpperCase()} ·{" "}
-                          {result.folder_name ? (
-                            <span className="text-primary/80">
-                              📁 {result.folder_name}
-                            </span>
-                          ) : (
-                            <span>Raíz</span>
+              {/* Folders */}
+              {results!.folders.length > 0 && (
+                <>
+                  <p className="px-2 py-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                    Carpetas
+                  </p>
+                  <div className="space-y-0.5">
+                    {results!.folders.map((folder, i) => {
+                      const globalIdx = i;
+                      return (
+                        <button
+                          key={folder.id}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => selectItem({ kind: "folder", data: folder })}
+                          onMouseEnter={() => setActiveIndex(globalIdx)}
+                          className={cn(
+                            "flex w-full items-center gap-3 rounded-lg px-2.5 py-2 transition-colors text-left",
+                            activeIndex === globalIdx ? "bg-muted" : "hover:bg-muted",
                           )}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+                        >
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
+                            <Folder className="h-3.5 w-3.5 text-blue-400" />
+                          </div>
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {folder.name}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              {/* Files */}
+              {results!.files.length > 0 && (
+                <>
+                  <p className="px-2 py-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                    Archivos · {results!.files.length} resultado{results!.files.length !== 1 ? "s" : ""}
+                  </p>
+                  <div className="space-y-0.5 max-h-72 overflow-y-auto">
+                    {results!.files.map((result, i) => {
+                      const globalIdx = results!.folders.length + i;
+                      const colorClass = getFileColor(result.mime_type);
+                      const Icon = getFileTypeIcon(result.mime_type);
+
+                      return (
+                        <button
+                          key={result.id}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => selectItem({ kind: "file", data: result })}
+                          onMouseEnter={() => setActiveIndex(globalIdx)}
+                          className={cn(
+                            "flex w-full items-center gap-3 rounded-lg px-2.5 py-2 transition-colors text-left",
+                            activeIndex === globalIdx ? "bg-muted" : "hover:bg-muted",
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg",
+                              colorClass,
+                            )}
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">
+                              {result.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatFileSize(result.size)} ·{" "}
+                              {result.extension.toUpperCase()} ·{" "}
+                              {result.folder_name ? (
+                                <span className="text-primary/80">
+                                  {result.folder_name}
+                                </span>
+                              ) : (
+                                <span>Raíz</span>
+                              )}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

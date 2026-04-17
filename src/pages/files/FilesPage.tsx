@@ -70,6 +70,8 @@ export default function FilesPage() {
   } | null>(null);
   const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
   const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
+  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
+  const [draggingFileId, setDraggingFileId] = useState<string | null>(null);
 
   const folderId = searchParams.get("folder");
   const { activeWorkspaceId } = useWorkspaceStore();
@@ -120,6 +122,22 @@ export default function FilesPage() {
     setSearchParams({});
   }
 
+  function handleDragStart(fileId: string) {
+    setDraggingFileId(fileId);
+  }
+
+  function handleDragEnd() {
+    setDraggingFileId(null);
+    setDragOverFolderId(null);
+  }
+
+  function handleDropOnFolder(targetFolderId: string | null) {
+    if (!draggingFileId) return;
+    doMoveFile({ id: draggingFileId, targetFolderId });
+    setDraggingFileId(null);
+    setDragOverFolderId(null);
+  }
+
   return (
     <div className="space-y-5 animate-fade-in">
       {/* Header */}
@@ -162,7 +180,13 @@ export default function FilesPage() {
       <div className="flex items-center gap-1.5 text-sm">
         <button
           onClick={handleGoBack}
-          className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+          onDragOver={(e) => { if (folderId && draggingFileId) { e.preventDefault(); setDragOverFolderId("root"); } }}
+          onDragLeave={() => setDragOverFolderId(null)}
+          onDrop={(e) => { e.preventDefault(); if (folderId) handleDropOnFolder(null); }}
+          className={cn(
+            "flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors",
+            dragOverFolderId === "root" && "text-primary font-medium ring-2 ring-primary/30 rounded-md px-1.5 -mx-1.5",
+          )}
         >
           <Home className="h-3.5 w-3.5" />
           <span>Raíz</span>
@@ -294,6 +318,10 @@ export default function FilesPage() {
                     isRenaming={renamingFolderId === folder.id}
                     onStartRename={() => setRenamingFolderId(folder.id)}
                     onCancelRename={() => setRenamingFolderId(null)}
+                    isDragOver={dragOverFolderId === folder.id}
+                    onDragOver={() => setDragOverFolderId(folder.id)}
+                    onDragLeave={() => setDragOverFolderId(null)}
+                    onDrop={() => handleDropOnFolder(folder.id)}
                   />
                 ))}
               </div>
@@ -331,6 +359,8 @@ export default function FilesPage() {
                       setRenamingFileId(null);
                     }}
                     onCancelRename={() => setRenamingFileId(null)}
+                    onDragStart={() => handleDragStart(file.id)}
+                    onDragEnd={handleDragEnd}
                   />
                 ))}
               </div>
@@ -396,9 +426,13 @@ interface FolderCardProps {
   isRenaming: boolean;
   onStartRename: () => void;
   onCancelRename: () => void;
+  isDragOver: boolean;
+  onDragOver: () => void;
+  onDragLeave: () => void;
+  onDrop: () => void;
 }
 
-function FolderCard({ folder, viewMode, onClick, onDelete, onActivity, isRenaming, onStartRename, onCancelRename }: FolderCardProps) {
+function FolderCard({ folder, viewMode, onClick, onDelete, onActivity, isRenaming, onStartRename, onCancelRename, isDragOver, onDragOver, onDragLeave, onDrop }: FolderCardProps) {
   const { mutate: renameFolder } = useRenameFolder(folder.workspace_id);
   const [editName, setEditName] = useState(folder.name);
 
@@ -430,11 +464,21 @@ function FolderCard({ folder, viewMode, onClick, onDelete, onActivity, isRenamin
     </p>
   );
 
+  const dropHandlers = {
+    onDragOver: (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); onDragOver(); },
+    onDragLeave: (e: React.DragEvent) => { e.stopPropagation(); onDragLeave(); },
+    onDrop: (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); onDrop(); },
+  };
+
   if (viewMode === "list") {
     return (
       <div
-        className="group flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-border"
+        className={cn(
+          "group flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/50 transition-all cursor-pointer border",
+          isDragOver ? "border-primary bg-primary/5 shadow-sm" : "border-transparent hover:border-border",
+        )}
         onClick={isRenaming ? undefined : onClick}
+        {...dropHandlers}
       >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
           <Folder className="h-4 w-4 text-blue-400" />
@@ -459,10 +503,14 @@ function FolderCard({ folder, viewMode, onClick, onDelete, onActivity, isRenamin
 
   return (
     <div
-      className="group relative flex flex-col rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-sm transition-all duration-150 cursor-pointer overflow-hidden"
+      className={cn(
+        "group relative flex flex-col rounded-xl border bg-card hover:shadow-sm transition-all duration-150 cursor-pointer overflow-hidden",
+        isDragOver ? "border-primary bg-primary/5 shadow-md scale-[1.02]" : "border-border hover:border-primary/30",
+      )}
       onClick={isRenaming ? undefined : onClick}
+      {...dropHandlers}
     >
-      <div className="h-1.5 w-full bg-linear-to-r from-blue-400 to-blue-500" />
+      <div className={cn("h-1.5 w-full bg-linear-to-r", isDragOver ? "from-primary to-primary/70" : "from-blue-400 to-blue-500")} />
       <div className="p-4 flex flex-col gap-3">
         <div className="flex items-start justify-between">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">
@@ -548,6 +596,8 @@ interface FileCardProps {
   onStartRename: () => void;
   onRename: (name: string) => void;
   onCancelRename: () => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
 }
 
 function FileCard({
@@ -563,6 +613,8 @@ function FileCard({
   onStartRename,
   onRename,
   onCancelRename,
+  onDragStart,
+  onDragEnd,
 }: FileCardProps) {
   const colorClass = getFileColor(file.mime_type);
   const [editName, setEditName] = useState(file.name);
@@ -596,10 +648,17 @@ function FileCard({
     </p>
   );
 
+  const dragProps = {
+    draggable: !isRenaming,
+    onDragStart: (e: React.DragEvent) => { e.dataTransfer.effectAllowed = "move"; onDragStart(); },
+    onDragEnd,
+  };
+
   if (viewMode === "list") {
     return (
       <div
         className="group flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/50 transition-colors border border-transparent hover:border-border cursor-pointer"
+        {...dragProps}
         onClick={isRenaming ? undefined : onClick}
       >
         <div
@@ -635,6 +694,7 @@ function FileCard({
     <div
       className="group relative flex flex-col rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-sm transition-all duration-150 cursor-pointer overflow-hidden"
       onClick={isRenaming ? undefined : onClick}
+      {...dragProps}
     >
       <div
         className={cn(
