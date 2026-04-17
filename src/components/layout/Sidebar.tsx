@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   FolderOpen,
   Users,
+  UserCog,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -48,6 +49,7 @@ const navItems: NavItem[] = [
   { label: 'Actividad', icon: Activity, href: '/activity' },
   { label: 'Archivados', icon: Archive, href: '/archived' },
   { label: 'Papelera', icon: Trash2, href: '/trash' },
+  { label: 'Miembros', icon: UserCog, href: '/members' },
 ]
 
 const adminItems: NavItem[] = [

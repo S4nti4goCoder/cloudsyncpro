@@ -16,6 +16,7 @@ const ArchivedPage = lazy(() => import("@/pages/archived/ArchivedPage"));
 const TrashPage = lazy(() => import("@/pages/trash/TrashPage"));
 const ProfilePage = lazy(() => import("@/pages/settings/ProfilePage"));
 const SettingsPage = lazy(() => import("@/pages/settings/SettingsPage"));
+const MembersPage = lazy(() => import("@/pages/workspaces/MembersPage"));
 
 function LoadingScreen() {
   return (
@@ -172,6 +173,14 @@ export function AppRoutes() {
           element={
             <ProtectedRoute>
               <AdminPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/members"
+          element={
+            <ProtectedRoute>
+              <MembersPage />
             </ProtectedRoute>
           }
         />

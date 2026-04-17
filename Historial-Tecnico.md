@@ -912,7 +912,50 @@ alter table file_shares
 
 ---
 
+## ✅ PASO 23 — Permisos granulares por workspace (gestión de miembros)
+
+**Commit:** `feat: add workspace member management with role permissions`
+
+### Acciones realizadas
+
+- `src/services/memberService.ts` — CRUD sobre `workspace_members` con join a `profiles`
+- `src/hooks/useMembers.ts` — React Query hooks (`useWorkspaceMembers`, `useInviteMember`, `useUpdateMemberRole`, `useRemoveMember`) con toasts e invalidación
+- `src/pages/workspaces/MembersPage.tsx` — UI completa de gestión de miembros del workspace activo
+- `src/routes/AppRouter.tsx` — ruta `/members` con lazy loading
+- `src/components/layout/Sidebar.tsx` — entrada "Miembros" con icono `UserCog`
+
+### Funcionalidades
+
+| Funcionalidad | Descripción |
+|---------------|-------------|
+| Listado de miembros | Avatar, nombre, email, fecha de incorporación, rol con badge |
+| Owner destacado | Icono de corona y rol "Propietario" no editable |
+| Invitar por email | Form inline con dropdown de rol (admin/editor/viewer) |
+| Cambio de rol inline | DropdownMenu por miembro — solo visible para owner/admin |
+| Eliminar miembro | `ConfirmDialog` antes de borrar — bloqueado para owner y self |
+| Filtro de búsqueda | Aparece automáticamente cuando hay más de 5 miembros |
+| Leyenda de permisos | Matriz visual con descripción de cada rol |
+
+### Modelo de permisos
+
+| Rol | Capacidades |
+|-----|-------------|
+| `owner` | Control total — no puede ser modificado ni eliminado |
+| `admin` | Invita, cambia roles y elimina miembros (excepto owner) |
+| `editor` | Sube, edita, comparte y mueve archivos del workspace |
+| `viewer` | Solo lectura — descarga y visualiza |
+
+### Decisiones técnicas
+
+- `canManage = isOwner || currentMember?.role === "admin"` — controla visibilidad de acciones de gestión
+- `inviteMember` busca el usuario por email en `profiles` antes de insertar — falla con mensaje claro si no existe o ya es miembro
+- Join Supabase: `user:profiles!workspace_members_user_id_fkey(...)` — trae perfil del miembro en una sola query
+- Cache key `["workspace-members", workspaceId]` — invalidación granular por workspace
+- Página separada de `/admin` (que es panel global de admin/superadmin) — `/members` opera sobre el workspace activo del usuario
+
+---
+
 ## 🔜 PRÓXIMOS PASOS
 
-- Permisos granulares en el panel de administración
 - Notificaciones en tiempo real con Supabase Realtime
+- Aplicar permisos de rol en RLS y UI de archivos (esconder acciones según rol)
