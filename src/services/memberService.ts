@@ -55,24 +55,22 @@ export const memberService = {
     email: string,
     role: UserRole,
   ): Promise<void> {
-    // Find user by email
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("email", email)
-      .single();
+    const { data: matches, error: profileError } = await supabase.rpc(
+      "find_profile_by_email",
+      { p_email: email },
+    );
 
+    const profile = matches?.[0];
     if (profileError || !profile) {
       throw new Error("No se encontró un usuario con ese email");
     }
 
-    // Check if already a member
     const { data: existing } = await supabase
       .from("workspace_members")
       .select("id")
       .eq("workspace_id", workspaceId)
       .eq("user_id", profile.id)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       throw new Error("Este usuario ya es miembro del workspace");

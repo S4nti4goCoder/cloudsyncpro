@@ -14,6 +14,7 @@ import { es } from "date-fns/locale";
 import { useWorkspaceStore, getActiveWorkspace } from "@/store/workspaceStore";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
 import { useArchivedFiles, useRestoreFile } from "@/hooks/useFiles";
+import { useWorkspaceRole } from "@/hooks/useWorkspaceRole";
 import { cn } from "@/lib/utils";
 import { formatFileSize, getFileColor } from "@/utils/fileUtils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,6 +32,7 @@ export default function ArchivedPage() {
   const { data: files, isLoading } = useArchivedFiles(workspaceId);
   const { mutate: restoreFile, isPending: restoring } =
     useRestoreFile(workspaceId);
+  const { canEdit } = useWorkspaceRole();
 
   const isEmpty = !isLoading && !files?.length;
 
@@ -60,6 +62,7 @@ export default function ArchivedPage() {
               key={file.id}
               file={file}
               disabled={restoring}
+              canEdit={canEdit}
               onRestore={() => restoreFile(file.id)}
             />
           ))}
@@ -72,10 +75,11 @@ export default function ArchivedPage() {
 interface ArchivedFileRowProps {
   file: FileRecord;
   disabled: boolean;
+  canEdit: boolean;
   onRestore: () => void;
 }
 
-function ArchivedFileRow({ file, disabled, onRestore }: ArchivedFileRowProps) {
+function ArchivedFileRow({ file, disabled, canEdit, onRestore }: ArchivedFileRowProps) {
   const colorClass = getFileColor(file.mime_type);
 
   return (
@@ -99,20 +103,22 @@ function ArchivedFileRow({ file, disabled, onRestore }: ArchivedFileRowProps) {
         </p>
       </div>
 
-      <button
-        onClick={onRestore}
-        disabled={disabled}
-        className={cn(
-          "flex items-center gap-1.5 rounded-md px-2.5 h-8",
-          "text-xs font-medium text-foreground border border-border",
-          "hover:bg-muted transition-colors",
-          "disabled:opacity-50 disabled:cursor-not-allowed",
-          "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
-        )}
-      >
-        <ArchiveRestore className="h-3.5 w-3.5" />
-        Restaurar
-      </button>
+      {canEdit && (
+        <button
+          onClick={onRestore}
+          disabled={disabled}
+          className={cn(
+            "flex items-center gap-1.5 rounded-md px-2.5 h-8",
+            "text-xs font-medium text-foreground border border-border",
+            "hover:bg-muted transition-colors",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+            "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+          )}
+        >
+          <ArchiveRestore className="h-3.5 w-3.5" />
+          Restaurar
+        </button>
+      )}
     </div>
   );
 }

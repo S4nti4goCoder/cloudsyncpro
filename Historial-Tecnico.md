@@ -955,6 +955,75 @@ alter table file_shares
 
 ---
 
+## ✅ PASO 24 — Permisos de rol aplicados en la UI
+
+**Commit:** `feat: gate file actions by workspace role`
+
+### Acciones realizadas
+
+- `src/hooks/useWorkspaceRole.ts` — hook único que resuelve el rol del usuario en el workspace activo y expone flags derivados
+- `src/pages/files/FilesPage.tsx` — oculta acciones de escritura según rol; badge "Modo solo lectura" para viewers
+- `src/pages/trash/TrashPage.tsx` — oculta botones "Restaurar" y "Eliminar" para viewers
+- `src/pages/archived/ArchivedPage.tsx` — oculta botón "Restaurar" para viewers
+- `src/services/memberService.ts` — usa nueva RPC `find_profile_by_email` y `.maybeSingle()` en el check de membresía
+
+### SQL aplicado en Supabase
+
+```sql
+create or replace function public.find_profile_by_email(p_email text)
+returns table (id uuid, email text, full_name text, avatar_url text)
+language sql
+security definer
+set search_path = public
+as $$
+  select id, email, full_name, avatar_url
+  from public.profiles
+  where lower(email) = lower(p_email)
+  limit 1;
+$$;
+
+revoke all on function public.find_profile_by_email(text) from public, anon;
+grant execute on function public.find_profile_by_email(text) to authenticated;
+```
+
+### Modelo de permisos (UI)
+
+| Flag | Owner | Admin | Editor | Viewer |
+|------|:-----:|:-----:|:------:|:------:|
+| `canEdit` | ✓ | ✓ | ✓ | — |
+| `canManage` | ✓ | ✓ | — | — |
+| `canShare` / `canUpload` / `canDelete` | ✓ | ✓ | ✓ | — |
+
+### Acciones gateadas
+
+| Componente | Acciones ocultas para viewer |
+|------------|------------------------------|
+| `FilesPage` header | "Nueva carpeta", "Subir archivo" |
+| `EmptyState` | Botones de creación + mensaje adaptado |
+| `FolderMenu` | "Renombrar", "Eliminar" |
+| `FileMenu` | "Renombrar", "Compartir", "Mover", "Archivar", "Papelera" |
+| `FolderCard` | Drop targets de drag & drop |
+| `FileCard` | `draggable` deshabilitado |
+| `TrashPage` | "Restaurar", "Eliminar definitivamente" |
+| `ArchivedPage` | "Restaurar" |
+
+### Decisiones técnicas
+
+- El hook `useWorkspaceRole` siempre devuelve `admin` cuando `isOwner` es `true` — el owner no necesita una fila en `workspace_members`
+- La query a `workspace_members.role` se desactiva cuando `isOwner` es `true` (evita una request innecesaria)
+- "Ver actividad" siempre visible — el log de auditoría no es escritura, todos los miembros pueden consultarlo
+- Bug encontrado durante el test: las RLS de `profiles` no permitían a Juan buscar al viewer por email para invitarlo. Resuelto con la RPC `find_profile_by_email` (`security definer`), que devuelve solo campos públicos y solo para `authenticated`
+- `.maybeSingle()` en lugar de `.single()` en el check "ya es miembro" — antes devolvía 406 cuando no había fila
+
+### Validación end-to-end (Playwright)
+
+1. Registro de cuenta `viewer@test.com`
+2. Login como Juan (owner) → invitación del viewer al workspace con rol `viewer`
+3. Login como viewer → `/files` muestra badge "Modo solo lectura", botones de creación ocultos, menú de archivo solo con "Ver actividad"
+
+---
+
 ## 🔜 PRÓXIMOS PASOS
 
-- Aplicar permisos de rol en RLS y UI de archivos (esconder acciones según rol)
+- Reforzar permisos en RLS de `files`, `folders` y `file_shares` (defensa en profundidad — actualmente solo UI)
+- Mostrar nombre real del miembro en `MembersPage` (hoy aparece como "Usuario" porque RLS de `profiles` solo deja al owner ver su propio perfil)

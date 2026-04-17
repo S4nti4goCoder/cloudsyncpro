@@ -35,6 +35,7 @@ import {
   useRenameFolder,
 } from "@/hooks/useFolders";
 import { useFiles, useArchiveFile, useTrashFile, useRenameFile, useMoveFile } from "@/hooks/useFiles";
+import { useWorkspaceRole } from "@/hooks/useWorkspaceRole";
 import { UploadFileModal } from "@/components/shared/UploadFileModal";
 import { FilePreviewModal } from "@/components/shared/FilePreviewModal";
 import { ShareFileModal } from "@/components/shared/ShareFileModal";
@@ -100,6 +101,7 @@ export default function FilesPage() {
   const { mutate: trashFile } = useTrashFile(workspaceId, folderId);
   const { mutate: renameFile } = useRenameFile(workspaceId, folderId);
   const { mutate: doMoveFile, isPending: movePending } = useMoveFile(workspaceId);
+  const { canEdit, isViewer } = useWorkspaceRole();
 
   const isLoading = foldersLoading || filesLoading;
   const isEmpty = !isLoading && !folders?.length && !files?.length;
@@ -150,39 +152,46 @@ export default function FilesPage() {
             {activeWorkspace?.name ?? "Sin workspace"}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowNewFolder(true)}
-            className={cn(
-              "flex items-center gap-2 rounded-lg border border-border px-3 h-9",
-              "text-sm font-medium text-foreground",
-              "hover:bg-muted transition-colors",
-            )}
-          >
-            <FolderPlus className="h-4 w-4" />
-            Nueva carpeta
-          </button>
-          <button
-            onClick={() => setShowUploadModal(true)}
-            className={cn(
-              "flex items-center gap-2 rounded-lg bg-primary px-3 h-9",
-              "text-sm font-medium text-primary-foreground",
-              "hover:bg-primary/90 transition-colors",
-            )}
-          >
-            <Upload className="h-4 w-4" />
-            Subir archivo
-          </button>
-        </div>
+        {canEdit && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowNewFolder(true)}
+              className={cn(
+                "flex items-center gap-2 rounded-lg border border-border px-3 h-9",
+                "text-sm font-medium text-foreground",
+                "hover:bg-muted transition-colors",
+              )}
+            >
+              <FolderPlus className="h-4 w-4" />
+              Nueva carpeta
+            </button>
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className={cn(
+                "flex items-center gap-2 rounded-lg bg-primary px-3 h-9",
+                "text-sm font-medium text-primary-foreground",
+                "hover:bg-primary/90 transition-colors",
+              )}
+            >
+              <Upload className="h-4 w-4" />
+              Subir archivo
+            </button>
+          </div>
+        )}
+        {isViewer && (
+          <span className="rounded-md border border-border bg-muted px-2 py-1 text-xs text-muted-foreground">
+            Modo solo lectura
+          </span>
+        )}
       </div>
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-1.5 text-sm">
         <button
           onClick={handleGoBack}
-          onDragOver={(e) => { if (folderId && draggingFileId) { e.preventDefault(); setDragOverFolderId("root"); } }}
+          onDragOver={(e) => { if (canEdit && folderId && draggingFileId) { e.preventDefault(); setDragOverFolderId("root"); } }}
           onDragLeave={() => setDragOverFolderId(null)}
-          onDrop={(e) => { e.preventDefault(); if (folderId) handleDropOnFolder(null); }}
+          onDrop={(e) => { e.preventDefault(); if (canEdit && folderId) handleDropOnFolder(null); }}
           className={cn(
             "flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors",
             dragOverFolderId === "root" && "text-primary font-medium ring-2 ring-primary/30 rounded-md px-1.5 -mx-1.5",
@@ -289,6 +298,7 @@ export default function FilesPage() {
         <LoadingSkeleton viewMode={viewMode} />
       ) : isEmpty ? (
         <EmptyState
+          canEdit={canEdit}
           onNewFolder={() => setShowNewFolder(true)}
           onUpload={() => setShowUploadModal(true)}
         />
@@ -312,6 +322,7 @@ export default function FilesPage() {
                     key={folder.id}
                     folder={folder}
                     viewMode={viewMode}
+                    canEdit={canEdit}
                     onClick={() => handleFolderClick(folder)}
                     onDelete={() => deleteFolder(folder.id)}
                     onActivity={() => setActivityResource({ id: folder.id, name: folder.name, type: "folder" })}
@@ -346,6 +357,7 @@ export default function FilesPage() {
                     key={file.id}
                     file={file}
                     viewMode={viewMode}
+                    canEdit={canEdit}
                     onClick={() => setPreviewFile(file)}
                     onShare={() => setShareFile(file)}
                     onArchive={() => archiveFile(file.id)}
@@ -420,6 +432,7 @@ export default function FilesPage() {
 interface FolderCardProps {
   folder: FolderType;
   viewMode: ViewMode;
+  canEdit: boolean;
   onClick: () => void;
   onDelete: () => void;
   onActivity: () => void;
@@ -432,7 +445,7 @@ interface FolderCardProps {
   onDrop: () => void;
 }
 
-function FolderCard({ folder, viewMode, onClick, onDelete, onActivity, isRenaming, onStartRename, onCancelRename, isDragOver, onDragOver, onDragLeave, onDrop }: FolderCardProps) {
+function FolderCard({ folder, viewMode, canEdit, onClick, onDelete, onActivity, isRenaming, onStartRename, onCancelRename, isDragOver, onDragOver, onDragLeave, onDrop }: FolderCardProps) {
   const { mutate: renameFolder } = useRenameFolder(folder.workspace_id);
   const [editName, setEditName] = useState(folder.name);
 
@@ -464,11 +477,13 @@ function FolderCard({ folder, viewMode, onClick, onDelete, onActivity, isRenamin
     </p>
   );
 
-  const dropHandlers = {
-    onDragOver: (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); onDragOver(); },
-    onDragLeave: (e: React.DragEvent) => { e.stopPropagation(); onDragLeave(); },
-    onDrop: (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); onDrop(); },
-  };
+  const dropHandlers = canEdit
+    ? {
+        onDragOver: (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); onDragOver(); },
+        onDragLeave: (e: React.DragEvent) => { e.stopPropagation(); onDragLeave(); },
+        onDrop: (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); onDrop(); },
+      }
+    : {};
 
   if (viewMode === "list") {
     return (
@@ -489,6 +504,7 @@ function FolderCard({ folder, viewMode, onClick, onDelete, onActivity, isRenamin
         </span>
         <div onClick={(e) => e.stopPropagation()}>
           <FolderMenu
+            canEdit={canEdit}
             onRename={() => {
               setEditName(folder.name);
               onStartRename();
@@ -542,10 +558,12 @@ function FolderCard({ folder, viewMode, onClick, onDelete, onActivity, isRenamin
 }
 
 function FolderMenu({
+  canEdit,
   onRename,
   onActivity,
   onDelete,
 }: {
+  canEdit: boolean;
   onRename: () => void;
   onActivity: () => void;
   onDelete: () => void;
@@ -558,22 +576,28 @@ function FolderMenu({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
-        <DropdownMenuItem onSelect={onRename}>
-          <Pencil className="mr-2 h-3.5 w-3.5" />
-          Renombrar
-        </DropdownMenuItem>
+        {canEdit && (
+          <DropdownMenuItem onSelect={onRename}>
+            <Pencil className="mr-2 h-3.5 w-3.5" />
+            Renombrar
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onSelect={onActivity}>
           <Activity className="mr-2 h-3.5 w-3.5" />
           Ver actividad
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onSelect={onDelete}
-          className="text-destructive focus:text-destructive"
-        >
-          <Trash2 className="mr-2 h-3.5 w-3.5" />
-          Eliminar
-        </DropdownMenuItem>
+        {canEdit && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={onDelete}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="mr-2 h-3.5 w-3.5" />
+              Eliminar
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -586,6 +610,7 @@ function FolderMenu({
 interface FileCardProps {
   file: FileRecord;
   viewMode: ViewMode;
+  canEdit: boolean;
   onClick: () => void;
   onShare: () => void;
   onArchive: () => void;
@@ -603,6 +628,7 @@ interface FileCardProps {
 function FileCard({
   file,
   viewMode,
+  canEdit,
   onClick,
   onShare,
   onArchive,
@@ -649,7 +675,7 @@ function FileCard({
   );
 
   const dragProps = {
-    draggable: !isRenaming,
+    draggable: canEdit && !isRenaming,
     onDragStart: (e: React.DragEvent) => { e.dataTransfer.effectAllowed = "move"; onDragStart(); },
     onDragEnd,
   };
@@ -678,6 +704,7 @@ function FileCard({
         </span>
         <div onClick={(e) => e.stopPropagation()}>
           <FileMenu
+            canEdit={canEdit}
             onRename={() => { setEditName(file.name); onStartRename(); }}
             onShare={onShare}
             onMove={onMove}
@@ -734,6 +761,7 @@ function FileCard({
 }
 
 function FileMenu({
+  canEdit,
   onRename,
   onShare,
   onMove,
@@ -741,6 +769,7 @@ function FileMenu({
   onArchive,
   onTrash,
 }: {
+  canEdit: boolean;
   onRename: () => void;
   onShare: () => void;
   onMove: () => void;
@@ -756,34 +785,42 @@ function FileMenu({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
-        <DropdownMenuItem onSelect={onRename}>
-          <Pencil className="mr-2 h-3.5 w-3.5" />
-          Renombrar
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onShare}>
-          <Share2 className="mr-2 h-3.5 w-3.5" />
-          Compartir
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onMove}>
-          <FolderInput className="mr-2 h-3.5 w-3.5" />
-          Mover a…
-        </DropdownMenuItem>
+        {canEdit && (
+          <>
+            <DropdownMenuItem onSelect={onRename}>
+              <Pencil className="mr-2 h-3.5 w-3.5" />
+              Renombrar
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={onShare}>
+              <Share2 className="mr-2 h-3.5 w-3.5" />
+              Compartir
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={onMove}>
+              <FolderInput className="mr-2 h-3.5 w-3.5" />
+              Mover a…
+            </DropdownMenuItem>
+          </>
+        )}
         <DropdownMenuItem onSelect={onActivity}>
           <Activity className="mr-2 h-3.5 w-3.5" />
           Ver actividad
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={onArchive}>
-          <Archive className="mr-2 h-3.5 w-3.5" />
-          Archivar
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={onTrash}
-          className="text-destructive focus:text-destructive"
-        >
-          <Trash2 className="mr-2 h-3.5 w-3.5" />
-          Mover a papelera
-        </DropdownMenuItem>
+        {canEdit && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={onArchive}>
+              <Archive className="mr-2 h-3.5 w-3.5" />
+              Archivar
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={onTrash}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="mr-2 h-3.5 w-3.5" />
+              Mover a papelera
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -831,9 +868,11 @@ function LoadingSkeleton({ viewMode }: { viewMode: ViewMode }) {
 }
 
 function EmptyState({
+  canEdit,
   onNewFolder,
   onUpload,
 }: {
+  canEdit: boolean;
   onNewFolder: () => void;
   onUpload: () => void;
 }) {
@@ -846,24 +885,28 @@ function EmptyState({
         Esta carpeta está vacía
       </h3>
       <p className="text-sm text-muted-foreground max-w-xs mb-6">
-        Sube archivos o crea carpetas para organizar tu contenido.
+        {canEdit
+          ? "Sube archivos o crea carpetas para organizar tu contenido."
+          : "No tienes permisos para subir archivos en este workspace."}
       </p>
-      <div className="flex items-center gap-2">
-        <button
-          onClick={onNewFolder}
-          className="flex items-center gap-2 rounded-lg border border-border px-4 h-9 text-sm font-medium hover:bg-muted transition-colors"
-        >
-          <FolderPlus className="h-4 w-4" />
-          Nueva carpeta
-        </button>
-        <button
-          onClick={onUpload}
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 h-9 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          <Upload className="h-4 w-4" />
-          Subir archivo
-        </button>
-      </div>
+      {canEdit && (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onNewFolder}
+            className="flex items-center gap-2 rounded-lg border border-border px-4 h-9 text-sm font-medium hover:bg-muted transition-colors"
+          >
+            <FolderPlus className="h-4 w-4" />
+            Nueva carpeta
+          </button>
+          <button
+            onClick={onUpload}
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 h-9 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <Upload className="h-4 w-4" />
+            Subir archivo
+          </button>
+        </div>
+      )}
     </div>
   );
 }

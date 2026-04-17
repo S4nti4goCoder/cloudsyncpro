@@ -19,6 +19,7 @@ import {
   useRestoreFile,
   useDeleteFile,
 } from "@/hooks/useFiles";
+import { useWorkspaceRole } from "@/hooks/useWorkspaceRole";
 import { cn } from "@/lib/utils";
 import { formatFileSize, getFileColor } from "@/utils/fileUtils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -39,6 +40,7 @@ export default function TrashPage() {
     useRestoreFile(workspaceId);
   const { mutate: deleteFile, isPending: deleting } =
     useDeleteFile(workspaceId);
+  const { canEdit } = useWorkspaceRole();
 
   const [fileToDelete, setFileToDelete] = useState<FileRecord | null>(null);
 
@@ -78,6 +80,7 @@ export default function TrashPage() {
               key={file.id}
               file={file}
               disabled={pending}
+              canEdit={canEdit}
               onRestore={() => restoreFile(file.id)}
               onDelete={() => setFileToDelete(file)}
             />
@@ -112,6 +115,7 @@ export default function TrashPage() {
 interface TrashFileRowProps {
   file: FileRecord;
   disabled: boolean;
+  canEdit: boolean;
   onRestore: () => void;
   onDelete: () => void;
 }
@@ -119,6 +123,7 @@ interface TrashFileRowProps {
 function TrashFileRow({
   file,
   disabled,
+  canEdit,
   onRestore,
   onDelete,
 }: TrashFileRowProps) {
@@ -145,34 +150,36 @@ function TrashFileRow({
         </p>
       </div>
 
-      <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-        <button
-          onClick={onRestore}
-          disabled={disabled}
-          className={cn(
-            "flex items-center gap-1.5 rounded-md px-2.5 h-8",
-            "text-xs font-medium text-foreground border border-border",
-            "hover:bg-muted transition-colors",
-            "disabled:opacity-50 disabled:cursor-not-allowed",
-          )}
-        >
-          <ArchiveRestore className="h-3.5 w-3.5" />
-          Restaurar
-        </button>
-        <button
-          onClick={onDelete}
-          disabled={disabled}
-          className={cn(
-            "flex items-center gap-1.5 rounded-md px-2.5 h-8",
-            "text-xs font-medium text-destructive border border-destructive/30",
-            "hover:bg-destructive/10 transition-colors",
-            "disabled:opacity-50 disabled:cursor-not-allowed",
-          )}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-          Eliminar
-        </button>
-      </div>
+      {canEdit && (
+        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+          <button
+            onClick={onRestore}
+            disabled={disabled}
+            className={cn(
+              "flex items-center gap-1.5 rounded-md px-2.5 h-8",
+              "text-xs font-medium text-foreground border border-border",
+              "hover:bg-muted transition-colors",
+              "disabled:opacity-50 disabled:cursor-not-allowed",
+            )}
+          >
+            <ArchiveRestore className="h-3.5 w-3.5" />
+            Restaurar
+          </button>
+          <button
+            onClick={onDelete}
+            disabled={disabled}
+            className={cn(
+              "flex items-center gap-1.5 rounded-md px-2.5 h-8",
+              "text-xs font-medium text-destructive border border-destructive/30",
+              "hover:bg-destructive/10 transition-colors",
+              "disabled:opacity-50 disabled:cursor-not-allowed",
+            )}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Eliminar
+          </button>
+        </div>
+      )}
     </div>
   );
 }
