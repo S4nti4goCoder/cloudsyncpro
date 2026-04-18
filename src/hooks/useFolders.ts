@@ -81,3 +81,34 @@ export function useDeleteFolder(workspaceId: string) {
     },
   })
 }
+
+export function useBulkDeleteFolders(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (ids: string[]) => folderService.bulkDelete(ids),
+    onSuccess: (_, ids) => {
+      void queryClient.invalidateQueries({ queryKey: [FOLDERS_KEY, workspaceId] })
+      toast.success(`${ids.length} ${ids.length === 1 ? 'carpeta eliminada' : 'carpetas eliminadas'}`)
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Error al eliminar las carpetas')
+    },
+  })
+}
+
+export function useBulkMoveFolders(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ ids, targetParentId }: { ids: string[]; targetParentId: string | null }) =>
+      folderService.bulkMove(ids, targetParentId),
+    onSuccess: (_, { ids }) => {
+      void queryClient.invalidateQueries({ queryKey: [FOLDERS_KEY, workspaceId] })
+      toast.success(`${ids.length} ${ids.length === 1 ? 'carpeta movida' : 'carpetas movidas'}`)
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Error al mover las carpetas')
+    },
+  })
+}

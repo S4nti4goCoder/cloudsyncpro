@@ -227,6 +227,105 @@ export const fileService = {
   },
 
   /**
+   * Bulk move to trash: set status='deleted' for multiple files at once.
+   */
+  async bulkTrash(ids: string[]): Promise<void> {
+    if (!ids.length) return
+    const { data: prev } = await supabase
+      .from('files')
+      .select('id, name, workspace_id')
+      .in('id', ids)
+
+    const { error } = await supabase
+      .from('files')
+      .update({ status: 'deleted' })
+      .in('id', ids)
+
+    if (error) throw error
+
+    if (prev?.length) {
+      await Promise.all(
+        prev.map((p) =>
+          activityService.logActivity({
+            workspaceId: p.workspace_id,
+            action: 'delete',
+            resourceType: 'file',
+            resourceId: p.id,
+            resourceName: p.name,
+            metadata: { bulk: true },
+          }),
+        ),
+      )
+    }
+  },
+
+  /**
+   * Bulk archive: set status='archived' for multiple files at once.
+   */
+  async bulkArchive(ids: string[]): Promise<void> {
+    if (!ids.length) return
+    const { data: prev } = await supabase
+      .from('files')
+      .select('id, name, workspace_id')
+      .in('id', ids)
+
+    const { error } = await supabase
+      .from('files')
+      .update({ status: 'archived' })
+      .in('id', ids)
+
+    if (error) throw error
+
+    if (prev?.length) {
+      await Promise.all(
+        prev.map((p) =>
+          activityService.logActivity({
+            workspaceId: p.workspace_id,
+            action: 'archive',
+            resourceType: 'file',
+            resourceId: p.id,
+            resourceName: p.name,
+            metadata: { bulk: true },
+          }),
+        ),
+      )
+    }
+  },
+
+  /**
+   * Bulk move: change folder_id for multiple files at once.
+   */
+  async bulkMove(ids: string[], targetFolderId: string | null): Promise<void> {
+    if (!ids.length) return
+    const { data: prev } = await supabase
+      .from('files')
+      .select('id, name, workspace_id, folder_id')
+      .in('id', ids)
+
+    const { error } = await supabase
+      .from('files')
+      .update({ folder_id: targetFolderId })
+      .in('id', ids)
+
+    if (error) throw error
+
+    if (prev?.length) {
+      await Promise.all(
+        prev.map((p) =>
+          activityService.logActivity({
+            workspaceId: p.workspace_id,
+            action: 'move',
+            resourceType: 'file',
+            resourceId: p.id,
+            resourceName: p.name,
+            metadata: { from_folder: p.folder_id, to_folder: targetFolderId, bulk: true },
+          }),
+        ),
+      )
+    }
+  },
+
+  /**
    * Bulk restore: set status='active' for multiple files at once.
    * Used from the trash and archived pages.
    */

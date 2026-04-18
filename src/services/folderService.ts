@@ -121,6 +121,68 @@ export const folderService = {
   },
 
   /**
+   * Bulk delete folders.
+   */
+  async bulkDelete(ids: string[]): Promise<void> {
+    if (!ids.length) return;
+    const { data: prev } = await supabase
+      .from("folders")
+      .select("id, name, workspace_id")
+      .in("id", ids);
+
+    const { error } = await supabase.from("folders").delete().in("id", ids);
+    if (error) throw error;
+
+    if (prev?.length) {
+      await Promise.all(
+        prev.map((p) =>
+          activityService.logActivity({
+            workspaceId: p.workspace_id,
+            action: "delete",
+            resourceType: "folder",
+            resourceId: p.id,
+            resourceName: p.name,
+            metadata: { bulk: true },
+          }),
+        ),
+      );
+    }
+  },
+
+  /**
+   * Bulk move folders to a different parent folder.
+   */
+  async bulkMove(ids: string[], targetParentId: string | null): Promise<void> {
+    if (!ids.length) return;
+    const { data: prev } = await supabase
+      .from("folders")
+      .select("id, name, workspace_id, parent_id")
+      .in("id", ids);
+
+    const { error } = await supabase
+      .from("folders")
+      .update({ parent_id: targetParentId })
+      .in("id", ids);
+
+    if (error) throw error;
+
+    if (prev?.length) {
+      await Promise.all(
+        prev.map((p) =>
+          activityService.logActivity({
+            workspaceId: p.workspace_id,
+            action: "move",
+            resourceType: "folder",
+            resourceId: p.id,
+            resourceName: p.name,
+            metadata: { from_parent: p.parent_id, to_parent: targetParentId, bulk: true },
+          }),
+        ),
+      );
+    }
+  },
+
+  /**
    * Get all folders in a workspace (flat list for folder picker)
    */
   async getAllFolders(workspaceId: string): Promise<Folder[]> {

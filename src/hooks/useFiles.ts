@@ -120,6 +120,52 @@ export function useDeleteFile(workspaceId: string) {
   })
 }
 
+export function useBulkTrashFiles(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (ids: string[]) => fileService.bulkTrash(ids),
+    onSuccess: (_, ids) => {
+      void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId] })
+      toast.success(`${ids.length} ${ids.length === 1 ? 'archivo movido a la papelera' : 'archivos movidos a la papelera'}`)
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Error al mover a la papelera')
+    },
+  })
+}
+
+export function useBulkArchiveFiles(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (ids: string[]) => fileService.bulkArchive(ids),
+    onSuccess: (_, ids) => {
+      void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId] })
+      toast.success(`${ids.length} ${ids.length === 1 ? 'archivo archivado' : 'archivos archivados'}`)
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Error al archivar los archivos')
+    },
+  })
+}
+
+export function useBulkMoveFiles(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ ids, targetFolderId }: { ids: string[]; targetFolderId: string | null }) =>
+      fileService.bulkMove(ids, targetFolderId),
+    onSuccess: (_, { ids }) => {
+      void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId] })
+      toast.success(`${ids.length} ${ids.length === 1 ? 'archivo movido' : 'archivos movidos'}`)
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Error al mover los archivos')
+    },
+  })
+}
+
 export function useBulkRestoreFiles(workspaceId: string) {
   const queryClient = useQueryClient()
 
