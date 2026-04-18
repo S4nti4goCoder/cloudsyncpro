@@ -119,3 +119,52 @@ export function useDeleteFile(workspaceId: string) {
     },
   })
 }
+
+export function useBulkRestoreFiles(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (ids: string[]) => fileService.bulkRestore(ids),
+    onSuccess: (_, ids) => {
+      void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId] })
+      toast.success(`${ids.length} ${ids.length === 1 ? 'archivo restaurado' : 'archivos restaurados'}`)
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Error al restaurar los archivos')
+    },
+  })
+}
+
+export function useBulkDeleteFiles(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (ids: string[]) => fileService.bulkDelete(ids),
+    onSuccess: (_, ids) => {
+      void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId] })
+      toast.success(`${ids.length} ${ids.length === 1 ? 'archivo eliminado' : 'archivos eliminados'}`)
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Error al eliminar los archivos')
+    },
+  })
+}
+
+export function useEmptyTrash(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: () => fileService.emptyTrash(workspaceId),
+    onSuccess: (count) => {
+      void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId] })
+      if (count > 0) {
+        toast.success(`Papelera vaciada (${count} ${count === 1 ? 'archivo' : 'archivos'})`)
+      } else {
+        toast.info('La papelera ya estaba vacía')
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Error al vaciar la papelera')
+    },
+  })
+}

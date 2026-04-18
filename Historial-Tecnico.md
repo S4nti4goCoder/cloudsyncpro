@@ -1368,6 +1368,44 @@ El `FilePreviewModal` ya existía (imágenes con zoom/rotate, PDF iframe, video,
 
 ---
 
+## ✅ PASO 32 — Papelera / Archivados: bulk ops + auto-purga 30 días
+
+**Commit:** `feat: bulk trash/archive ops + 30-day auto-purge`
+
+### Contexto
+
+La papelera y archivados solo permitían restaurar/borrar archivos **de uno en uno**, y el delete permanente dejaba huérfanos los blobs en R2 (solo se borraba la fila en DB). Además, la papelera crecía indefinidamente — los usuarios terminan con cientos de archivos viejos que nunca llegan a borrar manualmente.
+
+### Acciones realizadas
+
+- **Service + hooks bulk**: `fileService.bulkRestore`, `fileService.bulkDelete`, `fileService.emptyTrash` + hooks TanStack Query `useBulkRestoreFiles`, `useBulkDeleteFiles`, `useEmptyTrash`. Cada uno invalida `[FILES_KEY, workspaceId]` al completar y dispara toast con conteo pluralizado
+- **`TrashPage`**: checkbox por fila + "Seleccionar todos" con estado `indeterminate` (via `ref.indeterminate = someSelected`), toolbar contextual cuando `selected.size > 0` (restaurar / eliminar seleccionados), botón **"Vaciar papelera"** en el header. Tres `ConfirmDialog` distintos (single delete / bulk delete / empty trash)
+- **`ArchivedPage`**: mismo patrón de selección múltiple, botón **"Restaurar todos"** en el header, bulk restore desde toolbar
+- **Edge function `purge-files`** (Deno / AWS SDK S3): tres modos
+  - `user_ids` → valida JWT + `has_workspace_edit_permission` RPC por cada workspace tocado, borra los IDs pasados
+  - `user_workspace_trash` → valida edit permission del workspace, borra todos los `status='deleted'` de ese workspace
+  - `auto_purge` → verifica que el `Authorization` sea el service_role key, borra todos los `status='deleted'` con `updated_at < now() - 30d`
+  Limpia blobs en R2 con `DeleteObjectsCommand` en batches de 1000, luego borra las filas en DB con admin client
+- **Cliente cableado al edge function**: `deleteFile`, `bulkDelete` y `emptyTrash` ahora hacen `fetch` a `/functions/v1/purge-files` en lugar de `supabase.from('files').delete()` directo — así R2 queda limpio en cada eliminación permanente
+- **pg_cron diario** (`supabase/sql/auto_purge_cron.sql`): job `cloudsyncpro-auto-purge-trash` corre a las 03:15 UTC y hace `net.http_post` al edge function con `mode: 'auto_purge'`. La URL del proyecto y el service_role key viven en `vault.decrypted_secrets` (nunca en el SQL)
+
+### Decisiones técnicas
+
+- **Edge function hace las dos cosas (R2 + DB)**, no el cliente — si dividiéramos (cliente borra DB, edge function borra R2), un fallo de red entre las dos llamadas deja R2 con blobs huérfanos apuntados por filas que ya no existen. Con todo en el server: los errores de R2 se loguean pero **no abortan el DELETE de DB** (preferimos blobs huérfanos ocasionales a "ghost rows" visibles en la UI)
+- **Detectar service_role en el edge function comparando el Bearer con `SUPABASE_SERVICE_ROLE_KEY`** — Supabase no expone el rol del caller a funciones Deno, así que el modo `auto_purge` tiene que autenticarse con el mismo key que la cron job pasa en el header
+- **pg_cron con secretos en Vault**, no inline en el SQL — el archivo del repo es seguro de commitear porque solo referencia nombres de secretos; los valores reales los cargó el usuario en Dashboard → Vault
+- **`indeterminate` checkbox** via callback ref (`ref={(el) => { if (el) el.indeterminate = someSelected }}`) — no existe como prop de React, hay que setearlo imperativamente después del mount
+- **`emptyTrash` del cliente sigue leyendo los IDs antes de invocar** para poder loguear la actividad con el conteo correcto; el `purged` devuelto por el server es el source of truth
+
+### Validación
+
+- Seleccionar 2 archivos en papelera → toolbar muestra "2 seleccionados" con botones restaurar/eliminar, funcionan ambos
+- "Vaciar papelera" con 3 archivos → confirm dialog, luego toast "Papelera vaciada (3 archivos)", DB y R2 limpios
+- Vaciar cuando ya está vacía → toast info "La papelera ya estaba vacía" (no llama al edge function)
+- `ArchivedPage` con bulk restore de 2 archivos → vuelven a `status='active'` y aparecen en la lista principal
+
+---
+
 ## 🔜 PRÓXIMOS PASOS
 
 - Volver a trabajo de producto: features pendientes o mejoras UX — el hardening queda cerrado por ahora
