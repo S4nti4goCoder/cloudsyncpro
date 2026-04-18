@@ -9,20 +9,79 @@ import {
   Folder,
   Clock,
   Shield,
+  Inbox,
+  ExternalLink,
+  Download,
+  Users,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { toast } from 'sonner'
-import { useMyShares, useDeactivateShare } from '@/hooks/useShares'
+import { useMyShares, useSharedWithMe, useDeactivateShare } from '@/hooks/useShares'
 import { shareService } from '@/services/shareService'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+import { formatFileSize } from '@/utils/fileUtils'
 import type { FileShare } from '@/types/authTypes'
 
 type EnrichedShare = FileShare & { resource_name: string }
+type InboundShare = FileShare & {
+  resource_name: string
+  sharer_name: string
+  file_size?: number
+  mime_type?: string
+}
+
+type Tab = 'mine' | 'with-me'
 
 export default function SharedPage() {
+  const [tab, setTab] = useState<Tab>('mine')
+
+  return (
+    <div className="space-y-5 animate-fade-in">
+      <div>
+        <h1 className="text-2xl font-bold text-foreground tracking-tight">
+          Compartidos
+        </h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Gestiona enlaces compartidos por ti y archivos compartidos contigo.
+        </p>
+      </div>
+
+      <div className="flex items-center gap-1 rounded-lg border border-border p-0.5 w-fit">
+        <button
+          onClick={() => setTab('mine')}
+          className={cn(
+            'flex items-center gap-2 rounded-md px-3 h-8 text-xs font-medium transition-colors',
+            tab === 'mine'
+              ? 'bg-background shadow-sm text-foreground'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          <Link2 className="h-3.5 w-3.5" />
+          Por mí
+        </button>
+        <button
+          onClick={() => setTab('with-me')}
+          className={cn(
+            'flex items-center gap-2 rounded-md px-3 h-8 text-xs font-medium transition-colors',
+            tab === 'with-me'
+              ? 'bg-background shadow-sm text-foreground'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          <Inbox className="h-3.5 w-3.5" />
+          Conmigo
+        </button>
+      </div>
+
+      {tab === 'mine' ? <MineTab /> : <WithMeTab />}
+    </div>
+  )
+}
+
+function MineTab() {
   const { data: shares, isLoading } = useMyShares()
   const { mutate: deactivateShare, isPending } = useDeactivateShare()
   const [deactivatingShare, setDeactivatingShare] = useState<EnrichedShare | null>(null)
@@ -35,52 +94,41 @@ export default function SharedPage() {
     toast.success('Enlace copiado al portapapeles')
   }
 
-  return (
-    <div className="space-y-5 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground tracking-tight">
-          Compartidos
-        </h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Enlaces activos que compartiste con otros.
-        </p>
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-16 rounded-xl" />
+        ))}
       </div>
+    )
+  }
 
-      {isLoading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 rounded-xl" />
-          ))}
-        </div>
-      ) : isEmpty ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted mb-4">
-            <Link2 className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <h3 className="text-base font-semibold text-foreground mb-1">
-            No hay enlaces compartidos
-          </h3>
-          <p className="text-sm text-muted-foreground max-w-xs">
-            Cuando compartas archivos o carpetas, los enlaces activos aparecerán aquí.
-          </p>
-        </div>
-      ) : (
-        <>
-          <p className="text-xs text-muted-foreground">
-            {shares!.length} {shares!.length === 1 ? 'enlace activo' : 'enlaces activos'}
-          </p>
-          <div className="space-y-2">
-            {(shares as EnrichedShare[])!.map((share) => (
-              <ShareCard
-                key={share.id}
-                share={share}
-                onCopy={() => handleCopyLink(share.token)}
-                onDeactivate={() => setDeactivatingShare(share)}
-              />
-            ))}
-          </div>
-        </>
-      )}
+  if (isEmpty) {
+    return (
+      <EmptyState
+        icon={<Link2 className="h-8 w-8 text-muted-foreground" />}
+        title="No hay enlaces compartidos"
+        description="Cuando compartas archivos o carpetas, los enlaces activos aparecerán aquí."
+      />
+    )
+  }
+
+  return (
+    <>
+      <p className="text-xs text-muted-foreground">
+        {shares!.length} {shares!.length === 1 ? 'enlace activo' : 'enlaces activos'}
+      </p>
+      <div className="space-y-2">
+        {(shares as EnrichedShare[])!.map((share) => (
+          <ShareCard
+            key={share.id}
+            share={share}
+            onCopy={() => handleCopyLink(share.token!)}
+            onDeactivate={() => setDeactivatingShare(share)}
+          />
+        ))}
+      </div>
 
       <ConfirmDialog
         open={deactivatingShare !== null}
@@ -106,7 +154,45 @@ export default function SharedPage() {
         isPending={isPending}
         icon={<Unlink className="h-5 w-5 text-destructive" />}
       />
-    </div>
+    </>
+  )
+}
+
+function WithMeTab() {
+  const { data: shares, isLoading } = useSharedWithMe()
+  const isEmpty = !isLoading && !shares?.length
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-16 rounded-xl" />
+        ))}
+      </div>
+    )
+  }
+
+  if (isEmpty) {
+    return (
+      <EmptyState
+        icon={<Inbox className="h-8 w-8 text-muted-foreground" />}
+        title="Nada compartido contigo todavía"
+        description="Cuando otros miembros te compartan archivos o carpetas directamente, aparecerán aquí."
+      />
+    )
+  }
+
+  return (
+    <>
+      <p className="text-xs text-muted-foreground">
+        {shares!.length} {shares!.length === 1 ? 'recurso compartido' : 'recursos compartidos'}
+      </p>
+      <div className="space-y-2">
+        {shares!.map((share) => (
+          <InboundShareCard key={share.id} share={share} />
+        ))}
+      </div>
+    </>
   )
 }
 
@@ -131,7 +217,6 @@ function ShareCard({
         isExpired && 'opacity-60'
       )}
     >
-      {/* Resource icon */}
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
         {share.resource_type === 'folder' ? (
           <Folder className="h-5 w-5 text-blue-400" />
@@ -140,7 +225,6 @@ function ShareCard({
         )}
       </div>
 
-      {/* Info */}
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium text-foreground truncate">
@@ -189,7 +273,6 @@ function ShareCard({
         </div>
       </div>
 
-      {/* Actions */}
       <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           type="button"
@@ -208,6 +291,104 @@ function ShareCard({
           <Unlink className="h-4 w-4" />
         </button>
       </div>
+    </div>
+  )
+}
+
+function InboundShareCard({ share }: { share: InboundShare }) {
+  const isFolder = share.resource_type === 'folder'
+  const permissions = (share.permissions as string[]) ?? []
+  const isExpired = share.expires_at && new Date(share.expires_at) < new Date()
+  const publicUrl = share.token
+    ? shareService.buildShareUrl(share.token)
+    : undefined
+
+  return (
+    <div
+      className={cn(
+        'group flex items-center gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/20',
+        isExpired && 'opacity-60'
+      )}
+    >
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+        {isFolder ? (
+          <Folder className="h-5 w-5 text-blue-400" />
+        ) : (
+          <FileIcon className="h-5 w-5 text-primary" />
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0 space-y-1">
+        <p className="text-sm font-medium text-foreground truncate">
+          {share.resource_name}
+        </p>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Users className="h-3 w-3" />
+            De {share.sharer_name}
+          </span>
+          <span>
+            {format(new Date(share.created_at), "d MMM yyyy, HH:mm", { locale: es })}
+          </span>
+          {share.file_size !== undefined && (
+            <span>{formatFileSize(share.file_size)}</span>
+          )}
+          {permissions.length > 0 && (
+            <span className="capitalize">{permissions.join(', ')}</span>
+          )}
+          {share.expires_at && (
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {isExpired
+                ? 'Expirado'
+                : `Expira ${format(new Date(share.expires_at), "d MMM yyyy", { locale: es })}`}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {publicUrl && !isExpired && (
+        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <a
+            href={publicUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            title="Abrir recurso"
+          >
+            <ExternalLink className="h-4 w-4" />
+          </a>
+          {!isFolder && (
+            <a
+              href={publicUrl}
+              className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              title="Descargar"
+            >
+              <Download className="h-4 w-4" />
+            </a>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function EmptyState({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode
+  title: string
+  description: string
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted mb-4">
+        {icon}
+      </div>
+      <h3 className="text-base font-semibold text-foreground mb-1">{title}</h3>
+      <p className="text-sm text-muted-foreground max-w-xs">{description}</p>
     </div>
   )
 }

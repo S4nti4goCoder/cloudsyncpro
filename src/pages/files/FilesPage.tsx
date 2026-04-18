@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useDropzone } from "react-dropzone";
 import {
   FolderPlus,
   Upload,
@@ -60,6 +61,7 @@ export default function FilesPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [droppedFiles, setDroppedFiles] = useState<File[] | undefined>(undefined);
   const [newFolderName, setNewFolderName] = useState("");
   const [previewFile, setPreviewFile] = useState<FileRecord | null>(null);
   const [shareFile, setShareFile] = useState<FileRecord | null>(null);
@@ -140,8 +142,41 @@ export default function FilesPage() {
     setDragOverFolderId(null);
   }
 
+  const onPageDrop = useCallback((acceptedFiles: File[]) => {
+    if (!acceptedFiles.length) return;
+    setDroppedFiles(acceptedFiles);
+    setShowUploadModal(true);
+  }, []);
+
+  const {
+    getRootProps: getPageDropzoneProps,
+    isDragActive: isPageDragActive,
+  } = useDropzone({
+    onDrop: onPageDrop,
+    noClick: true,
+    noKeyboard: true,
+    disabled: !canEdit,
+  });
+
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div {...getPageDropzoneProps()} className="relative space-y-5 animate-fade-in">
+      {/* Global drop overlay */}
+      {canEdit && isPageDragActive && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary/10 backdrop-blur-xs pointer-events-none animate-fade-in">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-primary bg-card/90 px-12 py-10 shadow-xl">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15">
+              <Upload className="h-7 w-7 text-primary" />
+            </div>
+            <p className="text-base font-semibold text-foreground">
+              Suelta los archivos para subirlos
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Se subirán a {folderPath?.length ? folderPath[folderPath.length - 1]?.name : "la raíz"}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -384,9 +419,13 @@ export default function FilesPage() {
       {/* Modals */}
       <UploadFileModal
         open={showUploadModal}
-        onClose={() => setShowUploadModal(false)}
+        onClose={() => {
+          setShowUploadModal(false);
+          setDroppedFiles(undefined);
+        }}
         workspaceId={workspaceId}
         folderId={folderId}
+        initialFiles={droppedFiles}
       />
 
       <FilePreviewModal

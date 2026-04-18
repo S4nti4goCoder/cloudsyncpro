@@ -105,6 +105,81 @@ export const shareService = {
   },
 
   /**
+   * Get all active shares directed at the current user (inbound), enriched with
+   * resource name + sharer's full_name. Only returns share_type = 'user' because
+   * 'public' shares don't have a specific recipient.
+   */
+  async getSharedWithMe(): Promise<
+    (FileShare & { resource_name: string; sharer_name: string; file_size?: number; mime_type?: string })[]
+  > {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('No hay sesión activa')
+
+    const { data: shares, error } = await supabase
+      .from('file_shares')
+      .select('*')
+      .eq('shared_with', user.id)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+
+    const list = shares as (FileShare & {
+      resource_name: string
+      sharer_name: string
+      file_size?: number
+      mime_type?: string
+    })[]
+
+    const fileIds = list.filter((s) => s.resource_type === 'file').map((s) => s.resource_id)
+    const folderIds = list.filter((s) => s.resource_type === 'folder').map((s) => s.resource_id)
+    const sharerIds = Array.from(new Set(list.map((s) => s.shared_by)))
+
+    const nameMap = new Map<string, string>()
+    const fileMetaMap = new Map<string, { size: number; mime_type: string }>()
+    const sharerMap = new Map<string, string>()
+
+    if (fileIds.length > 0) {
+      const { data: files } = await supabase
+        .from('files')
+        .select('id, name, size, mime_type')
+        .in('id', fileIds)
+      files?.forEach((f) => {
+        nameMap.set(f.id, f.name)
+        fileMetaMap.set(f.id, { size: f.size, mime_type: f.mime_type })
+      })
+    }
+
+    if (folderIds.length > 0) {
+      const { data: folders } = await supabase
+        .from('folders')
+        .select('id, name')
+        .in('id', folderIds)
+      folders?.forEach((f) => nameMap.set(f.id, f.name))
+    }
+
+    if (sharerIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', sharerIds)
+      profiles?.forEach((p) => sharerMap.set(p.id, p.full_name ?? 'Usuario'))
+    }
+
+    for (const share of list) {
+      share.resource_name = nameMap.get(share.resource_id) ?? 'Recurso eliminado'
+      share.sharer_name = sharerMap.get(share.shared_by) ?? 'Usuario'
+      const meta = fileMetaMap.get(share.resource_id)
+      if (meta) {
+        share.file_size = meta.size
+        share.mime_type = meta.mime_type
+      }
+    }
+
+    return list
+  },
+
+  /**
    * Get all shares for a resource
    */
   async getShares(resourceId: string): Promise<FileShare[]> {

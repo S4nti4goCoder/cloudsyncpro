@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, X, FileIcon, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import {
@@ -19,6 +19,7 @@ interface UploadFileModalProps {
   onClose: () => void
   workspaceId: string
   folderId: string | null
+  initialFiles?: File[]
 }
 
 interface FileUploadState {
@@ -33,10 +34,23 @@ export function UploadFileModal({
   onClose,
   workspaceId,
   folderId,
+  initialFiles,
 }: UploadFileModalProps) {
   const [files, setFiles] = useState<FileUploadState[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const queryClient = useQueryClient()
+
+  useEffect(() => {
+    if (open && initialFiles?.length) {
+      setFiles(
+        initialFiles.map((file) => ({
+          file,
+          progress: 0,
+          status: 'pending' as const,
+        }))
+      )
+    }
+  }, [open, initialFiles])
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newFiles = acceptedFiles.map((file) => ({

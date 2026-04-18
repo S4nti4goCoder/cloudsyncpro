@@ -12,6 +12,13 @@ export function useMyShares() {
   })
 }
 
+export function useSharedWithMe() {
+  return useQuery({
+    queryKey: [SHARES_KEY, 'with-me'],
+    queryFn: () => shareService.getSharedWithMe(),
+  })
+}
+
 export function useShares(resourceId: string) {
   return useQuery({
     queryKey: [SHARES_KEY, resourceId],
