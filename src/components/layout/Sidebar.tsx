@@ -17,6 +17,7 @@ import {
   Check,
   Plus,
   Activity,
+  Star,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/uiStore'
@@ -44,6 +45,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
   { label: 'Mis archivos', icon: FolderOpen, href: '/files' },
+  { label: 'Favoritos', icon: Star, href: '/favorites' },
   { label: 'Compartidos', icon: Share2, href: '/shared' },
   { label: 'Espacios de trabajo', icon: Users, href: '/workspaces' },
   { label: 'Actividad', icon: Activity, href: '/activity' },

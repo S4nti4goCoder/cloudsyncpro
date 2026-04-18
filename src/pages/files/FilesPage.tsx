@@ -25,6 +25,7 @@ import {
   FileArchiveIcon,
   Share2,
   Activity,
+  Star,
   X,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -52,6 +53,7 @@ import {
   useBulkArchiveFiles,
   useBulkMoveFiles,
 } from "@/hooks/useFiles";
+import { useFavorites, useToggleFavorite } from "@/hooks/useFavorites";
 import { useWorkspaceRole } from "@/hooks/useWorkspaceRole";
 import { UploadFileModal } from "@/components/shared/UploadFileModal";
 import { FilePreviewModal } from "@/components/shared/FilePreviewModal";
@@ -133,6 +135,8 @@ export default function FilesPage() {
   const { mutate: bulkMoveFiles, isPending: bulkMoveFilesPending } = useBulkMoveFiles(workspaceId);
   const { mutate: bulkDeleteFolders, isPending: bulkDeleteFoldersPending } = useBulkDeleteFolders(workspaceId);
   const { mutate: bulkMoveFolders, isPending: bulkMoveFoldersPending } = useBulkMoveFolders(workspaceId);
+  const { favoriteFileIds, favoriteFolderIds } = useFavorites(workspaceId);
+  const { mutate: toggleFavorite } = useToggleFavorite(workspaceId);
   const { canEdit, isViewer } = useWorkspaceRole();
 
   const selectionCount = selectedFileIds.size + selectedFolderIds.size;
@@ -536,6 +540,14 @@ export default function FilesPage() {
                     selected={selectedFolderIds.has(folder.id)}
                     onToggleSelect={() => toggleFolder(folder.id)}
                     anySelected={selectionCount > 0}
+                    isFavorite={favoriteFolderIds.has(folder.id)}
+                    onToggleFavorite={() =>
+                      toggleFavorite({
+                        resourceType: "folder",
+                        resourceId: folder.id,
+                        isFavorite: favoriteFolderIds.has(folder.id),
+                      })
+                    }
                   />
                 ))}
               </div>
@@ -579,6 +591,14 @@ export default function FilesPage() {
                     selected={selectedFileIds.has(file.id)}
                     onToggleSelect={() => toggleFile(file.id)}
                     anySelected={selectionCount > 0}
+                    isFavorite={favoriteFileIds.has(file.id)}
+                    onToggleFavorite={() =>
+                      toggleFavorite({
+                        resourceType: "file",
+                        resourceId: file.id,
+                        isFavorite: favoriteFileIds.has(file.id),
+                      })
+                    }
                   />
                 ))}
               </div>
@@ -689,9 +709,11 @@ interface FolderCardProps {
   selected: boolean;
   onToggleSelect: () => void;
   anySelected: boolean;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
 }
 
-function FolderCard({ folder, viewMode, canEdit, onClick, onDelete, onActivity, isRenaming, onStartRename, onCancelRename, isDragOver, onDragOver, onDragLeave, onDrop, selected, onToggleSelect, anySelected }: FolderCardProps) {
+function FolderCard({ folder, viewMode, canEdit, onClick, onDelete, onActivity, isRenaming, onStartRename, onCancelRename, isDragOver, onDragOver, onDragLeave, onDrop, selected, onToggleSelect, anySelected, isFavorite, onToggleFavorite }: FolderCardProps) {
   const { mutate: renameFolder } = useRenameFolder(folder.workspace_id);
   const { mutate: setFolderColor } = useSetFolderColor(folder.workspace_id);
   const [editName, setEditName] = useState(folder.name);
@@ -776,6 +798,8 @@ function FolderCard({ folder, viewMode, canEdit, onClick, onDelete, onActivity, 
           <FolderMenu
             canEdit={canEdit}
             currentColor={currentColor}
+            isFavorite={isFavorite}
+            onToggleFavorite={onToggleFavorite}
             onRename={() => {
               setEditName(folder.name);
               onStartRename();
@@ -805,6 +829,11 @@ function FolderCard({ folder, viewMode, canEdit, onClick, onDelete, onActivity, 
       {checkbox && (
         <div className="absolute left-2 top-2 z-10">{checkbox}</div>
       )}
+      {isFavorite && (
+        <div className="absolute right-2 top-2 z-10">
+          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+        </div>
+      )}
       <div className={cn("h-1.5 w-full bg-linear-to-r", isDragOver ? "from-primary to-primary/70" : colorClasses.gradient)} />
       <div className="p-4 flex flex-col gap-3">
         <div className="flex items-start justify-between">
@@ -817,6 +846,8 @@ function FolderCard({ folder, viewMode, canEdit, onClick, onDelete, onActivity, 
           >
             <FolderMenu
               currentColor={currentColor}
+              isFavorite={isFavorite}
+              onToggleFavorite={onToggleFavorite}
               onRename={() => {
                 setEditName(folder.name);
                 onStartRename();
@@ -841,6 +872,8 @@ function FolderCard({ folder, viewMode, canEdit, onClick, onDelete, onActivity, 
 function FolderMenu({
   canEdit = true,
   currentColor,
+  isFavorite,
+  onToggleFavorite,
   onRename,
   onActivity,
   onSetColor,
@@ -848,6 +881,8 @@ function FolderMenu({
 }: {
   canEdit?: boolean;
   currentColor: string;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
   onRename: () => void;
   onActivity: () => void;
   onSetColor: (color: string) => void;
@@ -861,6 +896,10 @@ function FolderMenu({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuItem onSelect={onToggleFavorite}>
+          <Star className={cn("mr-2 h-3.5 w-3.5", isFavorite && "fill-amber-400 text-amber-400")} />
+          {isFavorite ? "Quitar de favoritos" : "Añadir a favoritos"}
+        </DropdownMenuItem>
         {canEdit && (
           <>
             <DropdownMenuItem onSelect={onRename}>
@@ -931,6 +970,8 @@ interface FileCardProps {
   selected: boolean;
   onToggleSelect: () => void;
   anySelected: boolean;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
 }
 
 function FileCard({
@@ -952,6 +993,8 @@ function FileCard({
   selected,
   onToggleSelect,
   anySelected,
+  isFavorite,
+  onToggleFavorite,
 }: FileCardProps) {
   const colorClass = getFileColor(file.mime_type);
   const [editName, setEditName] = useState(file.name);
@@ -1038,6 +1081,8 @@ function FileCard({
         <div onClick={(e) => e.stopPropagation()}>
           <FileMenu
             canEdit={canEdit}
+            isFavorite={isFavorite}
+            onToggleFavorite={onToggleFavorite}
             onRename={() => { setEditName(file.name); onStartRename(); }}
             onShare={onShare}
             onMove={onMove}
@@ -1064,6 +1109,11 @@ function FileCard({
       {checkbox && (
         <div className="absolute left-2 top-2 z-10">{checkbox}</div>
       )}
+      {isFavorite && (
+        <div className="absolute right-2 top-2 z-10">
+          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+        </div>
+      )}
       <div
         className={cn(
           "flex h-24 w-full items-center justify-center",
@@ -1083,6 +1133,8 @@ function FileCard({
             onClick={(e) => e.stopPropagation()}
           >
             <FileMenu
+              isFavorite={isFavorite}
+              onToggleFavorite={onToggleFavorite}
               onRename={() => { setEditName(file.name); onStartRename(); }}
               onShare={onShare}
               onMove={onMove}
@@ -1102,7 +1154,9 @@ function FileCard({
 }
 
 function FileMenu({
-  canEdit,
+  canEdit = true,
+  isFavorite,
+  onToggleFavorite,
   onRename,
   onShare,
   onMove,
@@ -1110,7 +1164,9 @@ function FileMenu({
   onArchive,
   onTrash,
 }: {
-  canEdit: boolean;
+  canEdit?: boolean;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
   onRename: () => void;
   onShare: () => void;
   onMove: () => void;
@@ -1126,6 +1182,10 @@ function FileMenu({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuItem onSelect={onToggleFavorite}>
+          <Star className={cn("mr-2 h-3.5 w-3.5", isFavorite && "fill-amber-400 text-amber-400")} />
+          {isFavorite ? "Quitar de favoritos" : "Añadir a favoritos"}
+        </DropdownMenuItem>
         {canEdit && (
           <>
             <DropdownMenuItem onSelect={onRename}>

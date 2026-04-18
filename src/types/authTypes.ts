@@ -18,6 +18,8 @@ export type FileShare = Database['public']['Tables']['file_shares']['Row']
 export type ActivityLog = Database['public']['Tables']['activity_logs']['Row']
 export type Notification = Database['public']['Tables']['notifications']['Row']
 
+export type Favorite = Database['public']['Tables']['favorites']['Row']
+
 export type UserProfile = Profile
 
 export interface AuthState {

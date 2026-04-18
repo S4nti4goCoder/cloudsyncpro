@@ -13,6 +13,7 @@ const DashboardPage = lazy(() => import("@/pages/dashboard/DashboardPage"));
 const AdminPage = lazy(() => import("@/pages/admin/AdminPage"));
 const ActivityPage = lazy(() => import("@/pages/activity/ActivityPage"));
 const ArchivedPage = lazy(() => import("@/pages/archived/ArchivedPage"));
+const FavoritesPage = lazy(() => import("@/pages/favorites/FavoritesPage"));
 const TrashPage = lazy(() => import("@/pages/trash/TrashPage"));
 const ProfilePage = lazy(() => import("@/pages/settings/ProfilePage"));
 const SettingsPage = lazy(() => import("@/pages/settings/SettingsPage"));
@@ -125,6 +126,14 @@ export function AppRoutes() {
           element={
             <ProtectedRoute>
               <PlaceholderPage title="Notificaciones" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/favorites"
+          element={
+            <ProtectedRoute>
+              <FavoritesPage />
             </ProtectedRoute>
           }
         />
