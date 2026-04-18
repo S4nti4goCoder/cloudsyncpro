@@ -391,8 +391,10 @@ export default function FilesPage() {
 
       <FilePreviewModal
         file={previewFile}
+        files={files}
         open={previewFile !== null}
         onClose={() => setPreviewFile(null)}
+        onFileChange={setPreviewFile}
       />
 
       <ShareFileModal

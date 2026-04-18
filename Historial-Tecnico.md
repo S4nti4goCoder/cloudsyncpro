@@ -1333,6 +1333,41 @@ La subscripción realtime del Paso 13 (`supabase.channel('notifications:user_id=
 
 ---
 
+## ✅ PASO 31 — Mejoras al FilePreviewModal
+
+**Commit:** `feat: improve file preview modal (text, nav, loading/error)`
+
+### Contexto
+
+El `FilePreviewModal` ya existía (imágenes con zoom/rotate, PDF iframe, video, audio y fallback "otro"). Tres huecos UX:
+
+1. Archivos de texto (`.txt`, `.md`, `.json`, `.log`, `.csv`, código…) caían siempre al fallback "sin previsualización"
+2. No había estado de carga ni de error — si el blob tardaba o fallaba, el usuario veía un fondo negro sin feedback
+3. No se podía navegar entre archivos desde dentro del modal — había que cerrar y abrir el siguiente
+
+### Acciones realizadas
+
+- **Text preview**: `TEXT_EXTENSIONS` con ~45 extensiones comunes (txt/md/json/csv/log + lenguajes + configs). `getFileType` ahora devuelve `"text"` para `text/*`, `application/json`, `application/xml` o extensión listada. Render en `<pre>` con `whitespace-pre-wrap wrap-break-word`, fuente mono, fondo sutil
+- **Loading state**: overlay con `Loader2` spinner + texto "Cargando previsualización…" mientras el medio carga. Control via `isLoading` — se baja en `onLoad`/`onLoadedData`/fetch success
+- **Error state**: card con `AlertCircle` + CTA de descarga cuando el recurso no carga (`onError` o fetch falla)
+- **Navegación con flechas**: `FilePreviewModal` ahora acepta `files?: FileRecord[]` y `onFileChange?: (f) => void`. Render de botones circulares (h-14 w-14, bg blanco, shadow-2xl, ring) a izquierda/derecha + atajos `ArrowLeft` / `ArrowRight`. Contador "N / total" en el header
+- **Portal + positioned offsets**: el modal se renderiza via `createPortal(..., document.body)` con `fixed top-16 right-0 bottom-0 left-0` (y `lg:left-16` / `lg:left-64` según `sidebarCollapsed`), de modo que sidebar y header siguen visibles pero el modal llega hasta el fondo del viewport
+
+### Decisiones técnicas
+
+- **Portal a `document.body`** — porque algún ancestor (`animate-fade-in` con `transform: matrix(...)`) creaba stacking context y atrapaba los `position: fixed` del modal, que dejaban un gap negro arriba y no llegaban al fondo. Sacarlo al body rompe esa trampa y el offset manual (`top-16 + lg:left-{16|64}`) preserva la UX que el usuario quería (sidebar/header visibles)
+- **Fetch con `AbortController`** en el efecto de texto — al cambiar rápido de archivo con las flechas, se aborta el request anterior para no pisar `textContent` con una respuesta vieja
+- **`key={file.id}` en `FilePreviewContent`** — fuerza remount al navegar, reseteando zoom/rotación/loading/error sin lógica manual por prop
+- **Flechas más grandes y blancas (`h-14 w-14 bg-white/95 text-gray-900`)**: las primeras estaban en `text-white/40` sobre fondo semi-transparente y prácticamente no se veían; el usuario lo reportó explícitamente
+
+### Validación
+
+- Click en archivo PDF → modal abre en portal, sidebar + header visibles, llega al fondo del viewport, iframe del PDF renderiza dentro
+- Cerrar con botón X y con `Esc`
+- Con un solo archivo, las flechas no se renderizan (`canPrev` y `canNext` en false)
+
+---
+
 ## 🔜 PRÓXIMOS PASOS
 
 - Volver a trabajo de producto: features pendientes o mejoras UX — el hardening queda cerrado por ahora
