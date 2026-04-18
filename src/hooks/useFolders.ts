@@ -67,6 +67,21 @@ export function useRenameFolder(workspaceId: string) {
   })
 }
 
+export function useSetFolderColor(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, color }: { id: string; color: string | null }) =>
+      folderService.setFolderColor(id, color),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [FOLDERS_KEY, workspaceId] })
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Error al cambiar el color')
+    },
+  })
+}
+
 export function useDeleteFolder(workspaceId: string) {
   const queryClient = useQueryClient()
 

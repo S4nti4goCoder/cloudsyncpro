@@ -121,6 +121,33 @@ export const folderService = {
   },
 
   /**
+   * Set folder color (stored inside metadata.color).
+   */
+  async setFolderColor(id: string, color: string | null): Promise<Folder> {
+    const { data: prev } = await supabase
+      .from("folders")
+      .select("metadata")
+      .eq("id", id)
+      .single();
+
+    const baseMetadata =
+      prev?.metadata && typeof prev.metadata === "object" && !Array.isArray(prev.metadata)
+        ? (prev.metadata as Record<string, unknown>)
+        : {};
+    const nextMetadata = { ...baseMetadata, color: color ?? null };
+
+    const { data, error } = await supabase
+      .from("folders")
+      .update({ metadata: nextMetadata })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Folder;
+  },
+
+  /**
    * Bulk delete folders.
    */
   async bulkDelete(ids: string[]): Promise<void> {

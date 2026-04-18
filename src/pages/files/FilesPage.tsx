@@ -12,6 +12,8 @@ import {
   Trash2,
   Archive,
   FolderInput,
+  Palette,
+  Check,
   ChevronRight,
   Home,
   FileIcon,
@@ -35,9 +37,11 @@ import {
   useCreateFolder,
   useDeleteFolder,
   useRenameFolder,
+  useSetFolderColor,
   useBulkDeleteFolders,
   useBulkMoveFolders,
 } from "@/hooks/useFolders";
+import { FOLDER_COLORS, folderColorFromMetadata, getFolderColorClasses } from "@/utils/folderColors";
 import {
   useFiles,
   useArchiveFile,
@@ -64,6 +68,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Folder as FolderType, FileRecord } from "@/types/authTypes";
@@ -686,7 +693,10 @@ interface FolderCardProps {
 
 function FolderCard({ folder, viewMode, canEdit, onClick, onDelete, onActivity, isRenaming, onStartRename, onCancelRename, isDragOver, onDragOver, onDragLeave, onDrop, selected, onToggleSelect, anySelected }: FolderCardProps) {
   const { mutate: renameFolder } = useRenameFolder(folder.workspace_id);
+  const { mutate: setFolderColor } = useSetFolderColor(folder.workspace_id);
   const [editName, setEditName] = useState(folder.name);
+  const currentColor = folderColorFromMetadata(folder.metadata);
+  const colorClasses = getFolderColorClasses(currentColor);
 
   function handleRenameConfirm() {
     const trimmed = editName.trim();
@@ -755,8 +765,8 @@ function FolderCard({ folder, viewMode, canEdit, onClick, onDelete, onActivity, 
         {...dropHandlers}
       >
         {checkbox}
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
-          <Folder className="h-4 w-4 text-blue-400" />
+        <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", colorClasses.iconBg)}>
+          <Folder className={cn("h-4 w-4", colorClasses.iconFg)} />
         </div>
         <div className="flex-1 min-w-0">{nameElement}</div>
         <span className="text-xs text-muted-foreground shrink-0">
@@ -765,11 +775,13 @@ function FolderCard({ folder, viewMode, canEdit, onClick, onDelete, onActivity, 
         <div onClick={(e) => e.stopPropagation()}>
           <FolderMenu
             canEdit={canEdit}
+            currentColor={currentColor}
             onRename={() => {
               setEditName(folder.name);
               onStartRename();
             }}
             onActivity={onActivity}
+            onSetColor={(c) => setFolderColor({ id: folder.id, color: c })}
             onDelete={onDelete}
           />
         </div>
@@ -793,22 +805,24 @@ function FolderCard({ folder, viewMode, canEdit, onClick, onDelete, onActivity, 
       {checkbox && (
         <div className="absolute left-2 top-2 z-10">{checkbox}</div>
       )}
-      <div className={cn("h-1.5 w-full bg-linear-to-r", isDragOver ? "from-primary to-primary/70" : "from-blue-400 to-blue-500")} />
+      <div className={cn("h-1.5 w-full bg-linear-to-r", isDragOver ? "from-primary to-primary/70" : colorClasses.gradient)} />
       <div className="p-4 flex flex-col gap-3">
         <div className="flex items-start justify-between">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">
-            <Folder className="h-5 w-5 text-blue-400" />
+          <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", colorClasses.iconBg)}>
+            <Folder className={cn("h-5 w-5", colorClasses.iconFg)} />
           </div>
           <div
             className="opacity-0 group-hover:opacity-100 transition-opacity"
             onClick={(e) => e.stopPropagation()}
           >
             <FolderMenu
+              currentColor={currentColor}
               onRename={() => {
                 setEditName(folder.name);
                 onStartRename();
               }}
               onActivity={onActivity}
+              onSetColor={(c) => setFolderColor({ id: folder.id, color: c })}
               onDelete={onDelete}
             />
           </div>
@@ -825,14 +839,18 @@ function FolderCard({ folder, viewMode, canEdit, onClick, onDelete, onActivity, 
 }
 
 function FolderMenu({
-  canEdit,
+  canEdit = true,
+  currentColor,
   onRename,
   onActivity,
+  onSetColor,
   onDelete,
 }: {
-  canEdit: boolean;
+  canEdit?: boolean;
+  currentColor: string;
   onRename: () => void;
   onActivity: () => void;
+  onSetColor: (color: string) => void;
   onDelete: () => void;
 }) {
   return (
@@ -842,12 +860,32 @@ function FolderMenu({
           <MoreHorizontal className="h-4 w-4" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-40">
+      <DropdownMenuContent align="end" className="w-44">
         {canEdit && (
-          <DropdownMenuItem onSelect={onRename}>
-            <Pencil className="mr-2 h-3.5 w-3.5" />
-            Renombrar
-          </DropdownMenuItem>
+          <>
+            <DropdownMenuItem onSelect={onRename}>
+              <Pencil className="mr-2 h-3.5 w-3.5" />
+              Renombrar
+            </DropdownMenuItem>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <Palette className="mr-2 h-3.5 w-3.5" />
+                Color
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="w-40">
+                {FOLDER_COLORS.map((c) => (
+                  <DropdownMenuItem key={c.id} onSelect={() => onSetColor(c.id)}>
+                    <span
+                      className="mr-2 inline-block h-3.5 w-3.5 rounded-full"
+                      style={{ backgroundColor: c.hex }}
+                    />
+                    <span className="flex-1">{c.label}</span>
+                    {currentColor === c.id && <Check className="h-3.5 w-3.5 text-primary" />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          </>
         )}
         <DropdownMenuItem onSelect={onActivity}>
           <Activity className="mr-2 h-3.5 w-3.5" />
