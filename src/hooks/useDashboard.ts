@@ -101,13 +101,16 @@ export function useUploadActivity(workspaceId: string) {
   return useQuery({
     queryKey: ["upload-activity", workspaceId],
     queryFn: async () => {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 30);
+
       const { data, error } = await supabase
         .from("files")
         .select("created_at, size")
         .eq("workspace_id", workspaceId)
         .eq("status", "active")
-        .order("created_at", { ascending: true })
-        .limit(100);
+        .gte("created_at", cutoff.toISOString())
+        .order("created_at", { ascending: true });
 
       if (error) throw error;
 
