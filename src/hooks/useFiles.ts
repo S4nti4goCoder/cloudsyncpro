@@ -1,8 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { fileService } from '@/services/fileService'
+import { invalidateDashboardQueries } from '@/hooks/useDashboard'
 
 const FILES_KEY = 'files'
+
+function invalidateFileQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  workspaceId: string,
+  folderId?: string | null,
+) {
+  if (folderId !== undefined) {
+    void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId, folderId] })
+  } else {
+    void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId] })
+  }
+  invalidateDashboardQueries(queryClient, workspaceId)
+}
 
 export function useFiles(workspaceId: string, folderId: string | null = null) {
   return useQuery({
@@ -35,7 +49,7 @@ export function useRenameFile(workspaceId: string, folderId: string | null = nul
     mutationFn: ({ id, name }: { id: string; name: string }) =>
       fileService.renameFile(id, name),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId, folderId] })
+      invalidateFileQueries(queryClient, workspaceId, folderId)
       toast.success('Archivo renombrado')
     },
     onError: (error: Error) => {
@@ -50,7 +64,7 @@ export function useArchiveFile(workspaceId: string, folderId: string | null = nu
   return useMutation({
     mutationFn: (id: string) => fileService.archiveFile(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId, folderId] })
+      invalidateFileQueries(queryClient, workspaceId, folderId)
       toast.success('Archivo archivado')
     },
     onError: (error: Error) => {
@@ -65,7 +79,7 @@ export function useTrashFile(workspaceId: string, folderId: string | null = null
   return useMutation({
     mutationFn: (id: string) => fileService.trashFile(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId, folderId] })
+      invalidateFileQueries(queryClient, workspaceId, folderId)
       toast.success('Archivo movido a la papelera')
     },
     onError: (error: Error) => {
@@ -80,7 +94,7 @@ export function useRestoreFile(workspaceId: string) {
   return useMutation({
     mutationFn: (id: string) => fileService.restoreFile(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId] })
+      invalidateFileQueries(queryClient, workspaceId)
       toast.success('Archivo restaurado')
     },
     onError: (error: Error) => {
@@ -96,7 +110,7 @@ export function useMoveFile(workspaceId: string) {
     mutationFn: ({ id, targetFolderId }: { id: string; targetFolderId: string | null }) =>
       fileService.moveFile(id, targetFolderId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId] })
+      invalidateFileQueries(queryClient, workspaceId)
       toast.success('Archivo movido')
     },
     onError: (error: Error) => {
@@ -111,7 +125,7 @@ export function useDeleteFile(workspaceId: string) {
   return useMutation({
     mutationFn: (id: string) => fileService.deleteFile(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId] })
+      invalidateFileQueries(queryClient, workspaceId)
       toast.success('Archivo eliminado permanentemente')
     },
     onError: (error: Error) => {
@@ -126,7 +140,7 @@ export function useBulkTrashFiles(workspaceId: string) {
   return useMutation({
     mutationFn: (ids: string[]) => fileService.bulkTrash(ids),
     onSuccess: (_, ids) => {
-      void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId] })
+      invalidateFileQueries(queryClient, workspaceId)
       toast.success(`${ids.length} ${ids.length === 1 ? 'archivo movido a la papelera' : 'archivos movidos a la papelera'}`)
     },
     onError: (error: Error) => {
@@ -141,7 +155,7 @@ export function useBulkArchiveFiles(workspaceId: string) {
   return useMutation({
     mutationFn: (ids: string[]) => fileService.bulkArchive(ids),
     onSuccess: (_, ids) => {
-      void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId] })
+      invalidateFileQueries(queryClient, workspaceId)
       toast.success(`${ids.length} ${ids.length === 1 ? 'archivo archivado' : 'archivos archivados'}`)
     },
     onError: (error: Error) => {
@@ -157,7 +171,7 @@ export function useBulkMoveFiles(workspaceId: string) {
     mutationFn: ({ ids, targetFolderId }: { ids: string[]; targetFolderId: string | null }) =>
       fileService.bulkMove(ids, targetFolderId),
     onSuccess: (_, { ids }) => {
-      void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId] })
+      invalidateFileQueries(queryClient, workspaceId)
       toast.success(`${ids.length} ${ids.length === 1 ? 'archivo movido' : 'archivos movidos'}`)
     },
     onError: (error: Error) => {
@@ -172,7 +186,7 @@ export function useBulkRestoreFiles(workspaceId: string) {
   return useMutation({
     mutationFn: (ids: string[]) => fileService.bulkRestore(ids),
     onSuccess: (_, ids) => {
-      void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId] })
+      invalidateFileQueries(queryClient, workspaceId)
       toast.success(`${ids.length} ${ids.length === 1 ? 'archivo restaurado' : 'archivos restaurados'}`)
     },
     onError: (error: Error) => {
@@ -187,7 +201,7 @@ export function useBulkDeleteFiles(workspaceId: string) {
   return useMutation({
     mutationFn: (ids: string[]) => fileService.bulkDelete(ids),
     onSuccess: (_, ids) => {
-      void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId] })
+      invalidateFileQueries(queryClient, workspaceId)
       toast.success(`${ids.length} ${ids.length === 1 ? 'archivo eliminado' : 'archivos eliminados'}`)
     },
     onError: (error: Error) => {
@@ -202,7 +216,7 @@ export function useEmptyTrash(workspaceId: string) {
   return useMutation({
     mutationFn: () => fileService.emptyTrash(workspaceId),
     onSuccess: (count) => {
-      void queryClient.invalidateQueries({ queryKey: [FILES_KEY, workspaceId] })
+      invalidateFileQueries(queryClient, workspaceId)
       if (count > 0) {
         toast.success(`Papelera vaciada (${count} ${count === 1 ? 'archivo' : 'archivos'})`)
       } else {

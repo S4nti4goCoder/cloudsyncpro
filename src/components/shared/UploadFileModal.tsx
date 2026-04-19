@@ -12,6 +12,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { uploadService } from '@/services/uploadService'
 import { fileService } from '@/services/fileService'
+import { invalidateDashboardQueries } from '@/hooks/useDashboard'
 import { formatFileSize } from '@/utils/fileUtils'
 import {
   validateFile,
@@ -171,6 +172,7 @@ export function UploadFileModal({
     }
 
     await queryClient.invalidateQueries({ queryKey: ['files', workspaceId, folderId] })
+    invalidateDashboardQueries(queryClient, workspaceId)
     setIsUploading(false)
 
     const successCount = files.filter((f) => f.status === 'success').length

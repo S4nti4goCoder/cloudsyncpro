@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { fileService } from "@/services/fileService";
 import { folderService } from "@/services/folderService";
+import { invalidateDashboardQueries } from "@/hooks/useDashboard";
 import {
   Trash2,
   ArchiveRestore,
@@ -106,6 +107,7 @@ export default function TrashPage() {
     onSuccess: (count) => {
       void queryClient.invalidateQueries({ queryKey: ["files"] });
       void queryClient.invalidateQueries({ queryKey: ["folders"] });
+      invalidateDashboardQueries(queryClient, workspaceId);
       toast.success(
         `Papelera vaciada (${count} ${count === 1 ? "elemento" : "elementos"})`,
       );

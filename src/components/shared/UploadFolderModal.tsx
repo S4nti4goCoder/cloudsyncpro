@@ -19,6 +19,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { uploadService } from '@/services/uploadService'
 import { folderService } from '@/services/folderService'
+import { invalidateDashboardQueries } from '@/hooks/useDashboard'
 import { supabase } from '@/lib/supabase'
 import { formatFileSize } from '@/utils/fileUtils'
 import {
@@ -271,6 +272,7 @@ export function UploadFolderModal({
         queryClient.invalidateQueries({ queryKey: ['files', workspaceId] }),
         queryClient.invalidateQueries({ queryKey: ['folders', workspaceId] }),
       ])
+      invalidateDashboardQueries(queryClient, workspaceId)
 
       setIsUploading(false)
 

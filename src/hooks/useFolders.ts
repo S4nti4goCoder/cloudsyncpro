@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { folderService } from '@/services/folderService'
+import { invalidateDashboardQueries } from '@/hooks/useDashboard'
 import { useAuthStore } from '@/store/authStore'
 
 const FOLDERS_KEY = 'folders'
@@ -42,7 +43,7 @@ export function useCreateFolder(workspaceId: string, parentId: string | null = n
         createdBy: userId!,
       }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [FOLDERS_KEY, workspaceId] })
+      invalidateFolderQueries(queryClient, workspaceId)
       toast.success('Carpeta creada')
     },
     onError: (error: Error) => {
@@ -58,7 +59,7 @@ export function useRenameFolder(workspaceId: string) {
     mutationFn: ({ id, name }: { id: string; name: string }) =>
       folderService.renameFolder(id, name),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [FOLDERS_KEY, workspaceId] })
+      invalidateFolderQueries(queryClient, workspaceId)
       toast.success('Carpeta renombrada')
     },
     onError: (error: Error) => {
@@ -74,7 +75,7 @@ export function useSetFolderColor(workspaceId: string) {
     mutationFn: ({ id, color }: { id: string; color: string | null }) =>
       folderService.setFolderColor(id, color),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [FOLDERS_KEY, workspaceId] })
+      invalidateFolderQueries(queryClient, workspaceId)
     },
     onError: (error: Error) => {
       toast.error(error.message ?? 'Error al cambiar el color')
@@ -90,6 +91,7 @@ function invalidateFolderQueries(
   void queryClient.invalidateQueries({ queryKey: [FOLDERS_KEY, 'trash', workspaceId] })
   // Files live inside folders — trash_folder_cascade flips their status too.
   void queryClient.invalidateQueries({ queryKey: ['files'] })
+  invalidateDashboardQueries(queryClient, workspaceId)
 }
 
 export function useTrashedFolders(workspaceId: string) {
@@ -203,7 +205,7 @@ export function useBulkMoveFolders(workspaceId: string) {
     mutationFn: ({ ids, targetParentId }: { ids: string[]; targetParentId: string | null }) =>
       folderService.bulkMove(ids, targetParentId),
     onSuccess: (_, { ids }) => {
-      void queryClient.invalidateQueries({ queryKey: [FOLDERS_KEY, workspaceId] })
+      invalidateFolderQueries(queryClient, workspaceId)
       toast.success(`${ids.length} ${ids.length === 1 ? 'carpeta movida' : 'carpetas movidas'}`)
     },
     onError: (error: Error) => {

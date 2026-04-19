@@ -1,5 +1,27 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+
+/**
+ * Invalidate every dashboard query so stats and recent lists refresh
+ * after a file/folder mutation. Called from useFiles / useFolders.
+ */
+export function invalidateDashboardQueries(
+  queryClient: QueryClient,
+  workspaceId?: string,
+) {
+  void queryClient.invalidateQueries({ queryKey: ["global-stats"] });
+  if (workspaceId) {
+    void queryClient.invalidateQueries({
+      queryKey: ["workspace-stats", workspaceId],
+    });
+    void queryClient.invalidateQueries({
+      queryKey: ["recent-files", workspaceId],
+    });
+    void queryClient.invalidateQueries({
+      queryKey: ["upload-activity", workspaceId],
+    });
+  }
+}
 
 export function useWorkspaceStats(workspaceId: string) {
   return useQuery({
@@ -56,7 +78,8 @@ export function useGlobalStats() {
         supabase
           .from("folders")
           .select("id", { count: "exact" })
-          .eq("created_by", userId),
+          .eq("created_by", userId)
+          .eq("status", "active"),
       ]);
 
       const totalSize = (filesResult.data ?? []).reduce(
