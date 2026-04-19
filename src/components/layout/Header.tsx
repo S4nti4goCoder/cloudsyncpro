@@ -7,6 +7,7 @@ import {
   ChevronDown,
   Settings,
   Check,
+  Menu,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -43,6 +44,7 @@ export function Header() {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
+  const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen);
   const notificationsInApp = useUIStore((s) => s.notificationsInApp);
   const profile = useAuthStore((s) => s.profile);
   const user = useAuthStore((s) => s.user);
@@ -69,13 +71,22 @@ export function Header() {
   return (
     <header
       className={cn(
-        "fixed right-0 top-0 z-20 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur px-6 transition-all duration-300",
-        sidebarCollapsed ? "left-16" : "left-64",
-        "hidden lg:flex",
+        "fixed right-0 top-0 z-20 flex h-16 items-center gap-2 md:gap-4 border-b border-border bg-background/95 backdrop-blur px-3 md:px-6 transition-all duration-300",
+        "left-0",
+        sidebarCollapsed ? "lg:left-16" : "lg:left-64",
       )}
     >
+      {/* Mobile menu button */}
+      <button
+        onClick={() => setMobileSidebarOpen(true)}
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors lg:hidden"
+        aria-label="Abrir menú"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
       {/* Search */}
-      <div className="flex flex-1 items-center">
+      <div className="flex flex-1 items-center min-w-0">
         <SearchBar />
       </div>
 

@@ -18,6 +18,7 @@ import {
   Plus,
   Activity,
   Star,
+  X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/uiStore'
@@ -64,7 +65,12 @@ const bottomItems: NavItem[] = [
 
 export function Sidebar() {
   const location = useLocation()
-  const { sidebarCollapsed, toggleSidebar } = useUIStore()
+  const {
+    sidebarCollapsed,
+    toggleSidebar,
+    mobileSidebarOpen,
+    setMobileSidebarOpen,
+  } = useUIStore()
   const isAdmin = useAuthStore(
     (s) => s.profile?.role === 'admin' || s.profile?.role === 'superadmin'
   )
@@ -78,18 +84,40 @@ export function Sidebar() {
     return location.pathname.startsWith(href)
   }
 
+  function closeMobile() {
+    setMobileSidebarOpen(false)
+  }
+
   const allItems = [...navItems, ...(isAdmin ? adminItems : [])]
 
   return (
     <>
+      {/* Mobile backdrop */}
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+          onClick={closeMobile}
+          aria-hidden="true"
+        />
+      )}
+
       <aside
         className={cn(
-          'fixed left-0 top-0 z-30 flex h-full flex-col transition-all duration-300',
-          'hidden lg:flex',
-          sidebarCollapsed ? 'w-16' : 'w-64'
+          'fixed left-0 top-0 z-40 flex h-full flex-col transition-transform duration-300 lg:z-30 lg:transition-all',
+          'w-64 lg:w-auto',
+          sidebarCollapsed ? 'lg:w-16' : 'lg:w-64',
+          mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
         style={{ backgroundColor: '#0f172a' }}
       >
+        {/* Mobile close button */}
+        <button
+          onClick={closeMobile}
+          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white transition-colors lg:hidden"
+          aria-label="Cerrar menú"
+        >
+          <X className="h-4 w-4" />
+        </button>
         {/* Logo */}
         <div
           className={cn(
@@ -213,6 +241,7 @@ export function Sidebar() {
               item={item}
               collapsed={sidebarCollapsed}
               active={isActive(item.href)}
+              onNavigate={closeMobile}
             />
           ))}
         </nav>
@@ -225,16 +254,17 @@ export function Sidebar() {
               item={item}
               collapsed={sidebarCollapsed}
               active={isActive(item.href)}
+              onNavigate={closeMobile}
             />
           ))}
         </div>
 
-        {/* Collapse button */}
+        {/* Collapse button - desktop only */}
         <button
           onClick={toggleSidebar}
           className={cn(
             'absolute -right-3 top-20 z-40',
-            'flex h-6 w-6 items-center justify-center',
+            'hidden lg:flex h-6 w-6 items-center justify-center',
             'rounded-full border border-border bg-background shadow-md',
             'text-muted-foreground hover:text-foreground transition-colors'
           )}
@@ -260,14 +290,16 @@ interface NavLinkProps {
   item: NavItem
   collapsed: boolean
   active: boolean
+  onNavigate?: () => void
 }
 
-function NavLink({ item, collapsed, active }: NavLinkProps) {
+function NavLink({ item, collapsed, active, onNavigate }: NavLinkProps) {
   const Icon = item.icon
 
   const linkContent = (
     <Link
       to={item.href}
+      onClick={onNavigate}
       className={cn(
         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150',
         collapsed ? 'justify-center' : '',
