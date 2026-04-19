@@ -298,6 +298,7 @@ export type Database = {
           metadata: Json
           name: string
           parent_id: string | null
+          status: Database["public"]["Enums"]["file_status"]
           updated_at: string
           workspace_id: string
         }
@@ -308,6 +309,7 @@ export type Database = {
           metadata?: Json
           name: string
           parent_id?: string | null
+          status?: Database["public"]["Enums"]["file_status"]
           updated_at?: string
           workspace_id: string
         }
@@ -318,6 +320,7 @@ export type Database = {
           metadata?: Json
           name?: string
           parent_id?: string | null
+          status?: Database["public"]["Enums"]["file_status"]
           updated_at?: string
           workspace_id?: string
         }
@@ -520,6 +523,12 @@ export type Database = {
           id: string
         }[]
       }
+      get_folder_descendant_files: {
+        Args: { p_folder_id: string }
+        Returns: {
+          file_id: string
+        }[]
+      }
       get_shared_file: {
         Args: { p_token: string }
         Returns: {
@@ -568,6 +577,10 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: boolean
       }
+      restore_folder_cascade: {
+        Args: { p_folder_id: string }
+        Returns: undefined
+      }
       search_files: {
         Args: {
           p_date_from?: string
@@ -597,6 +610,10 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      trash_folder_cascade: {
+        Args: { p_folder_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       activity_action:

@@ -82,14 +82,32 @@ export function useSetFolderColor(workspaceId: string) {
   })
 }
 
+function invalidateFolderQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  workspaceId: string,
+) {
+  void queryClient.invalidateQueries({ queryKey: [FOLDERS_KEY, workspaceId] })
+  void queryClient.invalidateQueries({ queryKey: [FOLDERS_KEY, 'trash', workspaceId] })
+  // Files live inside folders — trash_folder_cascade flips their status too.
+  void queryClient.invalidateQueries({ queryKey: ['files'] })
+}
+
+export function useTrashedFolders(workspaceId: string) {
+  return useQuery({
+    queryKey: [FOLDERS_KEY, 'trash', workspaceId],
+    queryFn: () => folderService.getTrashedFolders(workspaceId),
+    enabled: !!workspaceId,
+  })
+}
+
 export function useDeleteFolder(workspaceId: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (id: string) => folderService.deleteFolder(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [FOLDERS_KEY, workspaceId] })
-      toast.success('Carpeta eliminada')
+      invalidateFolderQueries(queryClient, workspaceId)
+      toast.success('Carpeta movida a la papelera')
     },
     onError: (error: Error) => {
       toast.error(error.message ?? 'Error al eliminar la carpeta')
@@ -103,8 +121,74 @@ export function useBulkDeleteFolders(workspaceId: string) {
   return useMutation({
     mutationFn: (ids: string[]) => folderService.bulkDelete(ids),
     onSuccess: (_, ids) => {
-      void queryClient.invalidateQueries({ queryKey: [FOLDERS_KEY, workspaceId] })
-      toast.success(`${ids.length} ${ids.length === 1 ? 'carpeta eliminada' : 'carpetas eliminadas'}`)
+      invalidateFolderQueries(queryClient, workspaceId)
+      toast.success(
+        `${ids.length} ${ids.length === 1 ? 'carpeta movida' : 'carpetas movidas'} a la papelera`,
+      )
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Error al eliminar las carpetas')
+    },
+  })
+}
+
+export function useRestoreFolder(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => folderService.restoreFolder(id),
+    onSuccess: () => {
+      invalidateFolderQueries(queryClient, workspaceId)
+      toast.success('Carpeta restaurada')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Error al restaurar la carpeta')
+    },
+  })
+}
+
+export function useBulkRestoreFolders(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (ids: string[]) => folderService.bulkRestoreFolders(ids),
+    onSuccess: (_, ids) => {
+      invalidateFolderQueries(queryClient, workspaceId)
+      toast.success(
+        `${ids.length} ${ids.length === 1 ? 'carpeta restaurada' : 'carpetas restauradas'}`,
+      )
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Error al restaurar las carpetas')
+    },
+  })
+}
+
+export function usePermanentDeleteFolder(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => folderService.permanentDeleteFolder(id),
+    onSuccess: () => {
+      invalidateFolderQueries(queryClient, workspaceId)
+      toast.success('Carpeta eliminada definitivamente')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Error al eliminar la carpeta')
+    },
+  })
+}
+
+export function useBulkPermanentDeleteFolders(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (ids: string[]) => folderService.bulkPermanentDeleteFolders(ids),
+    onSuccess: (_, ids) => {
+      invalidateFolderQueries(queryClient, workspaceId)
+      toast.success(
+        `${ids.length} ${ids.length === 1 ? 'carpeta eliminada' : 'carpetas eliminadas'} definitivamente`,
+      )
     },
     onError: (error: Error) => {
       toast.error(error.message ?? 'Error al eliminar las carpetas')

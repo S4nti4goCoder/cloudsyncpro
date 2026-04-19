@@ -4,6 +4,7 @@ import { useDropzone } from "react-dropzone";
 import {
   FolderPlus,
   Upload,
+  FolderUp,
   Grid3x3,
   List,
   Folder,
@@ -56,6 +57,7 @@ import {
 import { useFavorites, useToggleFavorite } from "@/hooks/useFavorites";
 import { useWorkspaceRole } from "@/hooks/useWorkspaceRole";
 import { UploadFileModal } from "@/components/shared/UploadFileModal";
+import { UploadFolderModal } from "@/components/shared/UploadFolderModal";
 import { FilePreviewModal } from "@/components/shared/FilePreviewModal";
 import { ShareFileModal } from "@/components/shared/ShareFileModal";
 import { MoveFileModal } from "@/components/shared/MoveFileModal";
@@ -84,6 +86,7 @@ export default function FilesPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showUploadFolderModal, setShowUploadFolderModal] = useState(false);
   const [droppedFiles, setDroppedFiles] = useState<File[] | undefined>(undefined);
   const [newFolderName, setNewFolderName] = useState("");
   const [previewFile, setPreviewFile] = useState<FileRecord | null>(null);
@@ -102,6 +105,7 @@ export default function FilesPage() {
   const [selectedFolderIds, setSelectedFolderIds] = useState<Set<string>>(new Set());
   const [showBulkMove, setShowBulkMove] = useState(false);
   const [bulkConfirm, setBulkConfirm] = useState<"trash" | "archive" | null>(null);
+  const [folderToDelete, setFolderToDelete] = useState<FolderType | null>(null);
 
   const folderId = searchParams.get("folder");
   const { activeWorkspaceId } = useWorkspaceStore();
@@ -296,6 +300,17 @@ export default function FilesPage() {
             >
               <FolderPlus className="h-4 w-4" />
               Nueva carpeta
+            </button>
+            <button
+              onClick={() => setShowUploadFolderModal(true)}
+              className={cn(
+                "flex items-center gap-2 rounded-lg border border-border px-3 h-9",
+                "text-sm font-medium text-foreground",
+                "hover:bg-muted transition-colors",
+              )}
+            >
+              <FolderUp className="h-4 w-4" />
+              Subir carpeta
             </button>
             <button
               onClick={() => setShowUploadModal(true)}
@@ -528,7 +543,7 @@ export default function FilesPage() {
                     viewMode={viewMode}
                     canEdit={canEdit}
                     onClick={() => handleFolderClick(folder)}
-                    onDelete={() => deleteFolder(folder.id)}
+                    onDelete={() => setFolderToDelete(folder)}
                     onActivity={() => setActivityResource({ id: folder.id, name: folder.name, type: "folder" })}
                     isRenaming={renamingFolderId === folder.id}
                     onStartRename={() => setRenamingFolderId(folder.id)}
@@ -619,6 +634,13 @@ export default function FilesPage() {
         initialFiles={droppedFiles}
       />
 
+      <UploadFolderModal
+        open={showUploadFolderModal}
+        onClose={() => setShowUploadFolderModal(false)}
+        workspaceId={workspaceId}
+        folderId={folderId}
+      />
+
       <FilePreviewModal
         file={previewFile}
         files={files}
@@ -683,6 +705,22 @@ export default function FilesPage() {
         description="Los archivos se moverán al apartado de archivados."
         confirmLabel="Archivar"
         isPending={bulkPending}
+      />
+
+      <ConfirmDialog
+        open={folderToDelete !== null}
+        onClose={() => setFolderToDelete(null)}
+        onConfirm={() => {
+          if (folderToDelete) {
+            deleteFolder(folderToDelete.id, {
+              onSuccess: () => setFolderToDelete(null),
+            });
+          }
+        }}
+        title={`Mover "${folderToDelete?.name ?? ""}" a la papelera`}
+        description="La carpeta y todo su contenido se moverán a la papelera. Podrás restaurarla o eliminarla definitivamente desde allí."
+        confirmLabel="Mover a papelera"
+        variant="destructive"
       />
     </div>
   );

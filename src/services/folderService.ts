@@ -14,6 +14,7 @@ export const folderService = {
       .from("folders")
       .select("*")
       .eq("workspace_id", workspaceId)
+      .eq("status", "active")
       .order("name", { ascending: true });
 
     if (parentId) {
@@ -96,7 +97,8 @@ export const folderService = {
   },
 
   /**
-   * Delete a folder
+   * Move a folder to trash (soft-delete, cascades to subfolders and files
+   * via the trash_folder_cascade RPC).
    */
   async deleteFolder(id: string): Promise<void> {
     const { data: prev } = await supabase
@@ -105,7 +107,9 @@ export const folderService = {
       .eq("id", id)
       .single();
 
-    const { error } = await supabase.from("folders").delete().eq("id", id);
+    const { error } = await supabase.rpc("trash_folder_cascade", {
+      p_folder_id: id,
+    });
 
     if (error) throw error;
 
@@ -116,6 +120,93 @@ export const folderService = {
         resourceType: "folder",
         resourceId: id,
         resourceName: prev.name,
+      });
+    }
+  },
+
+  /**
+   * Restore a trashed folder (and all nested folders/files) back to active.
+   */
+  async restoreFolder(id: string): Promise<void> {
+    const { data: prev } = await supabase
+      .from("folders")
+      .select("name, workspace_id")
+      .eq("id", id)
+      .single();
+
+    const { error } = await supabase.rpc("restore_folder_cascade", {
+      p_folder_id: id,
+    });
+
+    if (error) throw error;
+
+    if (prev) {
+      await activityService.logActivity({
+        workspaceId: prev.workspace_id,
+        action: "restore",
+        resourceType: "folder",
+        resourceId: id,
+        resourceName: prev.name,
+      });
+    }
+  },
+
+  /**
+   * Permanently delete a trashed folder: purges descendant files' R2 blobs
+   * via the purge-files edge function, then removes the folder row
+   * (ON DELETE CASCADE on folders.parent_id takes care of subfolders).
+   */
+  async permanentDeleteFolder(id: string): Promise<void> {
+    const { data: prev } = await supabase
+      .from("folders")
+      .select("name, workspace_id")
+      .eq("id", id)
+      .single();
+
+    const { data: descendantFileIds, error: descErr } = await supabase.rpc(
+      "get_folder_descendant_files",
+      { p_folder_id: id },
+    );
+    if (descErr) throw descErr;
+
+    const ids = (descendantFileIds ?? []).map(
+      (row: { file_id: string }) => row.file_id,
+    );
+    if (ids.length) {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/purge-files`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ mode: "user_ids", ids }),
+        },
+      );
+      if (!response.ok) {
+        const err = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        throw new Error(err.error ?? "Error al purgar archivos de la carpeta");
+      }
+    }
+
+    const { error } = await supabase.from("folders").delete().eq("id", id);
+    if (error) throw error;
+
+    if (prev) {
+      await activityService.logActivity({
+        workspaceId: prev.workspace_id,
+        action: "delete",
+        resourceType: "folder",
+        resourceId: id,
+        resourceName: prev.name,
+        metadata: { permanent: true, descendant_files: ids.length },
       });
     }
   },
@@ -148,7 +239,8 @@ export const folderService = {
   },
 
   /**
-   * Bulk delete folders.
+   * Bulk move folders to trash via the trash_folder_cascade RPC (one call
+   * per folder so each subtree cascades correctly).
    */
   async bulkDelete(ids: string[]): Promise<void> {
     if (!ids.length) return;
@@ -157,8 +249,12 @@ export const folderService = {
       .select("id, name, workspace_id")
       .in("id", ids);
 
-    const { error } = await supabase.from("folders").delete().in("id", ids);
-    if (error) throw error;
+    for (const id of ids) {
+      const { error } = await supabase.rpc("trash_folder_cascade", {
+        p_folder_id: id,
+      });
+      if (error) throw error;
+    }
 
     if (prev?.length) {
       await Promise.all(
@@ -173,6 +269,50 @@ export const folderService = {
           }),
         ),
       );
+    }
+  },
+
+  /**
+   * Bulk restore trashed folders.
+   */
+  async bulkRestoreFolders(ids: string[]): Promise<void> {
+    if (!ids.length) return;
+    const { data: prev } = await supabase
+      .from("folders")
+      .select("id, name, workspace_id")
+      .in("id", ids);
+
+    for (const id of ids) {
+      const { error } = await supabase.rpc("restore_folder_cascade", {
+        p_folder_id: id,
+      });
+      if (error) throw error;
+    }
+
+    if (prev?.length) {
+      await Promise.all(
+        prev.map((p) =>
+          activityService.logActivity({
+            workspaceId: p.workspace_id,
+            action: "restore",
+            resourceType: "folder",
+            resourceId: p.id,
+            resourceName: p.name,
+            metadata: { bulk: true },
+          }),
+        ),
+      );
+    }
+  },
+
+  /**
+   * Bulk permanent delete trashed folders (one at a time so R2 blobs are
+   * purged per subtree).
+   */
+  async bulkPermanentDeleteFolders(ids: string[]): Promise<void> {
+    if (!ids.length) return;
+    for (const id of ids) {
+      await this.permanentDeleteFolder(id);
     }
   },
 
@@ -210,13 +350,14 @@ export const folderService = {
   },
 
   /**
-   * Get all folders in a workspace (flat list for folder picker)
+   * Get all active folders in a workspace (flat list for folder picker).
    */
   async getAllFolders(workspaceId: string): Promise<Folder[]> {
     const { data, error } = await supabase
       .from("folders")
       .select("*")
       .eq("workspace_id", workspaceId)
+      .eq("status", "active")
       .order("name", { ascending: true });
 
     if (error) throw error;
@@ -224,7 +365,24 @@ export const folderService = {
   },
 
   /**
-   * Get folder breadcrumb path
+   * Get every trashed folder in a workspace (used for TrashPage display
+   * and for resolving parent-folder names on trashed files). Callers
+   * filter to top-level when needed.
+   */
+  async getTrashedFolders(workspaceId: string): Promise<Folder[]> {
+    const { data, error } = await supabase
+      .from("folders")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .eq("status", "deleted")
+      .order("updated_at", { ascending: false });
+
+    if (error) throw error;
+    return (data ?? []) as Folder[];
+  },
+
+  /**
+   * Get folder breadcrumb path (only walks active folders).
    */
   async getFolderPath(folderId: string): Promise<Folder[]> {
     const path: Folder[] = [];
@@ -234,9 +392,10 @@ export const folderService = {
       const result = await supabase
         .from("folders")
         .select(
-          "id, name, parent_id, workspace_id, created_by, metadata, created_at, updated_at",
+          "id, name, parent_id, workspace_id, created_by, metadata, status, created_at, updated_at",
         )
         .eq("id", currentId)
+        .eq("status", "active")
         .single();
 
       if (result.error || !result.data) break;
