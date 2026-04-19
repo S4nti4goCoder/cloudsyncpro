@@ -28,10 +28,12 @@ import {
   Activity,
   Star,
   X,
+  Users,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useWorkspaceStore, getActiveWorkspace } from "@/store/workspaceStore";
+import { useAuthStore } from "@/store/authStore";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
 import {
   useFolders,
@@ -110,6 +112,7 @@ export default function FilesPage() {
   const folderId = searchParams.get("folder");
   const { activeWorkspaceId } = useWorkspaceStore();
   const { data: workspaces } = useWorkspaces();
+  const currentUserId = useAuthStore((s) => s.user?.id);
   const activeWorkspace = getActiveWorkspace(
     workspaces ?? [],
     activeWorkspaceId,
@@ -614,6 +617,11 @@ export default function FilesPage() {
                         isFavorite: favoriteFileIds.has(file.id),
                       })
                     }
+                    isSharedWithMe={
+                      !!currentUserId &&
+                      !!file.uploaded_by &&
+                      file.uploaded_by !== currentUserId
+                    }
                   />
                 ))}
               </div>
@@ -1010,6 +1018,7 @@ interface FileCardProps {
   anySelected: boolean;
   isFavorite: boolean;
   onToggleFavorite: () => void;
+  isSharedWithMe: boolean;
 }
 
 function FileCard({
@@ -1033,6 +1042,7 @@ function FileCard({
   anySelected,
   isFavorite,
   onToggleFavorite,
+  isSharedWithMe,
 }: FileCardProps) {
   const colorClass = getFileColor(file.mime_type);
   const [editName, setEditName] = useState(file.name);
@@ -1109,7 +1119,10 @@ function FileCard({
         >
           {renderFileTypeIcon(file.mime_type, "h-4 w-4")}
         </div>
-        <div className="flex-1 min-w-0">{nameElement}</div>
+        <div className="flex-1 min-w-0 flex items-center gap-2">
+          {nameElement}
+          {isSharedWithMe && <SharedBadge />}
+        </div>
         <span className="text-xs text-muted-foreground shrink-0">
           {formatFileSize(file.size)}
         </span>
@@ -1186,8 +1199,25 @@ function FileCard({
           {formatFileSize(file.size)} ·{" "}
           {format(new Date(file.created_at), "d MMM yyyy", { locale: es })}
         </p>
+        {isSharedWithMe && (
+          <div className="pt-0.5">
+            <SharedBadge />
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function SharedBadge() {
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+      title="Compartido contigo"
+    >
+      <Users className="h-2.5 w-2.5" />
+      Compartido
+    </span>
   );
 }
 
