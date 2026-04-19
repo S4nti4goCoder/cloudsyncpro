@@ -1406,6 +1406,106 @@ La papelera y archivados solo permitían restaurar/borrar archivos **de uno en u
 
 ---
 
+## ✅ PASO 33 — Subir carpeta completa + validaciones de capacidad
+
+**Commit:** `feat: upload whole folders with per-category storage limits`
+**Commit auxiliar:** `chore: gitignore local SQL snapshots and stray screenshots`
+
+### Contexto
+
+`UploadFileModal` aceptaba cualquier archivo sin validar extensión, tamaño ni capacidad de la carpeta destino. Tampoco había forma de subir una carpeta completa con su árbol de subcarpetas — el usuario tenía que crear cada carpeta a mano y luego subir los archivos. Además la papelera y los límites por carpeta estaban implícitos: el servidor aceptaba subir 100 imágenes a una misma carpeta sin quejarse.
+
+### Acciones realizadas
+
+- **`src/utils/uploadValidation.ts`** (nuevo, fuente única de reglas):
+  - `categorize(filename)` → `"document" | "image" | "video" | null` según extensión (pdf/doc/xls/ppt/txt, jpg/png/webp/svg/heic, mp4/mov/webm/mkv…)
+  - `validateFile`: nombre no vacío, ≤255 chars, sin path traversal (`..`, `/`, `\`), sin caracteres de control, sin nombres reservados de Windows (CON, PRN, COM1…), tamaño > 0, extensión permitida
+  - `validateFolderName`: mismas reglas path-safe sin exigir extensión
+  - `validateStorageCapacity(incoming, existing)`: enforce `STORAGE_LIMITS` (30 docs / 50 imgs / 20 videos por carpeta) — error indica cuántos espacios quedan
+  - `validateUploadBatchPerFolder`: enforce `UPLOAD_LIMITS` más estrictos en el flow de subir carpeta (20/30/2 por carpeta relativa)
+  - `validateTotalSize`: 1 GB por batch de subida
+  - `validateDepth`: 10 niveles de profundidad máxima para carpetas subidas
+- **`src/components/shared/UploadFolderModal.tsx`** (nuevo): dialog con drag & drop de un directorio completo vía `webkitdirectory`. Agrupa los files por path relativo, crea la jerarquía de carpetas con `folderService.createFolder` respetando los `parent_id`, luego sube cada archivo a su carpeta correspondiente. Muestra progreso por archivo y resumen al final
+- **`UploadFileModal`**: cada archivo pasa por `validateFile` antes de entrar a la lista; rechazos se agrupan en un solo toast ("N archivos rechazados"). Antes de subir, corre `validateTotalSize` + `fileService.getFolderCapacity` + `validateStorageCapacity` y muestra el error en el propio modal (no en toast)
+- **`fileService.getFolderCapacity(workspaceId, folderId)`**: cuenta archivos `active` por categoría en la carpeta destino. Se usa en `UploadFileModal`, `UploadFolderModal`, `moveFile` y `bulkMove`
+- **`fileService.moveFile` y `fileService.bulkMove`**: antes de `UPDATE`, calculan capacidad del destino y rechazan la operación si se excedería el límite. En bulk, se descartan del cómputo los archivos que ya están en el target (no deben contarse dos veces)
+- **`FilesPage`**: nuevo botón "Subir carpeta" (icono `FolderUp`) junto a "Subir archivos" que abre el nuevo modal
+- **`.gitignore`**: nuevas reglas `/*.png` (con excepción `!/src/**/*.png`) para ignorar screenshots sueltos en raíz, y `supabase/sql/` porque la fuente de verdad del schema vive en el Dashboard de Supabase, no en el repo. Se borraron del repo los 3 PNGs de pruebas de favoritos y los dos `supabase/sql/*.sql` locales
+
+### Decisiones técnicas
+
+- **Dos límites distintos (`UPLOAD_LIMITS` vs `STORAGE_LIMITS`)** — al subir una carpeta queremos ser más estrictos (2 videos por carpeta) para evitar que un single-batch llene el cupo de golpe; pero una vez en storage, el usuario puede mover más archivos hasta 20 videos. Son políticas distintas deliberadamente
+- **Validación del lado del cliente solamente** — los límites son UX, no de seguridad. Un atacante con JWT válido podría saltarlas, pero RLS + cuotas de R2 son las barreras reales. La validación evita que el usuario medio se quede con una carpeta "saturada" sin entender por qué
+- **`getFolderCapacity` cuenta solo `status='active'`** — archivos en papelera/archivados no cuentan contra el límite, coherente con lo que el usuario ve
+- **`moveFile`/`bulkMove` también validan capacidad** — si el upload está limitado pero el move no, el usuario puede burlar el límite creando archivos en una carpeta vacía y moviéndolos. Cerrar ese boquete requiere validar en ambos puntos
+- **Toast agrupado para rechazos** — si el dropzone recibe 5 archivos inválidos, mostramos "Archivo rechazado" + "y 4 más" en el description, no 5 toasts
+- **`webkitdirectory` en vez de la File System Access API** — soporte cross-browser (Chrome/Edge/Firefox/Safari desktop), el API moderno todavía no está en Firefox. Limitación: solo funciona en desktop, no en mobile
+
+### Validación
+
+- Drop 25 PDFs en upload de carpeta → error "Máximo por carpeta: 20 documentos…" y no se sube nada
+- Subir carpeta anidada con 3 niveles → se crean los folders jerárquicamente y cada archivo aparece en su carpeta correcta
+- Mover 5 imágenes a una carpeta que ya tiene 48 → error "…48/50 imágenes, solo se pueden añadir 2 más"
+- Drop `.exe` en upload de archivos → rechazado con toast "Tipo de archivo no permitido (.exe)"
+- Archivo con nombre `CON.txt` → rechazado como nombre reservado
+
+---
+
+## ✅ PASO 34 — Soft-delete de carpetas con cascade (papelera para carpetas)
+
+**Commit:** `feat: folder soft-delete with cascade trash and restore`
+
+### Contexto
+
+Hasta ahora solo los archivos tenían papelera — borrar una carpeta era un `DELETE` duro que cascadeaba por FK y eliminaba subcarpetas y filas de archivos sin pasar por trash. Los blobs de R2 quedaban huérfanos y no había forma de restaurar. El usuario reportó esto al intentar borrar una carpeta grande y darse cuenta de que no había undo.
+
+### Acciones realizadas
+
+- **DB (Supabase Dashboard → SQL Editor, no versionado por `.gitignore`)**:
+  - Columna `status` en `folders` (enum `file_status`, default `'active'`) — antes solo existía en `files`
+  - RPC `trash_folder_cascade(p_folder_id uuid)`: recursive CTE que flipa `status='deleted'` en la carpeta, todas las subcarpetas y todos los archivos descendientes. `SECURITY INVOKER` → respeta RLS del caller
+  - RPC `restore_folder_cascade(p_folder_id uuid)`: mismo CTE al revés, flipa a `'active'`
+  - RPC `get_folder_descendant_files(p_folder_id uuid)`: devuelve `{file_id uuid}[]` con todos los archivos descendientes (a cualquier profundidad). Usado para purgar blobs de R2 antes del DELETE definitivo
+  - `databaseTypes.ts` regenerado — incluye las tres RPCs y el nuevo campo `status` en rows/inserts/updates de `folders`
+- **`folderService.ts`**:
+  - `deleteFolder(id)` ahora llama `supabase.rpc('trash_folder_cascade', ...)` en vez del `DELETE`
+  - `restoreFolder(id)` (nuevo) llama `restore_folder_cascade`
+  - `permanentDeleteFolder(id)` (nuevo): pide descendant files → `POST /functions/v1/purge-files` con `mode: 'user_ids'` y la lista → `DELETE FROM folders WHERE id = X` (CASCADE FK borra las subcarpetas)
+  - Bulk variants: `bulkDelete`, `bulkRestoreFolders`, `bulkPermanentDeleteFolders` — loopean individualmente porque cada llamada invoca el RPC de cascade y no se puede batchear fácilmente
+  - `getTrashedFolders` devuelve **todas** las carpetas `status='deleted'` (incluidas las anidadas) — la vista filtra top-level, pero el full list se usa para resolver el nombre del parent en el badge
+  - `getAllFolders` y `getFolderPath` filtran `status='active'` para no devolver carpetas trashed como si fueran válidas en selectors de move
+- **`useFolders.ts`**: helper `invalidateFolderQueries` que invalida `[folders, workspaceId]` + `[folders, 'trash', workspaceId]` + `['files']` — porque `trash_folder_cascade` toca también las filas de archivos, sus queries deben refrescar. Nuevos hooks: `useTrashedFolders`, `useRestoreFolder`, `usePermanentDeleteFolder`, `useBulkRestoreFolders`, `useBulkPermanentDeleteFolders`. Todas las mutations dan toast pluralizado
+- **`FilesPage`**: click en "Eliminar" de una carpeta ya no llama a `deleteFolder` directo — abre un `ConfirmDialog` "Mover \"X\" a la papelera" con descripción explícita de que la carpeta y su contenido se mueven juntos y se pueden restaurar
+- **`TrashPage` rewrite completo**:
+  - Renderiza ahora **carpetas + archivos** con selección unificada en un solo `Set<string>`; al ejecutar acciones, se particiona en `selectedFolderIds` / `selectedFileIds` consultando `folderIdSet` / `fileIdSet`
+  - Vista **grid/list** toggleable (icono `Grid3x3` / `List` en la toolbar); cada modo tiene sus componentes: `TrashFolderCard` / `TrashFileCard` para grid, `TrashFolderRow` / `TrashFileRow` para list. Ambos tipos tienen checkbox
+  - Top-level filter para carpetas: `folders.filter(f => !f.parent_id || !ids.has(f.parent_id))` — si el parent de una carpeta trashed también está trashed, no la mostramos (se restaura/borra junto con su ancestor)
+  - **Badge "Dentro de X"** en archivos cuyo `folder_id` es una carpeta también trashed: amber pill con `FolderIcon`, para que el usuario entienda que ese archivo se mueve junto con la carpeta. `trashedFolderNameById: Map<string, string>` se construye sobre el full list de carpetas trashed
+  - **Bulk restore**: `handleBulkRestore` dispatch en paralelo `bulkRestoreFolders(selectedFolderIds)` + `bulkRestoreFiles(selectedFileIds)` via `Promise.all`, con `mutateAsync`
+  - **Bulk permanent delete**: igual pero con `bulkPermanentDeleteFolders` + `bulkDeleteFiles`. Dialog title "Eliminar N elemento(s)" (no más "archivos")
+  - **Vaciar papelera unificado**: mutación local en el componente (no un hook separado) que llama a `folderService.bulkPermanentDeleteFolders(topFolderIds)` + `fileService.emptyTrash(workspaceId)` en `Promise.all`, invalida `[files]` y `[folders]`, y muestra **un solo toast** "Papelera vaciada (N elementos)". Si usáramos los hooks existentes, cada uno dispararía su propio toast y el usuario vería dos ("1 carpeta eliminada" + "Papelera vaciada (4 archivos)")
+
+### Decisiones técnicas
+
+- **Cascade en Postgres, no en la app** — el RPC recorre el árbol con recursive CTE en un solo statement. Hacerlo desde el cliente requeriría N queries (listar hijos, listar nietos…) y sería racey bajo concurrencia. En SQL es atómico y usa índices de `parent_id`
+- **`status` en folders vs FK cascade** — los archivos retienen su `folder_id` aunque la carpeta esté trashed; así al restaurar vuelven exactamente al lugar donde estaban, sin tener que re-referenciar parents. El FK cascade solo dispara en el `permanentDeleteFolder` final
+- **`permanentDeleteFolder` llama al edge function `purge-files`, no `supabase.from('files').delete()`** — el flow de papelera ya lo hacía para archivos por el tema de R2; reutilizar evita divergencia y garantiza que los blobs de R2 se limpien junto con las filas
+- **Bulk variants loopean en lugar de un RPC batched** — un `trash_folders_cascade(uuid[])` sería más eficiente pero requiere escribir + mantener otro RPC por una optimización marginal (bulk de carpetas es raro en UI). Y cada loop emite su propio log de activity correctamente
+- **Top-level filter en el cliente, no en el RPC** — el cliente ya tiene toda la lista para construir el `Map` del badge. Filtrar server-side duplicaría la query o forzaría dos endpoints. El cliente tiene la info necesaria
+- **Vaciar papelera = mutación local, no hook reusable** — es la única pantalla que combina ambos servicios con UI-específica (un solo toast). Extraerlo a un hook compartido complica la firma (¿qué toast muestra?, ¿qué invalida?) por un único call site
+- **`useEmptyTrash` queda sin uso en `TrashPage`** pero no se borra del codebase — lo dejamos porque es una API razonable del `useFiles` hook (algún flow futuro podría querer vaciar solo los archivos)
+- **Badge amber en lugar de destructive** — no es un error, es información. El archivo no está roto, se restaura con su contexto. Amber transmite "atención: heredado" sin alarmar
+
+### Validación
+
+- Crear carpeta con 3 archivos → "Eliminar" → dialog "Mover … a la papelera" → OK → carpeta desaparece de `FilesPage`, aparece en papelera con los 3 archivos listados debajo con badge "Dentro de …"
+- Seleccionar carpeta + 2 archivos sueltos en papelera → "Restaurar" → carpeta y archivos vuelven a su sitio (archivos con folder_id preservado dentro de la carpeta restaurada)
+- "Vaciar papelera" con 1 carpeta (3 archivos dentro) + 4 archivos sueltos → un solo toast "Papelera vaciada (5 elementos)", DB y R2 limpios
+- Toggle grid/list → layout cambia sin perder selección
+- Carpeta anidada dentro de otra trashed no aparece en la lista top-level (se restaura con la padre)
+
+---
+
 ## 🔜 PRÓXIMOS PASOS
 
-- Volver a trabajo de producto: features pendientes o mejoras UX — el hardening queda cerrado por ahora
+- Elegir dirección: notificaciones en UI (triggers ya existen), versionado de archivos (`file_versions` con UI), mobile responsive, compartir carpetas, o búsqueda/filtros avanzados
