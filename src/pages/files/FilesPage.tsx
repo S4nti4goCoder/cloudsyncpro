@@ -282,7 +282,7 @@ export default function FilesPage() {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">
             Mis archivos
@@ -292,7 +292,7 @@ export default function FilesPage() {
           </p>
         </div>
         {canEdit && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setShowNewFolder(true)}
               className={cn(
@@ -329,7 +329,7 @@ export default function FilesPage() {
           </div>
         )}
         {isViewer && (
-          <span className="rounded-md border border-border bg-muted px-2 py-1 text-xs text-muted-foreground">
+          <span className="self-start rounded-md border border-border bg-muted px-2 py-1 text-xs text-muted-foreground">
             Modo solo lectura
           </span>
         )}
