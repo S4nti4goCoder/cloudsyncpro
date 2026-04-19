@@ -27,15 +27,62 @@ export function useWorkspaceStats(workspaceId: string) {
   return useQuery({
     queryKey: ["workspace-stats", workspaceId],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_workspace_stats", {
-        p_workspace_id: workspaceId,
-      });
+      const [filesResult, foldersResult] = await Promise.all([
+        supabase
+          .from("files")
+          .select("size, mime_type")
+          .eq("workspace_id", workspaceId)
+          .eq("status", "active"),
+        supabase
+          .from("folders")
+          .select("id", { count: "exact", head: true })
+          .eq("workspace_id", workspaceId)
+          .eq("status", "active"),
+      ]);
 
-      if (error) throw error;
-      return data?.[0] ?? null;
+      if (filesResult.error) throw filesResult.error;
+      if (foldersResult.error) throw foldersResult.error;
+
+      const files = filesResult.data ?? [];
+      const total_size = files.reduce((acc, f) => acc + (f.size ?? 0), 0);
+      const files_by_type: Record<string, number> = {};
+      for (const f of files) {
+        const cat = categorizeMime(f.mime_type);
+        files_by_type[cat] = (files_by_type[cat] ?? 0) + 1;
+      }
+
+      return {
+        total_files: files.length,
+        total_size,
+        total_folders: foldersResult.count ?? 0,
+        files_by_type,
+      };
     },
     enabled: !!workspaceId,
   });
+}
+
+function categorizeMime(mime: string | null | undefined): string {
+  if (!mime) return "other";
+  if (mime.startsWith("image/")) return "images";
+  if (mime.startsWith("video/")) return "videos";
+  if (mime.startsWith("audio/")) return "audio";
+  if (
+    mime === "text/csv" ||
+    mime === "application/vnd.ms-excel" ||
+    mime ===
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  )
+    return "spreadsheets";
+  if (
+    mime.startsWith("text/") ||
+    mime === "application/pdf" ||
+    mime === "application/msword" ||
+    mime ===
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  )
+    return "documents";
+  return "other";
 }
 
 export function useRecentFiles(workspaceId: string, limit = 5) {
@@ -65,32 +112,46 @@ export function useGlobalStats() {
       const userId = userData.user?.id;
       if (!userId) return null;
 
-      const [filesResult, workspacesResult, foldersResult] = await Promise.all([
+      const { data: memberships, error: mErr } = await supabase
+        .from("workspace_members")
+        .select("workspace_id")
+        .eq("user_id", userId);
+      if (mErr) throw mErr;
+
+      const workspaceIds = (memberships ?? []).map((m) => m.workspace_id);
+
+      if (workspaceIds.length === 0) {
+        return {
+          totalFiles: 0,
+          totalSize: 0,
+          totalWorkspaces: 0,
+          totalFolders: 0,
+        };
+      }
+
+      const [filesResult, foldersResult] = await Promise.all([
         supabase
           .from("files")
-          .select("size", { count: "exact" })
-          .eq("uploaded_by", userId)
+          .select("size")
+          .in("workspace_id", workspaceIds)
           .eq("status", "active"),
         supabase
-          .from("workspace_members")
-          .select("workspace_id", { count: "exact" })
-          .eq("user_id", userId),
-        supabase
           .from("folders")
-          .select("id", { count: "exact" })
-          .eq("created_by", userId)
+          .select("id", { count: "exact", head: true })
+          .in("workspace_id", workspaceIds)
           .eq("status", "active"),
       ]);
 
-      const totalSize = (filesResult.data ?? []).reduce(
-        (acc, f) => acc + (f.size ?? 0),
-        0,
-      );
+      if (filesResult.error) throw filesResult.error;
+      if (foldersResult.error) throw foldersResult.error;
+
+      const files = filesResult.data ?? [];
+      const totalSize = files.reduce((acc, f) => acc + (f.size ?? 0), 0);
 
       return {
-        totalFiles: filesResult.count ?? 0,
+        totalFiles: files.length,
         totalSize,
-        totalWorkspaces: workspacesResult.count ?? 0,
+        totalWorkspaces: workspaceIds.length,
         totalFolders: foldersResult.count ?? 0,
       };
     },
