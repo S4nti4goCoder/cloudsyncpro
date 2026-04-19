@@ -11,6 +11,8 @@ import {
   FileTextIcon,
   FileSpreadsheetIcon,
   FileVideoIcon,
+  Archive,
+  Trash2,
 } from "lucide-react";
 import {
   BarChart,
@@ -143,7 +145,7 @@ export default function DashboardPage() {
             <ArrowRight className="h-3 w-3" />
           </button>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           <StatCard
             title="Archivos"
             value={wsStats?.total_files ?? 0}
@@ -166,6 +168,22 @@ export default function DashboardPage() {
             format="number"
             icon={FolderIcon}
             color="text-orange-500 bg-orange-500/10"
+            isLoading={wsLoading}
+          />
+          <StatCard
+            title="Archivados"
+            value={wsStats?.total_archived ?? 0}
+            format="number"
+            icon={Archive}
+            color="text-amber-500 bg-amber-500/10"
+            isLoading={wsLoading}
+          />
+          <StatCard
+            title="En papelera"
+            value={wsStats?.total_trashed ?? 0}
+            format="number"
+            icon={Trash2}
+            color="text-red-500 bg-red-500/10"
             isLoading={wsLoading}
           />
         </div>
@@ -353,7 +371,13 @@ export default function DashboardPage() {
                   <div
                     key={file.id}
                     className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer"
-                    onClick={() => navigate("/files")}
+                    onClick={() =>
+                      navigate(
+                        file.folder_id
+                          ? `/files?folder=${file.folder_id}`
+                          : "/files",
+                      )
+                    }
                   >
                     <div
                       className={cn(

@@ -27,7 +27,13 @@ export function useWorkspaceStats(workspaceId: string) {
   return useQuery({
     queryKey: ["workspace-stats", workspaceId],
     queryFn: async () => {
-      const [filesResult, foldersResult] = await Promise.all([
+      const [
+        filesResult,
+        foldersResult,
+        archivedResult,
+        trashedFilesResult,
+        trashedFoldersResult,
+      ] = await Promise.all([
         supabase
           .from("files")
           .select("size, mime_type")
@@ -38,10 +44,28 @@ export function useWorkspaceStats(workspaceId: string) {
           .select("id", { count: "exact", head: true })
           .eq("workspace_id", workspaceId)
           .eq("status", "active"),
+        supabase
+          .from("files")
+          .select("id", { count: "exact", head: true })
+          .eq("workspace_id", workspaceId)
+          .eq("status", "archived"),
+        supabase
+          .from("files")
+          .select("id", { count: "exact", head: true })
+          .eq("workspace_id", workspaceId)
+          .eq("status", "deleted"),
+        supabase
+          .from("folders")
+          .select("id", { count: "exact", head: true })
+          .eq("workspace_id", workspaceId)
+          .eq("status", "deleted"),
       ]);
 
       if (filesResult.error) throw filesResult.error;
       if (foldersResult.error) throw foldersResult.error;
+      if (archivedResult.error) throw archivedResult.error;
+      if (trashedFilesResult.error) throw trashedFilesResult.error;
+      if (trashedFoldersResult.error) throw trashedFoldersResult.error;
 
       const files = filesResult.data ?? [];
       const total_size = files.reduce((acc, f) => acc + (f.size ?? 0), 0);
@@ -55,6 +79,9 @@ export function useWorkspaceStats(workspaceId: string) {
         total_files: files.length,
         total_size,
         total_folders: foldersResult.count ?? 0,
+        total_archived: archivedResult.count ?? 0,
+        total_trashed:
+          (trashedFilesResult.count ?? 0) + (trashedFoldersResult.count ?? 0),
         files_by_type,
       };
     },
