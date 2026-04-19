@@ -25,3 +25,10 @@ dist-ssr
 # AI tooling
 .claude
 .playwright-mcp
+
+# Local SQL snapshots (real DB lives in Supabase Dashboard)
+supabase/sql/
+
+# Stray screenshots / test captures in repo root
+/*.png
+!/src/**/*.png
