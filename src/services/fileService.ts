@@ -1,5 +1,10 @@
 import { supabase } from '@/lib/supabase'
 import { activityService } from '@/services/activityService'
+import {
+  categorize,
+  validateStorageCapacity,
+  type FileCategory,
+} from '@/utils/uploadValidation'
 import type { FileRecord } from '@/types/authTypes'
 
 type PurgeMode = 'user_ids' | 'user_workspace_trash'
@@ -29,6 +34,34 @@ async function callPurgeFiles(
 }
 
 export const fileService = {
+  /**
+   * Get count of active files per category in a folder (or root).
+   * Used to enforce storage limits.
+   */
+  async getFolderCapacity(
+    workspaceId: string,
+    folderId: string | null,
+  ): Promise<Record<FileCategory, number>> {
+    const query = supabase
+      .from('files')
+      .select('name')
+      .eq('workspace_id', workspaceId)
+      .eq('status', 'active')
+
+    if (folderId) query.eq('folder_id', folderId)
+    else query.is('folder_id', null)
+
+    const { data, error } = await query
+    if (error) throw error
+
+    const counts: Record<FileCategory, number> = { document: 0, image: 0, video: 0 }
+    for (const row of data ?? []) {
+      const cat = categorize(row.name)
+      if (cat) counts[cat] += 1
+    }
+    return counts
+  },
+
   /**
    * Get files by workspace and folder
    */
@@ -302,6 +335,21 @@ export const fileService = {
       .select('id, name, workspace_id, folder_id')
       .in('id', ids)
 
+    // Only count files that are actually changing folder (avoids double-counting
+    // files that already live in the target folder).
+    const incoming = (prev ?? [])
+      .filter((p) => p.folder_id !== targetFolderId)
+      .map((p) => ({ name: p.name }))
+
+    if (incoming.length && prev?.[0]) {
+      const capacity = await this.getFolderCapacity(
+        prev[0].workspace_id,
+        targetFolderId,
+      )
+      const capErr = validateStorageCapacity(incoming, capacity)
+      if (capErr) throw new Error(capErr)
+    }
+
     const { error } = await supabase
       .from('files')
       .update({ folder_id: targetFolderId })
@@ -427,6 +475,12 @@ export const fileService = {
       .select('name, workspace_id, folder_id')
       .eq('id', id)
       .single()
+
+    if (prev && prev.folder_id !== folderId) {
+      const capacity = await this.getFolderCapacity(prev.workspace_id, folderId)
+      const capErr = validateStorageCapacity([{ name: prev.name }], capacity)
+      if (capErr) throw new Error(capErr)
+    }
 
     const { error } = await supabase
       .from('files')

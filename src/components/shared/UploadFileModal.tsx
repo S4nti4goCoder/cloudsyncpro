@@ -11,7 +11,13 @@ import {
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { uploadService } from '@/services/uploadService'
+import { fileService } from '@/services/fileService'
 import { formatFileSize } from '@/utils/fileUtils'
+import {
+  validateFile,
+  validateStorageCapacity,
+  validateTotalSize,
+} from '@/utils/uploadValidation'
 import { cn } from '@/lib/utils'
 
 interface UploadFileModalProps {
@@ -38,27 +44,44 @@ export function UploadFileModal({
 }: UploadFileModalProps) {
   const [files, setFiles] = useState<FileUploadState[]>([])
   const [isUploading, setIsUploading] = useState(false)
+  const [validationError, setValidationError] = useState<string | null>(null)
   const queryClient = useQueryClient()
+
+  function addFiles(incoming: File[]) {
+    const accepted: FileUploadState[] = []
+    const rejectionMessages: string[] = []
+    for (const file of incoming) {
+      const err = validateFile(file)
+      if (err) {
+        rejectionMessages.push(err)
+        continue
+      }
+      accepted.push({ file, progress: 0, status: 'pending' as const })
+    }
+    if (rejectionMessages.length) {
+      toast.error(rejectionMessages[0] ?? 'Archivo rechazado', {
+        description:
+          rejectionMessages.length > 1
+            ? `y ${rejectionMessages.length - 1} más`
+            : undefined,
+      })
+    }
+    if (accepted.length) {
+      setFiles((prev) => [...prev, ...accepted])
+    }
+  }
 
   useEffect(() => {
     if (open && initialFiles?.length) {
-      setFiles(
-        initialFiles.map((file) => ({
-          file,
-          progress: 0,
-          status: 'pending' as const,
-        }))
-      )
+      setFiles([])
+      addFiles(initialFiles)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialFiles])
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    const newFiles = acceptedFiles.map((file) => ({
-      file,
-      progress: 0,
-      status: 'pending' as const,
-    }))
-    setFiles((prev) => [...prev, ...newFiles])
+    addFiles(acceptedFiles)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -72,9 +95,34 @@ export function UploadFileModal({
 
   async function handleUpload() {
     if (!files.length) return
-    setIsUploading(true)
+    setValidationError(null)
 
     const pendingFiles = files.filter((f) => f.status === 'pending')
+
+    const sizeErr = validateTotalSize(pendingFiles.map((f) => f.file))
+    if (sizeErr) {
+      setValidationError(sizeErr)
+      return
+    }
+
+    try {
+      const capacity = await fileService.getFolderCapacity(workspaceId, folderId)
+      const capErr = validateStorageCapacity(
+        pendingFiles.map((f) => ({ name: f.file.name })),
+        capacity,
+      )
+      if (capErr) {
+        setValidationError(capErr)
+        return
+      }
+    } catch (error) {
+      setValidationError(
+        error instanceof Error ? error.message : 'No se pudo validar la carpeta',
+      )
+      return
+    }
+
+    setIsUploading(true)
 
     for (let i = 0; i < pendingFiles.length; i++) {
       const fileState = pendingFiles[i]
@@ -134,6 +182,7 @@ export function UploadFileModal({
   function handleClose() {
     if (isUploading) return
     setFiles([])
+    setValidationError(null)
     onClose()
   }
 
@@ -237,6 +286,14 @@ export function UploadFileModal({
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Validation error */}
+        {validationError && (
+          <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+            <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+            <p className="text-xs text-destructive">{validationError}</p>
           </div>
         )}
 
