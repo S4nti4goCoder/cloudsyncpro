@@ -7,12 +7,16 @@ export function useTheme() {
   useEffect(() => {
     const root = document.documentElement
 
-    if (theme === 'system') {
-      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      root.classList.toggle('dark', systemDark)
-    } else {
+    if (theme !== 'system') {
       root.classList.toggle('dark', theme === 'dark')
+      return
     }
+
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const apply = () => root.classList.toggle('dark', mq.matches)
+    apply()
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
   }, [theme])
 
   function toggleTheme() {
