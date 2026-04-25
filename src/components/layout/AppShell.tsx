@@ -22,7 +22,7 @@ export function AppShell({ children }: AppShellProps) {
           sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-64'
         )}
       >
-        <div className="p-6">
+        <div className="p-3 sm:p-4 md:p-6">
           {children}
         </div>
       </main>

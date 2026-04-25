@@ -71,7 +71,7 @@ export function Header() {
   return (
     <header
       className={cn(
-        "fixed right-0 top-0 z-20 flex h-16 items-center gap-2 md:gap-4 border-b border-border bg-background/95 backdrop-blur px-3 md:px-6 transition-all duration-300",
+        "fixed right-0 top-0 z-20 flex h-16 items-center gap-1 sm:gap-2 md:gap-4 border-b border-border bg-background/95 backdrop-blur px-2 sm:px-3 md:px-6 transition-all duration-300",
         "left-0",
         sidebarCollapsed ? "lg:left-16" : "lg:left-64",
       )}
@@ -91,7 +91,7 @@ export function Header() {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-0.5 sm:gap-2 shrink-0">
         {/* Theme selector */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -135,7 +135,7 @@ export function Header() {
         {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted transition-colors">
+            <button className="flex items-center gap-1 sm:gap-2 rounded-lg px-1 sm:px-2 py-1.5 hover:bg-muted transition-colors">
               <Avatar className="h-7 w-7">
                 <AvatarImage src={avatarUrl} alt={displayName} />
                 <AvatarFallback className="bg-[#0f172a] text-white text-xs">
@@ -147,7 +147,7 @@ export function Header() {
                   {displayName.split(" ")[0]}
                 </span>
               </div>
-              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              <ChevronDown className="hidden sm:block h-3 w-3 text-muted-foreground" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">

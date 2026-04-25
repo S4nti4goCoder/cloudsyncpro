@@ -106,11 +106,11 @@ export function SearchBar() {
   }
 
   return (
-    <div ref={containerRef} className="relative w-full max-w-md">
+    <div ref={containerRef} className="relative w-full max-w-md min-w-0">
       {/* Input */}
       <div
         className={cn(
-          "flex items-center gap-2 rounded-lg border bg-muted/50 px-3 h-9 transition-all duration-150",
+          "flex items-center gap-2 rounded-lg border bg-muted/50 px-2 sm:px-3 h-9 transition-all duration-150",
           isFocused
             ? "border-primary/50 bg-background shadow-sm"
             : "border-input hover:bg-muted",
@@ -124,12 +124,12 @@ export function SearchBar() {
         <input
           ref={inputRef}
           type="text"
-          placeholder="Buscar archivos..."
+          placeholder="Buscar..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsFocused(true)}
           onKeyDown={handleInputKeyDown}
-          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+          className="flex-1 min-w-0 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
         />
         {query ? (
           <button

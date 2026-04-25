@@ -133,13 +133,13 @@ export default function DashboardPage() {
 
       {/* Workspace stats */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider truncate min-w-0">
             Workspace activo — {activeWorkspace?.name}
           </p>
           <button
             onClick={() => navigate("/files")}
-            className="flex items-center gap-1 text-xs text-primary hover:underline"
+            className="flex shrink-0 items-center gap-1 text-xs text-primary hover:underline"
           >
             Ver archivos
             <ArrowRight className="h-3 w-3" />
@@ -433,12 +433,12 @@ function StatCard({
   isLoading,
 }: StatCardProps) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-muted-foreground">{title}</p>
+    <div className="rounded-xl border border-border bg-card p-4 space-y-3 min-w-0">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-medium text-muted-foreground truncate">{title}</p>
         <div
           className={cn(
-            "flex h-7 w-7 items-center justify-center rounded-lg",
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg",
             color,
           )}
         >
@@ -448,7 +448,7 @@ function StatCard({
       {isLoading ? (
         <Skeleton className="h-7 w-20 rounded-md" />
       ) : (
-        <p className="text-2xl font-bold text-foreground">
+        <p className="text-xl sm:text-2xl font-bold text-foreground truncate">
           {fmt === "size" ? formatFileSize(value) : value.toLocaleString()}
         </p>
       )}

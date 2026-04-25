@@ -134,8 +134,8 @@ function FilePreviewContent({
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b border-white/10 shrink-0 gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10">
             {getFileIcon(file.mime_type, file.name)}
           </div>
@@ -143,8 +143,9 @@ function FilePreviewContent({
             <p className="text-sm font-medium text-white truncate">
               {file.name}
             </p>
-            <p className="text-xs text-white/50">
-              {formatFileSize(file.size)} · {file.mime_type}
+            <p className="text-xs text-white/50 truncate">
+              {formatFileSize(file.size)}
+              <span className="hidden sm:inline"> · {file.mime_type}</span>
               {navList.length > 1 && currentIndex >= 0 && (
                 <>
                   {" · "}
@@ -157,7 +158,7 @@ function FilePreviewContent({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {fileType === "image" && !hasError && (
             <>
               <button
@@ -167,7 +168,7 @@ function FilePreviewContent({
               >
                 <ZoomOut className="h-4 w-4" />
               </button>
-              <span className="text-xs text-white/50 w-12 text-center tabular-nums">
+              <span className="hidden sm:block text-xs text-white/50 w-12 text-center tabular-nums">
                 {Math.round(imageZoom * 100)}%
               </span>
               <button

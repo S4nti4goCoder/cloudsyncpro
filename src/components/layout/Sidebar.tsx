@@ -162,10 +162,11 @@ export function Sidebar() {
                 </button>
               </PopoverTrigger>
               <PopoverContent
-                className="w-64 p-1.5"
+                className="w-[calc(100vw-2rem)] sm:w-64 p-1.5"
                 align="start"
-                side="right"
+                side="bottom"
                 sideOffset={8}
+                collisionPadding={16}
               >
                 <div className="px-2 py-1.5 mb-1">
                   <p className="text-xs font-medium text-muted-foreground">
