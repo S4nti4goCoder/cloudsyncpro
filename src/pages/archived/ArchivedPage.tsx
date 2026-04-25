@@ -245,7 +245,7 @@ function ArchivedFileRow({
             "text-xs font-medium text-foreground border border-border",
             "hover:bg-muted transition-colors",
             "disabled:opacity-50 disabled:cursor-not-allowed",
-            "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+            "lg:opacity-0 lg:group-hover:opacity-100 focus-visible:opacity-100",
           )}
         >
           <ArchiveRestore className="h-3.5 w-3.5" />

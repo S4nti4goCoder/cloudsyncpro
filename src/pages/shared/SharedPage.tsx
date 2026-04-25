@@ -273,7 +273,7 @@ function ShareCard({
         </div>
       </div>
 
-      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1 shrink-0 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
         <button
           type="button"
           onClick={onCopy}
@@ -348,7 +348,7 @@ function InboundShareCard({ share }: { share: InboundShare }) {
       </div>
 
       {publicUrl && !isExpired && (
-        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 shrink-0 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
           <a
             href={publicUrl}
             target="_blank"

@@ -737,7 +737,7 @@ function TrashFolderCard({
           disabled={disabled}
           className={cn(
             "absolute top-2 left-2 h-3.5 w-3.5 accent-primary z-10",
-            selected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+            selected ? "opacity-100" : "lg:opacity-0 lg:group-hover:opacity-100",
           )}
           aria-label={`Seleccionar ${folder.name}`}
         />
@@ -812,7 +812,7 @@ function TrashFileCard({
           disabled={disabled}
           className={cn(
             "absolute top-2 left-2 h-3.5 w-3.5 accent-primary z-10",
-            selected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+            selected ? "opacity-100" : "lg:opacity-0 lg:group-hover:opacity-100",
           )}
           aria-label={`Seleccionar ${file.name}`}
         />

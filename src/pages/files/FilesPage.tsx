@@ -812,7 +812,7 @@ function FolderCard({ folder, viewMode, canEdit, onClick, onDelete, onActivity, 
         "h-3.5 w-3.5 accent-primary shrink-0 cursor-pointer",
         anySelected || selected
           ? "opacity-100"
-          : "opacity-0 group-hover:opacity-100 transition-opacity",
+          : "lg:opacity-0 lg:group-hover:opacity-100 transition-opacity",
       )}
       aria-label={`Seleccionar ${folder.name}`}
     />
@@ -887,7 +887,7 @@ function FolderCard({ folder, viewMode, canEdit, onClick, onDelete, onActivity, 
             <Folder className={cn("h-5 w-5", colorClasses.iconFg)} />
           </div>
           <div
-            className="opacity-0 group-hover:opacity-100 transition-opacity"
+            className="lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
             onClick={(e) => e.stopPropagation()}
           >
             <FolderMenu
@@ -1092,7 +1092,7 @@ function FileCard({
         "h-3.5 w-3.5 accent-primary shrink-0 cursor-pointer",
         anySelected || selected
           ? "opacity-100"
-          : "opacity-0 group-hover:opacity-100 transition-opacity",
+          : "lg:opacity-0 lg:group-hover:opacity-100 transition-opacity",
       )}
       aria-label={`Seleccionar ${file.name}`}
     />
@@ -1180,7 +1180,7 @@ function FileCard({
         <div className="flex items-start justify-between gap-1">
           {nameElement}
           <div
-            className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+            className="lg:opacity-0 lg:group-hover:opacity-100 transition-opacity shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
             <FileMenu

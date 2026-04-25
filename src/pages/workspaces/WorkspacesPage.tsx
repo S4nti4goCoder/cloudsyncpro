@@ -180,7 +180,7 @@ function WorkspaceCard({ workspace, isActive, isOwner, onSelect, onDelete }: Wor
                 className={cn(
                   'flex h-7 w-7 items-center justify-center rounded-md',
                   'text-muted-foreground hover:bg-muted hover:text-foreground',
-                  'opacity-0 group-hover:opacity-100 transition-all'
+                  'lg:opacity-0 lg:group-hover:opacity-100 transition-all'
                 )}
                 aria-label="Opciones"
               >
