@@ -107,7 +107,7 @@ export default function MembersPage() {
   return (
     <div className="space-y-5 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">
             Miembros
@@ -122,7 +122,7 @@ export default function MembersPage() {
         {canManage && (
           <button
             onClick={() => setShowInvite(true)}
-            className="flex items-center gap-2 rounded-lg bg-primary px-3 h-9 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            className="flex items-center justify-center gap-2 rounded-lg bg-primary px-3 h-9 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors self-start"
           >
             <UserPlus className="h-4 w-4" />
             Invitar
@@ -132,13 +132,13 @@ export default function MembersPage() {
 
       {/* Invite form */}
       {showInvite && (
-        <div className="flex items-end gap-3 p-4 rounded-xl border border-primary/30 bg-primary/5 animate-fade-in">
-          <div className="flex-1 space-y-1.5">
+        <div className="flex flex-col gap-3 p-4 rounded-xl border border-primary/30 bg-primary/5 animate-fade-in sm:flex-row sm:items-end">
+          <div className="flex-1 space-y-1.5 min-w-0">
             <label className="text-xs font-medium text-muted-foreground">
               Email del usuario
             </label>
             <div className="flex items-center gap-2 rounded-lg border border-input bg-background px-3 h-9">
-              <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+              <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <input
                 type="email"
                 placeholder="usuario@ejemplo.com"
@@ -149,7 +149,7 @@ export default function MembersPage() {
                   if (e.key === "Escape") setShowInvite(false);
                 }}
                 autoFocus
-                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                className="flex-1 min-w-0 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
               />
             </div>
           </div>
@@ -162,13 +162,13 @@ export default function MembersPage() {
               <DropdownMenuTrigger asChild>
                 <button
                   className={cn(
-                    "flex items-center gap-2 rounded-lg border border-input px-3 h-9 text-sm font-medium transition-colors hover:bg-muted",
+                    "flex w-full items-center gap-2 rounded-lg border border-input px-3 h-9 text-sm font-medium transition-colors hover:bg-muted sm:w-auto",
                     ROLE_CONFIG[inviteRole].color,
                   )}
                 >
                   <Shield className="h-3.5 w-3.5" />
                   {ROLE_CONFIG[inviteRole].label}
-                  <ChevronDown className="h-3 w-3" />
+                  <ChevronDown className="h-3 w-3 ml-auto sm:ml-0" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
@@ -196,14 +196,14 @@ export default function MembersPage() {
                 setShowInvite(false);
                 setInviteEmail("");
               }}
-              className="rounded-lg px-3 h-9 text-sm text-muted-foreground hover:bg-muted transition-colors"
+              className="flex-1 rounded-lg px-3 h-9 text-sm text-muted-foreground hover:bg-muted transition-colors sm:flex-none"
             >
               Cancelar
             </button>
             <button
               onClick={handleInvite}
               disabled={!inviteEmail.trim() || inviting}
-              className="flex items-center gap-2 rounded-lg bg-primary px-3 h-9 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-3 h-9 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors sm:flex-none"
             >
               {inviting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               Agregar

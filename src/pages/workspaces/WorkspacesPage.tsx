@@ -53,7 +53,7 @@ export default function WorkspacesPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">
             Espacios de trabajo
@@ -65,7 +65,7 @@ export default function WorkspacesPage() {
         <button
           onClick={() => setShowCreateModal(true)}
           className={cn(
-            'flex items-center gap-2 rounded-lg bg-primary px-4 h-10',
+            'flex items-center justify-center gap-2 rounded-lg bg-primary px-4 h-10 self-start',
             'text-sm font-medium text-primary-foreground',
             'hover:bg-primary/90 transition-colors',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'

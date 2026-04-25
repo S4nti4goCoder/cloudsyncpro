@@ -73,7 +73,7 @@ export default function AdminPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">
             Panel de administración
@@ -82,7 +82,7 @@ export default function AdminPage() {
             Gestiona usuarios y supervisa el sistema
           </p>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 self-start">
           <Shield className="h-4 w-4 text-primary" />
           <span className="text-xs font-medium text-primary capitalize">{profile?.role}</span>
         </div>
@@ -126,25 +126,25 @@ export default function AdminPage() {
 
       {/* Users table */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
             Usuarios ({filteredUsers.length})
           </p>
-          <div className="flex items-center gap-2 rounded-lg border border-input bg-muted/50 px-3 h-8">
-            <Search className="h-3.5 w-3.5 text-muted-foreground" />
+          <div className="flex items-center gap-2 rounded-lg border border-input bg-muted/50 px-3 h-8 w-full sm:w-auto">
+            <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <input
               type="text"
               placeholder="Buscar usuario..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none w-40"
+              className="bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none flex-1 sm:w-40"
             />
           </div>
         </div>
 
         <div className="rounded-xl border border-border bg-card overflow-hidden">
-          {/* Table header */}
-          <div className="grid grid-cols-12 gap-4 px-4 py-2.5 border-b border-border bg-muted/30">
+          {/* Table header — desktop only */}
+          <div className="hidden lg:grid grid-cols-12 gap-4 px-4 py-2.5 border-b border-border bg-muted/30">
             <p className="col-span-4 text-xs font-medium text-muted-foreground">Usuario</p>
             <p className="col-span-2 text-xs font-medium text-muted-foreground">Rol</p>
             <p className="col-span-2 text-xs font-medium text-muted-foreground">Archivos</p>
@@ -180,17 +180,17 @@ export default function AdminPage() {
                 return (
                   <div
                     key={user.id}
-                    className="grid grid-cols-12 gap-4 px-4 py-3 items-center hover:bg-muted/30 transition-colors"
+                    className="flex flex-col gap-3 px-4 py-3 hover:bg-muted/30 transition-colors lg:grid lg:grid-cols-12 lg:gap-4 lg:items-center"
                   >
-                    {/* User */}
-                    <div className="col-span-4 flex items-center gap-3 min-w-0">
+                    {/* User + Role (mobile row 1) */}
+                    <div className="flex items-center gap-3 min-w-0 lg:col-span-4">
                       <Avatar className="h-8 w-8 shrink-0">
                         <AvatarImage src={user.avatar_url ?? ''} />
                         <AvatarFallback className="bg-[#0f172a] text-white text-xs">
                           {initials}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-foreground truncate">
                           {user.full_name ?? 'Sin nombre'}
                           {isCurrentUser && (
@@ -202,7 +202,7 @@ export default function AdminPage() {
                     </div>
 
                     {/* Role */}
-                    <div className="col-span-2">
+                    <div className="lg:col-span-2">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button
@@ -242,17 +242,26 @@ export default function AdminPage() {
                     </div>
 
                     {/* Files */}
-                    <div className="col-span-2">
+                    <div className="flex items-center justify-between gap-2 lg:col-span-2 lg:block">
+                      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider lg:hidden">
+                        Archivos
+                      </span>
                       <p className="text-sm text-foreground">{user.files_count}</p>
                     </div>
 
                     {/* Storage */}
-                    <div className="col-span-2">
+                    <div className="flex items-center justify-between gap-2 lg:col-span-2 lg:block">
+                      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider lg:hidden">
+                        Almacenamiento
+                      </span>
                       <p className="text-sm text-foreground">{formatFileSize(user.storage_used)}</p>
                     </div>
 
                     {/* Date */}
-                    <div className="col-span-2">
+                    <div className="flex items-center justify-between gap-2 lg:col-span-2 lg:block">
+                      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider lg:hidden">
+                        Registrado
+                      </span>
                       <p className="text-xs text-muted-foreground">
                         {format(new Date(user.created_at), 'd MMM yyyy', { locale: es })}
                       </p>
