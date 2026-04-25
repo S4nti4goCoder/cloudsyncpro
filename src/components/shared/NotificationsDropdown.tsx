@@ -49,8 +49,9 @@ export function NotificationsDropdown() {
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        className="w-80 p-0 overflow-hidden"
+        className="w-[calc(100vw-1rem)] sm:w-80 p-0 overflow-hidden"
         sideOffset={8}
+        collisionPadding={8}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">

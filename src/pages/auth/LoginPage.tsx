@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { Eye, EyeOff, Loader2, ArrowRight, Lock, Mail } from 'lucide-react'
 import { authService } from '@/services/authService'
 import { cn } from '@/lib/utils'
+import { isValidEmail } from '@/utils/validation'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -11,13 +12,20 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
+
+  function validate() {
+    const next: { email?: string; password?: string } = {}
+    if (!email.trim()) next.email = 'Ingresa tu correo'
+    else if (!isValidEmail(email)) next.email = 'Correo inválido'
+    if (!password) next.password = 'Ingresa tu contraseña'
+    setErrors(next)
+    return Object.keys(next).length === 0
+  }
 
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault()
-    if (!email || !password) {
-      toast.error('Por favor completa todos los campos')
-      return
-    }
+    if (!validate()) return
     setIsLoading(true)
     try {
       await authService.signInWithEmail(email, password)
@@ -177,16 +185,26 @@ export default function LoginPage() {
                   autoComplete="email"
                   placeholder="tu@ejemplo.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    if (errors.email) setErrors((p) => ({ ...p, email: undefined }))
+                  }}
                   disabled={isLoading || isGoogleLoading}
+                  aria-invalid={!!errors.email}
                   className={cn(
-                    'flex h-11 w-full rounded-xl border border-gray-200 bg-gray-50/50 pl-10 pr-4',
+                    'flex h-11 w-full rounded-xl border bg-gray-50/50 pl-10 pr-4',
                     'text-sm text-gray-900 placeholder:text-gray-400',
-                    'focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white',
-                    'disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150'
+                    'focus:outline-none focus:ring-2 focus:bg-white',
+                    'disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150',
+                    errors.email
+                      ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500'
+                      : 'border-gray-200 focus:ring-blue-500/20 focus:border-blue-500'
                   )}
                 />
               </div>
+              {errors.email && (
+                <p className="text-xs text-red-600">{errors.email}</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -209,13 +227,20 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   placeholder="••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value)
+                    if (errors.password) setErrors((p) => ({ ...p, password: undefined }))
+                  }}
                   disabled={isLoading || isGoogleLoading}
+                  aria-invalid={!!errors.password}
                   className={cn(
-                    'flex h-11 w-full rounded-xl border border-gray-200 bg-gray-50/50 pl-10 pr-10',
+                    'flex h-11 w-full rounded-xl border bg-gray-50/50 pl-10 pr-10',
                     'text-sm text-gray-900 placeholder:text-gray-400',
-                    'focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white',
-                    'disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150'
+                    'focus:outline-none focus:ring-2 focus:bg-white',
+                    'disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150',
+                    errors.password
+                      ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500'
+                      : 'border-gray-200 focus:ring-blue-500/20 focus:border-blue-500'
                   )}
                 />
                 <button
@@ -227,6 +252,9 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {errors.password && (
+                <p className="text-xs text-red-600">{errors.password}</p>
+              )}
             </div>
 
             <button

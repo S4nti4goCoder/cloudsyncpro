@@ -18,6 +18,7 @@ const TrashPage = lazy(() => import("@/pages/trash/TrashPage"));
 const ProfilePage = lazy(() => import("@/pages/settings/ProfilePage"));
 const SettingsPage = lazy(() => import("@/pages/settings/SettingsPage"));
 const MembersPage = lazy(() => import("@/pages/workspaces/MembersPage"));
+const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"));
 
 function LoadingScreen() {
   return (
@@ -196,7 +197,7 @@ export function AppRoutes() {
 
         {/* Redirects */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
   );

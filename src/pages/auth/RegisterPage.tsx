@@ -13,6 +13,13 @@ import {
 } from "lucide-react";
 import { authService } from "@/services/authService";
 import { cn } from "@/lib/utils";
+import { isValidEmail, getPasswordError } from "@/utils/validation";
+
+type RegisterErrors = {
+  fullName?: string;
+  email?: string;
+  password?: string;
+};
 
 export default function RegisterPage() {
   const [fullName, setFullName] = useState("");
@@ -22,19 +29,24 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [registered, setRegistered] = useState(false);
+  const [errors, setErrors] = useState<RegisterErrors>({});
 
   const passwordStrength = getPasswordStrength(password);
 
+  function validate(): boolean {
+    const next: RegisterErrors = {};
+    if (!fullName.trim()) next.fullName = "Ingresa tu nombre";
+    if (!email.trim()) next.email = "Ingresa tu correo";
+    else if (!isValidEmail(email)) next.email = "Correo inválido";
+    const passwordError = getPasswordError(password);
+    if (passwordError) next.password = passwordError;
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  }
+
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
-    if (!fullName || !email || !password) {
-      toast.error("Por favor completa todos los campos");
-      return;
-    }
-    if (password.length < 8) {
-      toast.error("La contraseña debe tener al menos 8 caracteres");
-      return;
-    }
+    if (!validate()) return;
     setIsLoading(true);
     try {
       await authService.signUpWithEmail(email, password, fullName);
@@ -285,16 +297,27 @@ export default function RegisterPage() {
                   autoComplete="name"
                   placeholder="Juan Pérez"
                   value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  onChange={(e) => {
+                    setFullName(e.target.value);
+                    if (errors.fullName)
+                      setErrors((p) => ({ ...p, fullName: undefined }));
+                  }}
                   disabled={isLoading || isGoogleLoading}
+                  aria-invalid={!!errors.fullName}
                   className={cn(
-                    "flex h-11 w-full rounded-xl border border-gray-200 bg-gray-50/50 pl-10 pr-4",
+                    "flex h-11 w-full rounded-xl border bg-gray-50/50 pl-10 pr-4",
                     "text-sm text-gray-900 placeholder:text-gray-400",
-                    "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white",
+                    "focus:outline-none focus:ring-2 focus:bg-white",
                     "disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150",
+                    errors.fullName
+                      ? "border-red-500 focus:ring-red-500/20 focus:border-red-500"
+                      : "border-gray-200 focus:ring-blue-500/20 focus:border-blue-500",
                   )}
                 />
               </div>
+              {errors.fullName && (
+                <p className="text-xs text-red-600">{errors.fullName}</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -312,16 +335,27 @@ export default function RegisterPage() {
                   autoComplete="email"
                   placeholder="tu@ejemplo.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errors.email)
+                      setErrors((p) => ({ ...p, email: undefined }));
+                  }}
                   disabled={isLoading || isGoogleLoading}
+                  aria-invalid={!!errors.email}
                   className={cn(
-                    "flex h-11 w-full rounded-xl border border-gray-200 bg-gray-50/50 pl-10 pr-4",
+                    "flex h-11 w-full rounded-xl border bg-gray-50/50 pl-10 pr-4",
                     "text-sm text-gray-900 placeholder:text-gray-400",
-                    "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white",
+                    "focus:outline-none focus:ring-2 focus:bg-white",
                     "disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150",
+                    errors.email
+                      ? "border-red-500 focus:ring-red-500/20 focus:border-red-500"
+                      : "border-gray-200 focus:ring-blue-500/20 focus:border-blue-500",
                   )}
                 />
               </div>
+              {errors.email && (
+                <p className="text-xs text-red-600">{errors.email}</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -339,13 +373,21 @@ export default function RegisterPage() {
                   autoComplete="new-password"
                   placeholder="Mín. 8 caracteres"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errors.password)
+                      setErrors((p) => ({ ...p, password: undefined }));
+                  }}
                   disabled={isLoading || isGoogleLoading}
+                  aria-invalid={!!errors.password}
                   className={cn(
-                    "flex h-11 w-full rounded-xl border border-gray-200 bg-gray-50/50 pl-10 pr-10",
+                    "flex h-11 w-full rounded-xl border bg-gray-50/50 pl-10 pr-10",
                     "text-sm text-gray-900 placeholder:text-gray-400",
-                    "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white",
+                    "focus:outline-none focus:ring-2 focus:bg-white",
                     "disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150",
+                    errors.password
+                      ? "border-red-500 focus:ring-red-500/20 focus:border-red-500"
+                      : "border-gray-200 focus:ring-blue-500/20 focus:border-blue-500",
                   )}
                 />
                 <button
@@ -363,6 +405,10 @@ export default function RegisterPage() {
                   )}
                 </button>
               </div>
+
+              {errors.password && (
+                <p className="text-xs text-red-600">{errors.password}</p>
+              )}
 
               {password.length > 0 && (
                 <div className="space-y-1.5 animate-fade-in">

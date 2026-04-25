@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Moon,
   Sun,
@@ -18,6 +19,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useUIStore } from "@/store/uiStore";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { NotificationsDropdown } from "@/components/shared/NotificationsDropdown";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -48,6 +50,8 @@ export function Header() {
   const notificationsInApp = useUIStore((s) => s.notificationsInApp);
   const profile = useAuthStore((s) => s.profile);
   const user = useAuthStore((s) => s.user);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   const displayName = profile?.full_name ?? user?.email ?? "Usuario";
   const avatarUrl = profile?.avatar_url ?? "";
@@ -59,12 +63,16 @@ export function Header() {
     .toUpperCase();
 
   async function handleSignOut() {
+    setSigningOut(true);
     try {
       await authService.signOut();
       navigate("/login");
       toast.success("Sesión cerrada correctamente");
     } catch {
       toast.error("Error al cerrar sesión");
+    } finally {
+      setSigningOut(false);
+      setConfirmSignOut(false);
     }
   }
 
@@ -168,7 +176,7 @@ export function Header() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={handleSignOut}
+              onClick={() => setConfirmSignOut(true)}
               className="text-red-500 focus:text-red-500"
             >
               <LogOut className="mr-2 h-4 w-4" />
@@ -177,6 +185,18 @@ export function Header() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <ConfirmDialog
+        open={confirmSignOut}
+        onClose={() => setConfirmSignOut(false)}
+        onConfirm={handleSignOut}
+        title="Cerrar sesión"
+        description="¿Seguro que quieres cerrar sesión? Tendrás que volver a iniciar sesión para acceder."
+        confirmLabel="Cerrar sesión"
+        variant="destructive"
+        isPending={signingOut}
+        icon={<LogOut className="h-5 w-5 text-destructive" />}
+      />
     </header>
   );
 }
