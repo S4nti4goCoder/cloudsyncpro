@@ -20,7 +20,10 @@ import { toast } from 'sonner'
 import { useMyShares, useSharedWithMe, useDeactivateShare } from '@/hooks/useShares'
 import { shareService } from '@/services/shareService'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
+import { Pagination } from '@/components/shared/Pagination'
 import { Skeleton } from '@/components/ui/skeleton'
+
+const PAGE_SIZE = 6
 import { cn } from '@/lib/utils'
 import { formatFileSize } from '@/utils/fileUtils'
 import type { FileShare } from '@/types/authTypes'
@@ -85,8 +88,16 @@ function MineTab() {
   const { data: shares, isLoading } = useMyShares()
   const { mutate: deactivateShare, isPending } = useDeactivateShare()
   const [deactivatingShare, setDeactivatingShare] = useState<EnrichedShare | null>(null)
+  const [page, setPage] = useState(1)
 
   const isEmpty = !isLoading && !shares?.length
+  const total = shares?.length ?? 0
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const safePage = Math.min(page, pageCount)
+  const visibleShares = ((shares ?? []) as EnrichedShare[]).slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
+  )
 
   function handleCopyLink(token: string) {
     const url = shareService.buildShareUrl(token)
@@ -120,7 +131,7 @@ function MineTab() {
         {shares!.length} {shares!.length === 1 ? 'enlace activo' : 'enlaces activos'}
       </p>
       <div className="space-y-2">
-        {(shares as EnrichedShare[])!.map((share) => (
+        {visibleShares.map((share) => (
           <ShareCard
             key={share.id}
             share={share}
@@ -129,6 +140,17 @@ function MineTab() {
           />
         ))}
       </div>
+
+      <Pagination
+        page={safePage}
+        pageCount={pageCount}
+        onPageChange={(p) => {
+          setPage(p)
+          if (typeof window !== 'undefined') {
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }
+        }}
+      />
 
       <ConfirmDialog
         open={deactivatingShare !== null}
@@ -160,7 +182,16 @@ function MineTab() {
 
 function WithMeTab() {
   const { data: shares, isLoading } = useSharedWithMe()
+  const [page, setPage] = useState(1)
+
   const isEmpty = !isLoading && !shares?.length
+  const total = shares?.length ?? 0
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const safePage = Math.min(page, pageCount)
+  const visibleShares = (shares ?? []).slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
+  )
 
   if (isLoading) {
     return (
@@ -188,10 +219,21 @@ function WithMeTab() {
         {shares!.length} {shares!.length === 1 ? 'recurso compartido' : 'recursos compartidos'}
       </p>
       <div className="space-y-2">
-        {shares!.map((share) => (
+        {visibleShares.map((share) => (
           <InboundShareCard key={share.id} share={share} />
         ))}
       </div>
+
+      <Pagination
+        page={safePage}
+        pageCount={pageCount}
+        onPageChange={(p) => {
+          setPage(p)
+          if (typeof window !== 'undefined') {
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }
+        }}
+      />
     </>
   )
 }

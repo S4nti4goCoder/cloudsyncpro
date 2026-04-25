@@ -18,12 +18,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Pagination } from "@/components/shared/Pagination";
 import { cn } from "@/lib/utils";
 import { ACTION_CONFIG, renderActionIcon, groupByDay } from "@/utils/activityUtils";
 import type { ActivityAction } from "@/types/authTypes";
 import type { ActivityWithUser } from "@/services/activityService";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 6;
 
 export default function ActivityPage() {
   const { activeWorkspaceId } = useWorkspaceStore();
@@ -54,7 +55,7 @@ export default function ActivityPage() {
 
   const items = useMemo(() => data?.items ?? [], [data?.items]);
   const total = data?.total ?? 0;
-  const hasMore = (page + 1) * PAGE_SIZE < total;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const hasFilters = selectedActions.length > 0 || from !== "" || to !== "";
 
   const grouped = useMemo(() => groupByDay(items), [items]);
@@ -124,17 +125,17 @@ export default function ActivityPage() {
             <DayGroup key={group.date} label={group.label} items={group.items} />
           ))}
 
-          {hasMore && (
-            <div className="flex justify-center pt-2">
-              <button
-                onClick={() => setPage((p) => p + 1)}
-                disabled={isFetching}
-                className="flex items-center gap-2 rounded-lg border border-border px-4 h-9 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
-              >
-                {isFetching ? "Cargando..." : "Cargar más"}
-              </button>
-            </div>
-          )}
+          <Pagination
+            page={page + 1}
+            pageCount={pageCount}
+            onPageChange={(p) => {
+              setPage(p - 1);
+              if (typeof window !== "undefined") {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }
+            }}
+            className={cn(isFetching && "opacity-50 pointer-events-none")}
+          />
         </div>
       )}
     </div>

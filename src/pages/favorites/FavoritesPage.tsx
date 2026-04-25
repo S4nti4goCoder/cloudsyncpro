@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Star,
@@ -19,7 +20,10 @@ import { cn } from "@/lib/utils";
 import { formatFileSize, getFileColor } from "@/utils/fileUtils";
 import { folderColorFromMetadata, getFolderColorClasses } from "@/utils/folderColors";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Pagination } from "@/components/shared/Pagination";
 import type { FileRecord, Folder as FolderType } from "@/types/authTypes";
+
+const PAGE_SIZE = 6;
 
 export default function FavoritesPage() {
   const navigate = useNavigate();
@@ -35,6 +39,20 @@ export default function FavoritesPage() {
   const files = data?.files ?? [];
   const total = folders.length + files.length;
   const isEmpty = !isLoading && total === 0;
+
+  const [page, setPage] = useState(1);
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+  const startIdx = (safePage - 1) * PAGE_SIZE;
+  const endIdx = startIdx + PAGE_SIZE;
+  const visibleFolders = folders.slice(startIdx, endIdx);
+  const consumedByFolders = visibleFolders.length;
+  const fileStart = Math.max(0, startIdx - folders.length);
+  const fileEnd = fileStart + (PAGE_SIZE - consumedByFolders);
+  const visibleFiles =
+    startIdx + consumedByFolders >= folders.length
+      ? files.slice(fileStart, fileEnd)
+      : [];
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -52,13 +70,13 @@ export default function FavoritesPage() {
         <EmptyState />
       ) : (
         <>
-          {!!folders.length && (
+          {!!visibleFolders.length && (
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Carpetas
               </p>
               <div className="space-y-1">
-                {folders.map((folder) => (
+                {visibleFolders.map((folder) => (
                   <FavoriteFolderRow
                     key={folder.id}
                     folder={folder}
@@ -76,13 +94,13 @@ export default function FavoritesPage() {
             </div>
           )}
 
-          {!!files.length && (
+          {!!visibleFiles.length && (
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Archivos
               </p>
               <div className="space-y-1">
-                {files.map((file) => (
+                {visibleFiles.map((file) => (
                   <FavoriteFileRow
                     key={file.id}
                     file={file}
@@ -105,6 +123,17 @@ export default function FavoritesPage() {
               </div>
             </div>
           )}
+
+          <Pagination
+            page={safePage}
+            pageCount={pageCount}
+            onPageChange={(p) => {
+              setPage(p);
+              if (typeof window !== "undefined") {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }
+            }}
+          />
         </>
       )}
     </div>

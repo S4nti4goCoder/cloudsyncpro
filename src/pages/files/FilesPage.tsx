@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useDropzone } from "react-dropzone";
 import {
@@ -66,6 +66,7 @@ import { MoveFileModal } from "@/components/shared/MoveFileModal";
 import { BulkMoveModal } from "@/components/shared/BulkMoveModal";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { ResourceActivityModal } from "@/components/shared/ResourceActivityModal";
+import { Pagination } from "@/components/shared/Pagination";
 import { cn } from "@/lib/utils";
 import { formatFileSize, getFileColor } from "@/utils/fileUtils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -108,6 +109,9 @@ export default function FilesPage() {
   const [showBulkMove, setShowBulkMove] = useState(false);
   const [bulkConfirm, setBulkConfirm] = useState<"trash" | "archive" | null>(null);
   const [folderToDelete, setFolderToDelete] = useState<FolderType | null>(null);
+  const [page, setPage] = useState(1);
+
+  const PAGE_SIZE = 6;
 
   const folderId = searchParams.get("folder");
   const { activeWorkspaceId } = useWorkspaceStore();
@@ -211,6 +215,27 @@ export default function FilesPage() {
 
   const isLoading = foldersLoading || filesLoading;
   const isEmpty = !isLoading && !folders?.length && !files?.length;
+
+  // Paginación combinada (folders primero, luego files)
+  const totalCount = (folders?.length ?? 0) + (files?.length ?? 0);
+  const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+  const startIdx = (safePage - 1) * PAGE_SIZE;
+  const endIdx = startIdx + PAGE_SIZE;
+  const visibleFolders = (folders ?? []).slice(startIdx, endIdx);
+  const consumedByFolders = visibleFolders.length;
+  const folderItemsBefore = Math.min(startIdx, folders?.length ?? 0);
+  const fileStartIdx = Math.max(0, startIdx - (folders?.length ?? 0));
+  const fileEndIdx = fileStartIdx + (PAGE_SIZE - consumedByFolders);
+  const visibleFiles =
+    folderItemsBefore + consumedByFolders >= (folders?.length ?? 0)
+      ? (files ?? []).slice(fileStartIdx, fileEndIdx)
+      : [];
+
+  // Reset to page 1 when navigating folders
+  useEffect(() => {
+    setPage(1);
+  }, [folderId]);
 
   function handleCreateFolder() {
     if (!newFolderName.trim()) return;
@@ -527,7 +552,7 @@ export default function FilesPage() {
       ) : (
         <>
           {/* Folders */}
-          {!!folders?.length && (
+          {!!visibleFolders.length && (
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Carpetas
@@ -539,7 +564,7 @@ export default function FilesPage() {
                     : "space-y-1",
                 )}
               >
-                {folders.map((folder) => (
+                {visibleFolders.map((folder) => (
                   <FolderCard
                     key={folder.id}
                     folder={folder}
@@ -573,7 +598,7 @@ export default function FilesPage() {
           )}
 
           {/* Files */}
-          {!!files?.length && (
+          {!!visibleFiles.length && (
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Archivos
@@ -585,7 +610,7 @@ export default function FilesPage() {
                     : "space-y-1",
                 )}
               >
-                {files.map((file) => (
+                {visibleFiles.map((file) => (
                   <FileCard
                     key={file.id}
                     file={file}
@@ -627,6 +652,17 @@ export default function FilesPage() {
               </div>
             </div>
           )}
+
+          <Pagination
+            page={safePage}
+            pageCount={pageCount}
+            onPageChange={(p) => {
+              setPage(p);
+              if (typeof window !== "undefined") {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }
+            }}
+          />
         </>
       )}
 

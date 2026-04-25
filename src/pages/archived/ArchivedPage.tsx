@@ -24,7 +24,10 @@ import { useWorkspaceRole } from "@/hooks/useWorkspaceRole";
 import { cn } from "@/lib/utils";
 import { formatFileSize, getFileColor } from "@/utils/fileUtils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Pagination } from "@/components/shared/Pagination";
 import type { FileRecord } from "@/types/authTypes";
+
+const PAGE_SIZE = 6;
 
 export default function ArchivedPage() {
   const { activeWorkspaceId } = useWorkspaceStore();
@@ -43,9 +46,18 @@ export default function ArchivedPage() {
   const { canEdit } = useWorkspaceRole();
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(1);
 
   const isEmpty = !isLoading && !files?.length;
   const pending = restoring || bulkRestoring;
+
+  const totalCount = files?.length ?? 0;
+  const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+  const visibleFiles = (files ?? []).slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
+  );
 
   const allSelected = useMemo(
     () => !!files?.length && files.every((f) => selected.has(f.id)),
@@ -162,7 +174,7 @@ export default function ArchivedPage() {
           )}
 
           <div className="space-y-1">
-            {files?.map((file) => (
+            {visibleFiles.map((file) => (
               <ArchivedFileRow
                 key={file.id}
                 file={file}
@@ -174,6 +186,17 @@ export default function ArchivedPage() {
               />
             ))}
           </div>
+
+          <Pagination
+            page={safePage}
+            pageCount={pageCount}
+            onPageChange={(p) => {
+              setPage(p);
+              if (typeof window !== "undefined") {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }
+            }}
+          />
         </>
       )}
     </div>

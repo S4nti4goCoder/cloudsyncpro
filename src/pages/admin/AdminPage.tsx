@@ -16,6 +16,9 @@ import { useAdminUsers, useSystemStats, useUpdateUserRole } from '@/hooks/useAdm
 import { formatFileSize } from '@/utils/fileUtils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Pagination } from '@/components/shared/Pagination'
+
+const PAGE_SIZE = 6
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +42,7 @@ export default function AdminPage() {
   const profile = useAuthStore((s) => s.profile)
   const currentUserId = useAuthStore((s) => s.user?.id)
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
 
   const { data: users, isLoading: usersLoading } = useAdminUsers()
   const { data: stats, isLoading: statsLoading } = useSystemStats()
@@ -68,6 +72,12 @@ export default function AdminPage() {
   const filteredUsers = (users ?? []).filter((u) =>
     (u.full_name ?? '').toLowerCase().includes(search.toLowerCase()) ||
     (u.email ?? '').toLowerCase().includes(search.toLowerCase())
+  )
+  const pageCount = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE))
+  const safePage = Math.min(page, pageCount)
+  const visibleUsers = filteredUsers.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
   )
 
   return (
@@ -166,7 +176,7 @@ export default function AdminPage() {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {filteredUsers.map((user) => {
+              {visibleUsers.map((user) => {
                 const initials = (user.full_name ?? user.email ?? 'U')
                   .split(' ')
                   .map((n) => n[0])
@@ -272,6 +282,17 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+
+        <Pagination
+          page={safePage}
+          pageCount={pageCount}
+          onPageChange={(p) => {
+            setPage(p)
+            if (typeof window !== 'undefined') {
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }
+          }}
+        />
       </div>
     </div>
   )

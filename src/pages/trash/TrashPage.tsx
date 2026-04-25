@@ -42,7 +42,10 @@ import { cn } from "@/lib/utils";
 import { formatFileSize, getFileColor } from "@/utils/fileUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { Pagination } from "@/components/shared/Pagination";
 import type { FileRecord, Folder as FolderType } from "@/types/authTypes";
+
+const PAGE_SIZE = 6;
 
 type ViewMode = "grid" | "list";
 
@@ -124,6 +127,7 @@ export default function TrashPage() {
   const [showBulkDelete, setShowBulkDelete] = useState(false);
   const [showEmptyTrash, setShowEmptyTrash] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [page, setPage] = useState(1);
 
   const folderIdSet = useMemo(
     () => new Set(folders.map((f) => f.id)),
@@ -144,6 +148,18 @@ export default function TrashPage() {
   );
 
   const totalCount = (folders?.length ?? 0) + (files?.length ?? 0);
+  const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+  const startIdx = (safePage - 1) * PAGE_SIZE;
+  const endIdx = startIdx + PAGE_SIZE;
+  const visibleFolders = folders.slice(startIdx, endIdx);
+  const consumedByFolders = visibleFolders.length;
+  const fileStartIdx = Math.max(0, startIdx - folders.length);
+  const fileEndIdx = fileStartIdx + (PAGE_SIZE - consumedByFolders);
+  const visibleFiles =
+    startIdx + consumedByFolders >= folders.length
+      ? (files ?? []).slice(fileStartIdx, fileEndIdx)
+      : [];
   const isLoading = filesLoading || foldersLoading;
   const isEmpty = !isLoading && !totalCount;
   const bulkPending =
@@ -351,7 +367,7 @@ export default function TrashPage() {
 
           {viewMode === "grid" ? (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
-              {folders.map((folder) => (
+              {visibleFolders.map((folder) => (
                 <TrashFolderCard
                   key={folder.id}
                   folder={folder}
@@ -363,7 +379,7 @@ export default function TrashPage() {
                   onDelete={() => setFolderToDelete(folder)}
                 />
               ))}
-              {files?.map((file) => (
+              {visibleFiles.map((file) => (
                 <TrashFileCard
                   key={file.id}
                   file={file}
@@ -383,7 +399,7 @@ export default function TrashPage() {
             </div>
           ) : (
             <div className="space-y-1">
-              {folders.map((folder) => (
+              {visibleFolders.map((folder) => (
                 <TrashFolderRow
                   key={folder.id}
                   folder={folder}
@@ -395,7 +411,7 @@ export default function TrashPage() {
                   onDelete={() => setFolderToDelete(folder)}
                 />
               ))}
-              {files?.map((file) => (
+              {visibleFiles.map((file) => (
                 <TrashFileRow
                   key={file.id}
                   file={file}
@@ -414,6 +430,17 @@ export default function TrashPage() {
               ))}
             </div>
           )}
+
+          <Pagination
+            page={safePage}
+            pageCount={pageCount}
+            onPageChange={(p) => {
+              setPage(p);
+              if (typeof window !== "undefined") {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }
+            }}
+          />
         </>
       )}
 
