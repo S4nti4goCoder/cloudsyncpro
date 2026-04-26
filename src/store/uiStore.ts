@@ -1,12 +1,16 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+type ViewMode = 'grid' | 'list'
+
 interface UIState {
   sidebarCollapsed: boolean
   mobileSidebarOpen: boolean
   theme: 'light' | 'dark' | 'system'
   notificationsInApp: boolean
   notificationsEmail: boolean
+  filesViewMode: ViewMode
+  trashViewMode: ViewMode
 }
 
 interface UIActions {
@@ -16,6 +20,8 @@ interface UIActions {
   setTheme: (theme: 'light' | 'dark' | 'system') => void
   setNotificationsInApp: (enabled: boolean) => void
   setNotificationsEmail: (enabled: boolean) => void
+  setFilesViewMode: (mode: ViewMode) => void
+  setTrashViewMode: (mode: ViewMode) => void
 }
 
 type UIStore = UIState & UIActions
@@ -28,6 +34,8 @@ export const useUIStore = create<UIStore>()(
       theme: 'system',
       notificationsInApp: true,
       notificationsEmail: false,
+      filesViewMode: 'grid',
+      trashViewMode: 'list',
 
       toggleSidebar: () =>
         set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
@@ -37,6 +45,8 @@ export const useUIStore = create<UIStore>()(
       setTheme: (theme) => set({ theme }),
       setNotificationsInApp: (enabled) => set({ notificationsInApp: enabled }),
       setNotificationsEmail: (enabled) => set({ notificationsEmail: enabled }),
+      setFilesViewMode: (mode) => set({ filesViewMode: mode }),
+      setTrashViewMode: (mode) => set({ trashViewMode: mode }),
     }),
     {
       name: 'ui-store',
@@ -45,6 +55,8 @@ export const useUIStore = create<UIStore>()(
         theme: state.theme,
         notificationsInApp: state.notificationsInApp,
         notificationsEmail: state.notificationsEmail,
+        filesViewMode: state.filesViewMode,
+        trashViewMode: state.trashViewMode,
       }),
     }
   )

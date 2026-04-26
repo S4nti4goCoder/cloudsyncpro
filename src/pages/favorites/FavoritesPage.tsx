@@ -21,11 +21,13 @@ import { formatFileSize, getFileColor } from "@/utils/fileUtils";
 import { folderColorFromMetadata, getFolderColorClasses } from "@/utils/folderColors";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pagination } from "@/components/shared/Pagination";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import type { FileRecord, Folder as FolderType } from "@/types/authTypes";
 
 const PAGE_SIZE = 6;
 
 export default function FavoritesPage() {
+  usePageTitle("Favoritos");
   const navigate = useNavigate();
   const { activeWorkspaceId } = useWorkspaceStore();
   const { data: workspaces } = useWorkspaces();

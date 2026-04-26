@@ -28,6 +28,7 @@ import {
   Legend,
 } from "recharts";
 import { useWorkspaceStore, getActiveWorkspace } from "@/store/workspaceStore";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
 import {
   useWorkspaceStats,
@@ -51,6 +52,7 @@ const PIE_COLORS = {
 };
 
 export default function DashboardPage() {
+  usePageTitle("Dashboard");
   const navigate = useNavigate();
   const { activeWorkspaceId } = useWorkspaceStore();
   const { data: workspaces } = useWorkspaces();

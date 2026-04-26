@@ -18,10 +18,12 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { cn } from '@/lib/utils'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 const MIN_PASSWORD_LENGTH = 6
 
 export default function ProfilePage() {
+  usePageTitle('Mi perfil')
   const user = useAuthStore((s) => s.user)
   const profile = useAuthStore((s) => s.profile)
 

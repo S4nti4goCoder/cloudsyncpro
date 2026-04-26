@@ -22,6 +22,7 @@ import { shareService } from '@/services/shareService'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { Pagination } from '@/components/shared/Pagination'
 import { Skeleton } from '@/components/ui/skeleton'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 const PAGE_SIZE = 6
 import { cn } from '@/lib/utils'
@@ -39,6 +40,7 @@ type InboundShare = FileShare & {
 type Tab = 'mine' | 'with-me'
 
 export default function SharedPage() {
+  usePageTitle('Compartidos')
   const [tab, setTab] = useState<Tab>('mine')
 
   return (

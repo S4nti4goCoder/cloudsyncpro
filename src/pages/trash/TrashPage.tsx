@@ -22,6 +22,8 @@ import {
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useWorkspaceStore, getActiveWorkspace } from "@/store/workspaceStore";
+import { useUIStore } from "@/store/uiStore";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
 import {
   useDeletedFiles,
@@ -50,6 +52,7 @@ const PAGE_SIZE = 6;
 type ViewMode = "grid" | "list";
 
 export default function TrashPage() {
+  usePageTitle("Papelera");
   const { activeWorkspaceId } = useWorkspaceStore();
   const { data: workspaces } = useWorkspaces();
   const activeWorkspace = getActiveWorkspace(
@@ -126,7 +129,8 @@ export default function TrashPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showBulkDelete, setShowBulkDelete] = useState(false);
   const [showEmptyTrash, setShowEmptyTrash] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const viewMode = useUIStore((s) => s.trashViewMode);
+  const setViewMode = useUIStore((s) => s.setTrashViewMode);
   const [page, setPage] = useState(1);
 
   const folderIdSet = useMemo(

@@ -19,6 +19,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Pagination } from "@/components/shared/Pagination";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { cn } from "@/lib/utils";
 import { ACTION_CONFIG, renderActionIcon, groupByDay } from "@/utils/activityUtils";
 import type { ActivityAction } from "@/types/authTypes";
@@ -27,6 +28,7 @@ import type { ActivityWithUser } from "@/services/activityService";
 const PAGE_SIZE = 6;
 
 export default function ActivityPage() {
+  usePageTitle("Actividad");
   const { activeWorkspaceId } = useWorkspaceStore();
   const { data: workspaces } = useWorkspaces();
   const activeWorkspace = getActiveWorkspace(

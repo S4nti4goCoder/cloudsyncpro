@@ -11,8 +11,10 @@ import { useAuthStore } from '@/store/authStore'
 import { useDeleteAccount } from '@/hooks/useProfile'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 export default function SettingsPage() {
+  usePageTitle('Configuración')
   return (
     <div className="max-w-2xl space-y-8 animate-fade-in">
       <div>

@@ -34,6 +34,8 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useWorkspaceStore, getActiveWorkspace } from "@/store/workspaceStore";
 import { useAuthStore } from "@/store/authStore";
+import { useUIStore } from "@/store/uiStore";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
 import {
   useFolders,
@@ -85,8 +87,10 @@ import type { Folder as FolderType, FileRecord } from "@/types/authTypes";
 type ViewMode = "grid" | "list";
 
 export default function FilesPage() {
+  usePageTitle("Mis archivos");
   const [searchParams, setSearchParams] = useSearchParams();
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const viewMode = useUIStore((s) => s.filesViewMode);
+  const setViewMode = useUIStore((s) => s.setFilesViewMode);
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showUploadFolderModal, setShowUploadFolderModal] = useState(false);

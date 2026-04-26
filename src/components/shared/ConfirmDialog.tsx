@@ -1,3 +1,4 @@
+import { useRef, useEffect } from 'react'
 import { Loader2, AlertTriangle } from 'lucide-react'
 import {
   Dialog,
@@ -34,10 +35,27 @@ export function ConfirmDialog({
   icon,
 }: ConfirmDialogProps) {
   const destructive = variant === 'destructive'
+  const confirmButtonRef = useRef<HTMLButtonElement>(null)
+
+  // Autofocus the confirm button so Enter triggers it
+  useEffect(() => {
+    if (!open) return
+    const t = setTimeout(() => confirmButtonRef.current?.focus(), 50)
+    return () => clearTimeout(t)
+  }, [open])
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && !isPending && onClose()}>
-      <DialogContent className="sm:max-w-md" showCloseButton={false}>
+      <DialogContent
+        className="sm:max-w-md"
+        showCloseButton={false}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !isPending) {
+            e.preventDefault()
+            onConfirm()
+          }
+        }}
+      >
         <DialogHeader>
           <div className="flex items-center gap-3 mb-1">
             <div
@@ -76,6 +94,7 @@ export function ConfirmDialog({
             {cancelLabel}
           </button>
           <button
+            ref={confirmButtonRef}
             type="button"
             onClick={onConfirm}
             disabled={isPending}

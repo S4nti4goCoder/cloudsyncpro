@@ -33,6 +33,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/types/authTypes";
 import type { WorkspaceMemberWithProfile } from "@/services/memberService";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const ROLES: UserRole[] = ["admin", "editor", "viewer"];
 
@@ -60,6 +61,7 @@ const ROLE_CONFIG: Record<string, { label: string; color: string; description: s
 };
 
 export default function MembersPage() {
+  usePageTitle("Miembros");
   const currentUserId = useAuthStore((s) => s.user?.id);
   const { activeWorkspaceId } = useWorkspaceStore();
   const { data: workspaces } = useWorkspaces();

@@ -25,11 +25,13 @@ import { cn } from "@/lib/utils";
 import { formatFileSize, getFileColor } from "@/utils/fileUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pagination } from "@/components/shared/Pagination";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import type { FileRecord } from "@/types/authTypes";
 
 const PAGE_SIZE = 6;
 
 export default function ArchivedPage() {
+  usePageTitle("Archivados");
   const { activeWorkspaceId } = useWorkspaceStore();
   const { data: workspaces } = useWorkspaces();
   const activeWorkspace = getActiveWorkspace(

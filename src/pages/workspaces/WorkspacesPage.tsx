@@ -27,8 +27,10 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Workspace } from '@/types/authTypes'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 export default function WorkspacesPage() {
+  usePageTitle('Espacios de trabajo')
   const navigate = useNavigate()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [workspaceToDelete, setWorkspaceToDelete] = useState<Workspace | null>(null)

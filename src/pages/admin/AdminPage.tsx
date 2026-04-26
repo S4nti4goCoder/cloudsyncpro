@@ -17,6 +17,7 @@ import { formatFileSize } from '@/utils/fileUtils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Pagination } from '@/components/shared/Pagination'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 const PAGE_SIZE = 6
 import {
@@ -38,6 +39,7 @@ const ROLE_COLORS: Record<Role, string> = {
 }
 
 export default function AdminPage() {
+  usePageTitle('Administración')
   const navigate = useNavigate()
   const profile = useAuthStore((s) => s.profile)
   const currentUserId = useAuthStore((s) => s.user?.id)

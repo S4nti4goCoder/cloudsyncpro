@@ -5,8 +5,10 @@ import { Eye, EyeOff, Loader2, ArrowRight, Lock, Mail } from 'lucide-react'
 import { authService } from '@/services/authService'
 import { cn } from '@/lib/utils'
 import { isValidEmail } from '@/utils/validation'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 export default function LoginPage() {
+  usePageTitle('Iniciar sesión')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)

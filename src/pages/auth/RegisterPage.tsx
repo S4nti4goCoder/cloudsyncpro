@@ -14,6 +14,7 @@ import {
 import { authService } from "@/services/authService";
 import { cn } from "@/lib/utils";
 import { isValidEmail, getPasswordError } from "@/utils/validation";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type RegisterErrors = {
   fullName?: string;
@@ -22,6 +23,7 @@ type RegisterErrors = {
 };
 
 export default function RegisterPage() {
+  usePageTitle("Crear cuenta");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import { Cloud, Home, ArrowLeft } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function NotFoundPage() {
+  usePageTitle("Página no encontrada");
   const isAuthenticated = useAuthStore((s) => s.user !== null);
   const homeHref = isAuthenticated ? "/dashboard" : "/login";
 

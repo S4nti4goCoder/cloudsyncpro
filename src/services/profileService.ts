@@ -25,7 +25,9 @@ export const profileService = {
   },
 
   /**
-   * Upload avatar to Supabase Storage and update profile.avatar_url
+   * Upload avatar to Supabase Storage and update profile.avatar_url.
+   * Removes any previous avatars in the user's folder first to avoid
+   * orphaned blobs (different extensions create different paths).
    */
   async uploadAvatar(userId: string, file: File): Promise<UserProfile> {
     if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
@@ -37,6 +39,21 @@ export const profileService = {
 
     const ext = file.name.includes('.') ? file.name.split('.').pop() : 'png'
     const path = `${userId}/avatar.${ext}`
+
+    // Clean stale avatars from the user's folder (any extension other than the
+    // new one). Skip the new path so a same-extension upload doesn't fight with
+    // upsert semantics.
+    const { data: existing } = await supabase.storage
+      .from(AVATAR_BUCKET)
+      .list(userId)
+
+    const stale = (existing ?? [])
+      .map((f) => `${userId}/${f.name}`)
+      .filter((p) => p !== path)
+
+    if (stale.length > 0) {
+      await supabase.storage.from(AVATAR_BUCKET).remove(stale)
+    }
 
     const { error: uploadError } = await supabase.storage
       .from(AVATAR_BUCKET)
