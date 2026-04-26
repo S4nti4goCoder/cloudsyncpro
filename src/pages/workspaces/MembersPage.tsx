@@ -308,7 +308,7 @@ export default function MembersPage() {
             setRemovingMember(null);
           }
         }}
-        onCancel={() => setRemovingMember(null)}
+        onClose={() => setRemovingMember(null)}
       />
     </div>
   );

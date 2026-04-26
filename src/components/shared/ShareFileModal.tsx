@@ -50,7 +50,7 @@ export function ShareFileModal({ file, open, onClose }: ShareFileModalProps) {
   const { mutate: createShare, isPending: creating } = useCreateShare(
     file?.id ?? "",
   );
-  const { mutate: deactivateShare } = useDeactivateShare(file?.id ?? "");
+  const { mutate: deactivateShare } = useDeactivateShare();
 
   function handleCreate() {
     createShare(

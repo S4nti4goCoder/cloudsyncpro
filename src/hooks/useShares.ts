@@ -57,7 +57,7 @@ export function useCreateShare(resourceId: string) {
   })
 }
 
-export function useDeactivateShare(resourceId?: string) {
+export function useDeactivateShare() {
   const queryClient = useQueryClient()
 
   return useMutation({
