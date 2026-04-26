@@ -17,6 +17,7 @@ export function AppShell({ children }: AppShellProps) {
       <Sidebar />
       <Header />
       <main
+        id="main-content"
         className={cn(
           'transition-all duration-300 pt-16',
           sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-64'

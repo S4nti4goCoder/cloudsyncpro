@@ -1,0 +1,19 @@
+{
+  "name": "CloudSyncPro",
+  "short_name": "CloudSyncPro",
+  "description": "Almacenamiento, gestión y colaboración de archivos en la nube.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

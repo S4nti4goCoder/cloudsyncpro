@@ -9,7 +9,7 @@ export default function NotFoundPage() {
   const homeHref = isAuthenticated ? "/dashboard" : "/login";
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-8 animate-fade-in">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-8 animate-fade-in">
       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 mb-6">
         <Cloud className="h-6 w-6 text-primary" />
       </div>
@@ -42,6 +42,6 @@ export default function NotFoundPage() {
           {isAuthenticated ? "Ir al dashboard" : "Ir al login"}
         </Link>
       </div>
-    </div>
+    </main>
   );
 }

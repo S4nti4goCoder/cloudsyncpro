@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0f172a" />
     <meta name="description" content="CloudSyncPro — almacenamiento en la nube, gestión y colaboración de archivos en equipo, con permisos granulares y auditoría de actividad." />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
@@ -20,9 +22,36 @@
     <meta name="twitter:description" content="Almacenamiento, gestión y colaboración de archivos en la nube." />
 
     <title>CloudSyncPro</title>
+
+    <style>
+      /* Inline splash to improve FCP/LCP — visible until React hydrates. */
+      html, body { margin: 0; height: 100%; background: #ffffff; }
+      @media (prefers-color-scheme: dark) {
+        html, body { background: #0f172a; }
+      }
+      #app-splash {
+        position: fixed; inset: 0;
+        display: flex; align-items: center; justify-content: center;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        color: #64748b;
+      }
+      #app-splash .ring {
+        width: 32px; height: 32px;
+        border: 3px solid #e2e8f0;
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        animation: spin .8s linear infinite;
+      }
+      @media (prefers-color-scheme: dark) {
+        #app-splash .ring { border-color: #1e293b; border-top-color: #3b82f6; }
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="app-splash"><div class="ring" role="status" aria-label="Cargando"></div></div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

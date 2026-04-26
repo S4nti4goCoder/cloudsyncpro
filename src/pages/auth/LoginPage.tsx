@@ -122,7 +122,7 @@ export default function LoginPage() {
       </div>
 
       {/* Panel derecho */}
-      <div className="flex flex-1 flex-col items-center justify-center px-4 sm:px-6 md:px-8 py-8 sm:py-12">
+      <main className="flex flex-1 flex-col items-center justify-center px-4 sm:px-6 md:px-8 py-8 sm:py-12">
         <div className="w-full max-w-100 animate-fade-in">
           {/* Mobile logo */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
@@ -169,7 +169,7 @@ export default function LoginPage() {
           {/* Divider */}
           <div className="flex items-center gap-3 my-6">
             <div className="h-px flex-1 bg-gray-100" />
-            <span className="text-xs text-gray-400 font-medium">O continúa con email</span>
+            <span className="text-xs text-gray-500 font-medium">O continúa con email</span>
             <div className="h-px flex-1 bg-gray-100" />
           </div>
 
@@ -248,7 +248,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                   aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -292,7 +292,7 @@ export default function LoginPage() {
             </Link>
           </p>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

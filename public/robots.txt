@@ -1,0 +1,27 @@
+# CloudSyncPro — robots.txt
+# All app routes require authentication, so block them from indexing.
+# Only marketing/auth pages are crawlable.
+
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /register
+
+# Block all authenticated routes
+Disallow: /dashboard
+Disallow: /files
+Disallow: /favorites
+Disallow: /shared/
+Disallow: /workspaces
+Disallow: /activity
+Disallow: /archived
+Disallow: /trash
+Disallow: /members
+Disallow: /admin
+Disallow: /settings
+Disallow: /notifications
+
+# Public share links — let them be indexed since they're public by design.
+# (No Allow needed; not under any Disallow rule.)
+
+Sitemap: https://your-domain.com/sitemap.xml
