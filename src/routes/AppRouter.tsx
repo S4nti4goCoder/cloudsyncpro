@@ -5,6 +5,8 @@ import { AppShell } from "@/components/layout/AppShell";
 
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage"));
+const ForgotPasswordPage = lazy(() => import("@/pages/auth/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("@/pages/auth/ResetPasswordPage"));
 const WorkspacesPage = lazy(() => import("@/pages/workspaces/WorkspacesPage"));
 const FilesPage = lazy(() => import("@/pages/files/FilesPage"));
 const SharedFilePage = lazy(() => import("@/pages/shared/SharedFilePage"));
@@ -85,6 +87,17 @@ export function AppRoutes() {
             </PublicRoute>
           }
         />
+        <Route
+          path="/forgot-password"
+          element={
+            <PublicRoute>
+              <ForgotPasswordPage />
+            </PublicRoute>
+          }
+        />
+        {/* Reset password — no PublicRoute wrapper because user has a temp
+            recovery session and PublicRoute would redirect them to /dashboard. */}
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Shared file — no auth required */}
         <Route path="/shared/:token" element={<SharedFilePage />} />
