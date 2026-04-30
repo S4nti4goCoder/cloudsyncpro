@@ -200,7 +200,3 @@ supabase/
 - **Inline splash**: CSS-only spinner in `index.html` for faster perceived FCP
 - **A11y**: 100/100 Lighthouse on login (contrast, touch targets, landmarks)
 - **SEO**: 100/100 (robots.txt, sitemap, OG/Twitter meta, dynamic page titles)
-
-## License
-
-Private / TBD.
