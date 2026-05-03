@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AlertTriangle, RotateCw } from "lucide-react";
+import { captureError } from "@/lib/sentry";
 
 interface Props {
   children: ReactNode;
@@ -22,6 +23,7 @@ export class ErrorBoundary extends Component<Props, State> {
       // eslint-disable-next-line no-console
       console.error("ErrorBoundary caught:", error, info);
     }
+    captureError(error, { componentStack: info.componentStack });
   }
 
   handleReset = () => {

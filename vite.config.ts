@@ -25,6 +25,10 @@ export default defineConfig({
           if (id.includes('node_modules/date-fns')) {
             return 'dates'
           }
+          // Sentry — separate chunk so it doesn't affect FCP.
+          if (id.includes('node_modules/@sentry')) {
+            return 'sentry'
+          }
           return undefined
         },
       },

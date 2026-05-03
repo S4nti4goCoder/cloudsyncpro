@@ -1,9 +1,24 @@
-import { QueryClient } from '@tanstack/react-query'
+import { QueryClient, QueryCache, MutationCache } from '@tanstack/react-query'
+import { captureError } from '@/lib/sentry'
 
 /**
  * Global React Query client with sensible defaults for CloudSyncPro.
+ *
+ * QueryCache and MutationCache forward unhandled errors to Sentry.
+ * Errors that components handle locally (via mutation onError) still
+ * reach Sentry — that's intentional, so we know what's failing in prod.
  */
 export const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error, query) => {
+      captureError(error, { queryKey: query.queryKey });
+    },
+  }),
+  mutationCache: new MutationCache({
+    onError: (error, _vars, _ctx, mutation) => {
+      captureError(error, { mutationKey: mutation.options.mutationKey });
+    },
+  }),
   defaultOptions: {
     queries: {
       // Data is considered fresh for 1 minute

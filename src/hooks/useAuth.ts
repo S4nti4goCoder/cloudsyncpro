@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
+import { setSentryUser } from "@/lib/sentry";
 import type { UserProfile } from "@/types/authTypes";
 
 async function fetchProfile(userId: string): Promise<UserProfile | null> {
@@ -29,6 +30,13 @@ export function useAuthInitializer(): void {
       store.setUser(session?.user ?? null);
       store.setIsLoading(false);
       store.setIsInitialized(true);
+
+      // Identify user in Sentry (no-op if Sentry isn't configured)
+      setSentryUser(
+        session?.user
+          ? { id: session.user.id, email: session.user.email }
+          : null,
+      );
 
       // Fetch profile in background without blocking
       if (session?.user) {
