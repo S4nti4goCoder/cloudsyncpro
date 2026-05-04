@@ -1,5 +1,4 @@
 import { useUIStore } from '@/store/uiStore'
-import { useTheme } from '@/hooks/useTheme'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { cn } from '@/lib/utils'
@@ -9,7 +8,6 @@ interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
-  useTheme() // Initialize theme
   const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed)
 
   return (
