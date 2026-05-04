@@ -2,6 +2,53 @@
 
 Cloud file storage and team collaboration platform — inspired by Google Drive and Dropbox. Built with React + Vite + TypeScript, Supabase, and Cloudflare R2.
 
+## Screenshots
+
+### Dashboard
+
+![Dashboard](screenshots/desktop/03-dashboard.png)
+
+### Files
+
+![Files](screenshots/desktop/04-files-grid.png)
+
+### Activity timeline
+
+![Activity](screenshots/desktop/05-activity.png)
+
+### Members & roles
+
+![Members](screenshots/desktop/06-members.png)
+
+### Admin panel
+
+![Admin](screenshots/desktop/11-admin.png)
+
+### Auth
+
+| Login | Register |
+|---|---|
+| ![Login](screenshots/desktop/01-login.png) | ![Register](screenshots/desktop/02-register.png) |
+
+### Mobile responsive
+
+| Dashboard | Files | Sidebar drawer | Members |
+|---|---|---|---|
+| ![Mobile dashboard](screenshots/mobile/01-dashboard.png) | ![Mobile files](screenshots/mobile/02-files.png) | ![Sidebar](screenshots/mobile/03-sidebar-drawer.png) | ![Mobile members](screenshots/mobile/04-members.png) |
+
+<details>
+<summary>More screenshots</summary>
+
+| Workspaces | Shared | Trash | Archived |
+|---|---|---|---|
+| ![Workspaces](screenshots/desktop/07-workspaces.png) | ![Shared](screenshots/desktop/08-shared.png) | ![Trash](screenshots/desktop/09-trash.png) | ![Archived](screenshots/desktop/10-archived.png) |
+
+| Profile | Notifications | 404 |
+|---|---|---|
+| ![Profile](screenshots/desktop/12-profile.png) | ![Notifications](screenshots/desktop/13-notifications.png) | ![404](screenshots/desktop/14-not-found.png) |
+
+</details>
+
 ## Stack
 
 | Layer | Technology |
